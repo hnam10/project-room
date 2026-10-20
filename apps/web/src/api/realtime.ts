@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RealtimeEvent, ServerMessage } from '@project-room/shared';
 
 export type ConnectionState = 'connecting' | 'online' | 'offline';
@@ -16,7 +16,9 @@ export function useRealtime(
 ): ConnectionState {
   const [state, setState] = useState<ConnectionState>('connecting');
   const handlers = useRef({ onEvent, onReconnect });
-  handlers.current = { onEvent, onReconnect };
+  useLayoutEffect(() => {
+    handlers.current = { onEvent, onReconnect };
+  });
 
   useEffect(() => {
     if (!projectId) return;

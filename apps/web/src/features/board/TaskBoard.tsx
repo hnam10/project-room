@@ -7,7 +7,10 @@ import { api } from '../../api/client';
 import { columnOf, columnsFor, patchForColumn, type GroupBy } from './groups';
 import { TaskCard } from './TaskCard';
 
-export function TaskBoard(props: {
+export function TaskBoard({
+  boardRef,
+  ...props
+}: {
   boardRef?: React.Ref<HTMLElement>;
   tasks: Task[];
   groupBy: GroupBy;
@@ -36,7 +39,7 @@ export function TaskBoard(props: {
   };
 
   return (
-    <section ref={props.boardRef} className="board" aria-label="Task board">
+    <section ref={boardRef} className="board" aria-label="Task board">
       {columns.map((col) => {
         const items = props.tasks.filter((t) => columnOf(t, props.groupBy) === col.id);
         return (
@@ -65,7 +68,12 @@ export function TaskBoard(props: {
             <div className="column-body">
               {items.length ? (
                 items.map((t) => (
-                  <TaskCard key={t.id} task={t} assignee={t.assigneeId ? members.get(t.assigneeId) : undefined} onOpen={() => props.onOpenTask(t)} />
+                  <TaskCard
+                    key={t.id}
+                    task={t}
+                    assignee={t.assigneeId ? members.get(t.assigneeId) : undefined}
+                    onOpen={() => props.onOpenTask(t)}
+                  />
                 ))
               ) : (
                 <div className="column-empty">{props.emptyText}</div>

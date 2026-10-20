@@ -91,13 +91,19 @@ function InsightCard({ suggestion, onOpenDecisions }: { suggestion: Suggestion; 
             <button
               className="btn primary sm"
               disabled={busy || !assigneeId}
-              onClick={() => act(() => api.approveSuggestion(projectId, suggestion.id, { assigneeId }), `Assigned to ${members.get(assigneeId)?.name}`)}
+              onClick={() =>
+                act(() => api.approveSuggestion(projectId, suggestion.id, { assigneeId }), `Assigned to ${members.get(assigneeId)?.name}`)
+              }
             >
               Assign owner
             </button>
           </>
         )}
-        <button className="btn sm" disabled={busy} onClick={() => act(() => api.dismissSuggestion(projectId, suggestion.id), 'Suggestion dismissed')}>
+        <button
+          className="btn sm"
+          disabled={busy}
+          onClick={() => act(() => api.dismissSuggestion(projectId, suggestion.id), 'Suggestion dismissed')}
+        >
           Dismiss
         </button>
       </div>

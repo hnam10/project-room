@@ -34,7 +34,10 @@ export async function toggleVote(projectId: string, ideaId: string, memberId: st
 }
 
 export async function linkIdeaToTask(ideaId: string, taskId: string): Promise<Idea> {
-  const idea = await queryOne<Idea>('UPDATE ONLY $id SET taskId = $task RETURN AFTER', { id: rid('idea', ideaId), task: rid('task', taskId) });
+  const idea = await queryOne<Idea>('UPDATE ONLY $id SET taskId = $task RETURN AFTER', {
+    id: rid('idea', ideaId),
+    task: rid('task', taskId),
+  });
   if (!idea) throw new NotFoundError('Idea');
   return idea;
 }

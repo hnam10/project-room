@@ -72,7 +72,11 @@ export function Dock({ boardRef }: { boardRef: React.RefObject<HTMLElement | nul
         {!layout.brainstormClosed && (
           <BrainstormPanel
             headerActions={
-              <button className="icon-btn close-panel" aria-label="Close brainstorm panel" onClick={() => update({ brainstormClosed: true })}>
+              <button
+                className="icon-btn close-panel"
+                aria-label="Close brainstorm panel"
+                onClick={() => update({ brainstormClosed: true })}
+              >
                 <Icon name="x" />
               </button>
             }

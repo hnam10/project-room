@@ -16,10 +16,22 @@ export function App() {
         <Route path="chat" element={<ChatPage />} />
         <Route path="brainstorm" element={<BrainstormPage />} />
         <Route path="decisions" element={<DecisionsPage />} />
-        <Route path="calendar" element={<PlaceholderPage icon="calendar" title="Calendar" text="Deadlines and meetings will live here. Not built yet." />} />
-        <Route path="files" element={<PlaceholderPage icon="file" title="Files" text="Shared project files will live here. Uploads aren’t built yet." />} />
-        <Route path="overview" element={<PlaceholderPage icon="tasks" title="Overview" text="A project summary dashboard is planned for a later iteration." />} />
-        <Route path="team" element={<PlaceholderPage icon="users" title="Team" text="Member roles and workload will live here. Not built yet." />} />
+        <Route
+          path="calendar"
+          element={<PlaceholderPage icon="calendar" title="Calendar" text="Deadlines and meetings will live here. Not built yet." />}
+        />
+        <Route
+          path="files"
+          element={<PlaceholderPage icon="file" title="Files" text="Shared project files will live here. Uploads aren’t built yet." />}
+        />
+        <Route
+          path="overview"
+          element={<PlaceholderPage icon="tasks" title="Overview" text="A project summary dashboard is planned for a later iteration." />}
+        />
+        <Route
+          path="team"
+          element={<PlaceholderPage icon="users" title="Team" text="Member roles and workload will live here. Not built yet." />}
+        />
         <Route path="settings" element={<PlaceholderPage icon="settings" title="Settings" text="Project settings aren’t built yet." />} />
         <Route path="*" element={<PlaceholderPage icon="alert" title="Page not found" text="That page doesn’t exist in this project." />} />
       </Route>
@@ -37,7 +49,9 @@ function Home() {
         <div>
           <h1>Can’t reach Project Room</h1>
           <p>{error}</p>
-          <p>Start everything with <code>npm run dev</code> from the repository root.</p>
+          <p>
+            Start everything with <code>npm run dev</code> from the repository root.
+          </p>
         </div>
       </div>
     );

@@ -19,9 +19,10 @@ export async function connectDb(url = config.surrealUrl): Promise<Surreal> {
   const filePath = url.match(/^(?:surrealkv|rocksdb)(?:\+versioned)?:\/\/(.+)$/)?.[1];
   if (filePath) await mkdir(path.dirname(path.resolve(filePath)), { recursive: true });
 
-  const remoteAuth = !isEmbedded && config.surrealUser && config.surrealPass
-    ? { authentication: { username: config.surrealUser, password: config.surrealPass } }
-    : {};
+  const remoteAuth =
+    !isEmbedded && config.surrealUser && config.surrealPass
+      ? { authentication: { username: config.surrealUser, password: config.surrealPass } }
+      : {};
   await instance.connect(url, { namespace: config.surrealNamespace, database: config.surrealDatabase, ...remoteAuth });
   await instance.use({ namespace: config.surrealNamespace, database: config.surrealDatabase });
   await applySchema(instance);

@@ -81,7 +81,10 @@ describe('workspace API', () => {
     });
     expect(created.status).toBe(201);
     expect(created.body.num).toBe(19);
-    const moved = await api<Task>(`/projects/hackathon/tasks/${created.body.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) });
+    const moved = await api<Task>(`/projects/hackathon/tasks/${created.body.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'done' }),
+    });
     expect(moved.body.status).toBe('done');
     expect((await api(`/projects/hackathon/tasks/${created.body.id}`, { method: 'DELETE' })).status).toBe(204);
   });
@@ -119,7 +122,10 @@ describe('workspace API', () => {
 
   it('requires an explicit assignee to approve a risk suggestion', async () => {
     expect((await api('/projects/hackathon/suggestions/s3/approve', { method: 'POST', body: '{}' })).status).toBe(409);
-    const ok = await api<Suggestion>('/projects/hackathon/suggestions/s3/approve', { method: 'POST', body: JSON.stringify({ assigneeId: 'morgan' }) });
+    const ok = await api<Suggestion>('/projects/hackathon/suggestions/s3/approve', {
+      method: 'POST',
+      body: JSON.stringify({ assigneeId: 'morgan' }),
+    });
     expect(ok.body.status).toBe('approved');
     const tasks = await api<Task[]>('/projects/hackathon/tasks');
     expect(tasks.body.find((t) => t.id === 't18')?.assigneeId).toBe('morgan');

@@ -11,7 +11,11 @@ export function DecisionsTab() {
   const { confirm, toastError } = useFeedback();
 
   const decide = async (id: string, title: string) => {
-    const ok = await confirm({ title: 'Mark as decided?', text: `“${title}” will be recorded as an official team decision.`, okLabel: 'Mark decided' });
+    const ok = await confirm({
+      title: 'Mark as decided?',
+      text: `“${title}” will be recorded as an official team decision.`,
+      okLabel: 'Mark decided',
+    });
     if (!ok) return;
     try {
       applyRecord('decision', await api.decide(projectId, id));
@@ -20,7 +24,9 @@ export function DecisionsTab() {
     }
   };
 
-  const sorted = [...decisions].sort((a, b) => (a.status === b.status ? b.createdAt.localeCompare(a.createdAt) : a.status === 'open' ? -1 : 1));
+  const sorted = [...decisions].sort((a, b) =>
+    a.status === b.status ? b.createdAt.localeCompare(a.createdAt) : a.status === 'open' ? -1 : 1,
+  );
 
   return (
     <div className="list-pad">
