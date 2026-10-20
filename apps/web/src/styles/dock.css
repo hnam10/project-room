@@ -1,0 +1,49 @@
+/* ---------- Dock (chat + brainstorm) ---------- */
+.resizer { position: relative; z-index: 5; flex: none; height: 9px; margin: -4px 0 -5px; cursor: row-resize; touch-action: none; }
+.resizer::after { content: ''; position: absolute; left: 0; right: 0; top: 3px; height: 3px; background: transparent; transition: background .15s; }
+.resizer:hover::after, .resizer:focus-visible::after, .resizer.dragging::after { background: var(--accent); }
+.resizer:focus-visible { outline: 0; }
+body.resizing { cursor: row-resize; user-select: none; }
+.dock { position: relative; flex: 0 0 var(--dock-h, 410px); display: flex; border-top: 1px solid var(--line); background: var(--surface); min-height: 0; }
+.dock > .chat-panel { flex: 0 0 var(--chat-w, 56%); }
+.dock > .brainstorm-panel { flex: 1; }
+.dock.brainstorm-closed > .chat-panel { flex: 1; }
+.dock.brainstorm-closed .brainstorm-panel,
+.dock.brainstorm-closed .split-resizer,
+.dock.chat-detached .split-resizer { display: none; }
+.dock.drop-target::after { content: 'Drop to dock chat here'; position: absolute; inset: 6px; display: grid; place-items: center; border: 2px dashed var(--accent); border-radius: 10px; background: rgba(239, 237, 255, .85); color: var(--accent); font-weight: 600; z-index: 30; pointer-events: none; }
+.panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.brainstorm-panel { border-left: 1px solid var(--line); }
+.split-resizer { position: relative; z-index: 5; flex: none; width: 9px; margin: 0 -5px 0 -4px; cursor: col-resize; touch-action: none; }
+.split-resizer::after { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 3px; transition: background .15s; }
+.split-resizer:hover::after, .split-resizer:focus-visible::after, .split-resizer.dragging::after { background: var(--accent); }
+.split-resizer:focus-visible { outline: 0; }
+body.col-resizing { cursor: col-resize; user-select: none; }
+body.moving-panel { cursor: grabbing; user-select: none; }
+.panel-tabs { display: flex; align-items: stretch; gap: 2px; height: 40px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.chat-tabs { padding-left: 4px; cursor: grab; touch-action: none; }
+.grip { display: grid; place-items: center; width: 18px; color: var(--line-strong); }
+.chat-tabs:hover .grip { color: var(--muted); }
+.panel-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.panel-actions .reopen { align-self: stretch; }
+.float-resize { display: none; }
+
+/* Detached (floating) chat */
+.chat-panel.floating { position: fixed; z-index: 40; display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); overflow: hidden; }
+.chat-panel.floating .chat-tabs { background: var(--bg); }
+.chat-panel.floating .float-resize { display: block; position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 50%, var(--line-strong) 50%, var(--line-strong) 60%, transparent 60%, transparent 72%, var(--line-strong) 72%, var(--line-strong) 82%, transparent 82%); }
+body.moving-panel .chat-panel.floating { box-shadow: 0 24px 60px rgba(20, 24, 40, .24); opacity: .96; }
+.panel-tab { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.panel-tab:hover { color: var(--ink); }
+.panel-tab.active { color: var(--ink); border-color: var(--accent); }
+.panel-tab.reopen { margin-left: auto; color: var(--accent); }
+.tab-count { min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: #fff; font-size: 10.5px; text-align: center; }
+.tab-count:empty { display: none; }
+.close-panel { margin: auto 0 auto auto; }
+.panel-body { flex: 1; overflow-y: auto; min-height: 0; }
+
+
+/* Chat in a Picture-in-Picture or popup window: the panel is the whole window */
+html.chat-window, html.chat-window body { height: 100%; margin: 0; background: var(--surface); }
+.chat-panel.window { height: 100vh; }
+.window-actions { display: flex; align-items: center; gap: 2px; }

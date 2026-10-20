@@ -1,0 +1,22 @@
+/* Brainstorm */
+.idea-head { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px 10px; }
+.idea-head h2 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 15px; color: var(--accent); }
+.idea-head p { margin: 2px 0 0; color: var(--muted); }
+.idea-head .select-btn { margin-left: auto; }
+.idea-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; padding: 0 16px 16px; }
+.idea { position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 118px; padding: 12px; border-radius: 8px; background: var(--paper); border: 1px solid rgba(0, 0, 0, .04); box-shadow: 0 1px 2px rgba(0, 0, 0, .06); }
+.idea h3 { margin: 0; font-size: 13px; line-height: 1.3; }
+.idea p { margin: 0; color: var(--ink-2); font-size: 12.5px; flex: 1; }
+.idea-foot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+.idea-foot .avatar { width: 20px; height: 20px; font-size: 9px; }
+.idea-foot .idea-meta { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; }
+.idea-foot button { display: inline-flex; align-items: center; gap: 3px; color: var(--ink-2); }
+.idea-foot button.voted { color: var(--accent); font-weight: 600; }
+.idea-foot .icon { width: 13px; height: 13px; }
+.idea-convert { position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: var(--surface); box-shadow: var(--shadow); font-size: 11.5px; font-weight: 500; opacity: 0; transition: opacity .15s; }
+.idea:hover .idea-convert, .idea-convert:focus-visible { opacity: 1; }
+.idea-converted { font-size: 11px; color: #127a4f; font-weight: 600; }
+.idea-add { display: grid; place-items: center; min-height: 118px; border: 1.5px dashed var(--line-strong); border-radius: 8px; color: var(--muted); }
+.idea-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-weak); }
+.idea-add span { display: inline-flex; align-items: center; gap: 6px; }
+

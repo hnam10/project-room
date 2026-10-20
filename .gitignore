@@ -147,3 +147,10 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local database files
+apps/api/data/
+
+# Build output
+packages/shared/dist/
+apps/*/dist/

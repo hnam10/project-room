@@ -22,4 +22,4 @@ const server = http.createServer((request, response) => {
   });
 });
 const port = Number(process.env.PORT || 4173);
-server.listen(port, '127.0.0.1', () => console.log(`Commonroom is available at http://127.0.0.1:${port}`));
+server.listen(port, '127.0.0.1', () => console.log(`Project Room is available at http://127.0.0.1:${port}`));
