@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Project Room</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <strong>Project Room</strong><span class="crumb-sep">/</span><span id="crumb-project">Hackathon 2026</span>
+      </div>
+      <nav class="top-tabs" aria-label="Workspace views">
+        <button class="top-tab" data-view="board">Board</button>
+        <button class="top-tab" data-view="calendar">Calendar</button>
+        <button class="top-tab" data-view="brainstorm">Brainstorm</button>
+        <button class="top-tab" data-view="files">Files</button>
+        <button class="top-tab" data-view="overview">Overview</button>
+      </nav>
+      <label class="search">
+        <span data-icon="search"></span>
+        <input id="search-input" type="search" placeholder="Search tasks…" autocomplete="off" />
+        <kbd>⌘K</kbd>
+      </label>
+      <div class="member-stack" id="member-stack" aria-label="Project members"></div>
+      <button class="icon-btn round" id="invite-button" aria-label="Invite member"><span data-icon="plus"></span></button>
+      <button class="btn primary" id="share-button"><span data-icon="plus"></span>Share</button>
+    </header>
+
+    <aside class="sidebar">
+      <button class="workspace-switch" id="workspace-switch">
+        <span class="workspace-icon">P</span><strong>Project Room</strong><span data-icon="chevron"></span>
+      </button>
+      <div class="project-list" id="project-list"></div>
+      <button class="side-link muted" id="new-project"><span data-icon="plus"></span>New Project</button>
+
+      <nav class="side-nav" aria-label="Main navigation">
+        <button class="side-link" data-view="board"><span data-icon="tasks"></span>Tasks</button>
+        <button class="side-link" data-view="calendar"><span data-icon="calendar"></span>Calendar</button>
+        <button class="side-link" data-view="brainstorm"><span data-icon="bulb"></span>Brainstorm</button>
+        <button class="side-link" data-view="files"><span data-icon="file"></span>Files</button>
+        <button class="side-link" data-view="team"><span data-icon="users"></span>Team</button>
+        <button class="side-link" data-view="settings"><span data-icon="settings"></span>Settings</button>
+      </nav>
+
+      <div class="side-section">
+        <span>Channels</span>
+        <button class="icon-btn small" id="add-channel" aria-label="Add channel"><span data-icon="plus"></span></button>
+      </div>
+      <div class="channel-list" id="channel-list"></div>
+    </aside>
+
+    <main class="main" id="main" data-view="board">
+      <section class="page-head">
+        <span class="page-emoji" aria-hidden="true">🚀</span>
+        <div class="page-title">
+          <h1>Hackathon 2026</h1>
+          <p>Build something amazing together.</p>
+        </div>
+        <div class="progress" id="progress"></div>
+        <div class="head-actions">
+          <label class="select-btn">
+            <span data-icon="filter"></span>
+            <select id="filter-select" aria-label="Filter by assignee"></select>
+          </label>
+          <label class="select-btn">
+            <span class="select-prefix">Group by:</span>
+            <select id="group-select" aria-label="Group tasks by">
+              <option value="status">Status</option>
+              <option value="priority">Priority</option>
+              <option value="assignee">Assignee</option>
+            </select>
+          </label>
+          <button class="btn primary" id="add-task-button"><span data-icon="plus"></span>Add Task</button>
+        </div>
+      </section>
+
+      <section class="board" id="board" aria-label="Task board"></section>
+
+      <section class="placeholder" id="placeholder" hidden></section>
+
+      <div class="resizer" id="dock-resizer" role="separator" aria-orientation="horizontal" aria-label="Resize chat panel" tabindex="0"></div>
+
+      <section class="dock" id="dock">
+        <div class="panel chat-panel" id="chat-panel">
+          <div class="panel-tabs" id="chat-tabs" role="tablist" title="Drag out to detach">
+            <span class="grip" aria-hidden="true"><span data-icon="grip"></span></span>
+            <button class="panel-tab" data-chat-tab="chat">Chat</button>
+            <button class="panel-tab" data-chat-tab="assistant">AI Assistant <span class="tab-count" id="insight-count"></span></button>
+            <button class="panel-tab" data-chat-tab="decisions">Decisions</button>
+            <div class="panel-actions">
+              <button class="panel-tab reopen" id="reopen-brainstorm" hidden><span data-icon="bulb"></span>Show brainstorm</button>
+              <button class="icon-btn" id="toggle-detach" aria-label="Detach chat"></button>
+            </div>
+          </div>
+          <div class="panel-body" id="chat-body"></div>
+          <form class="composer" id="composer">
+            <span data-icon="arrow"></span>
+            <input id="composer-input" maxlength="1000" autocomplete="off" placeholder="Message @team or @AI…" />
+            <button type="button" class="icon-btn round" id="attach-button" aria-label="Attach file"><span data-icon="plus"></span></button>
+            <button type="button" class="icon-btn" id="mention-ai" aria-label="Mention AI"><span data-icon="at"></span></button>
+            <button type="submit" class="send-btn" aria-label="Send message"><span data-icon="send"></span></button>
+          </form>
+          <span class="float-resize" id="float-resize" aria-hidden="true"></span>
+        </div>
+
+        <div class="split-resizer" id="split-resizer" role="separator" aria-orientation="vertical" aria-label="Resize chat and brainstorm" tabindex="0"></div>
+
+        <div class="panel brainstorm-panel" id="brainstorm-panel">
+          <div class="panel-tabs">
+            <button class="panel-tab" data-idea-tab="ideas">Brainstorm</button>
+            <button class="panel-tab" data-idea-tab="mindmap">Mind Map</button>
+            <button class="panel-tab" data-idea-tab="notes">Notes</button>
+            <button class="icon-btn close-panel" id="close-brainstorm" aria-label="Close brainstorm panel"><span data-icon="x"></span></button>
+          </div>
+          <div class="panel-body" id="idea-body"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <dialog class="modal" id="task-dialog">
+    <form method="dialog" id="task-form">
+      <div class="modal-head">
+        <h2 id="task-dialog-title">New task</h2>
+        <button class="icon-btn" value="cancel" aria-label="Close"><span data-icon="x"></span></button>
+      </div>
+      <label>Title<input id="task-title" required maxlength="100" placeholder="What needs to get done?" /></label>
+      <div class="form-row">
+        <label>Status<select id="task-status"></select></label>
+        <label>Priority<select id="task-priority"></select></label>
+      </div>
+      <div class="form-row">
+        <label>Assignee<select id="task-assignee"></select></label>
+        <label>Label<select id="task-label"></select></label>
+      </div>
+      <label>Due date<input id="task-due" type="date" /></label>
+      <div class="modal-actions">
+        <button type="button" class="btn danger-ghost" id="delete-task-button"><span data-icon="trash"></span>Delete</button>
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" id="save-task-button" value="save">Save task</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="idea-dialog">
+    <form method="dialog" id="idea-form">
+      <div class="modal-head">
+        <h2>Add idea</h2>
+        <button class="icon-btn" value="cancel" aria-label="Close"><span data-icon="x"></span></button>
+      </div>
+      <label>Idea<input id="idea-title" required maxlength="80" placeholder="What if we…" /></label>
+      <label>Details<textarea id="idea-desc" rows="3" maxlength="240" placeholder="What problem does it solve?"></textarea></label>
+      <label>Theme<select id="idea-theme"></select></label>
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" id="save-idea-button" value="save">Add idea</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal wide" id="actions-dialog">
+    <form method="dialog" id="actions-form">
+      <div class="modal-head">
+        <div>
+          <span class="eyebrow">AI suggestion</span>
+          <h2>Review action items</h2>
+        </div>
+        <button class="icon-btn" value="cancel" aria-label="Close"><span data-icon="x"></span></button>
+      </div>
+      <p class="modal-note">Nothing is added to the board until you confirm. Uncheck items you don't want.</p>
+      <div class="action-rows" id="action-rows"></div>
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" id="save-actions-button" value="save">Save changes</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="confirm-dialog">
+    <form method="dialog">
+      <div class="modal-head"><h2 id="confirm-title">Are you sure?</h2></div>
+      <p class="modal-note" id="confirm-text"></p>
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" id="confirm-ok" value="ok">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

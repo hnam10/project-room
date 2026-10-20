@@ -1,25 +1,58 @@
-# Commonroom — AI-powered project workspace
+# Project Room
 
-A dependency-free MVP for moving team work from conversation to action. It includes a shared project room, a task board, an idea board, and a review queue for AI suggestions.
+An AI-powered collaborative workspace for student and hackathon teams. Chat, a task board and a
+brainstorming board are connected by an AI action engine that turns conversation into suggested
+tasks, open decisions and risks. The team reviews and approves each suggestion before anything changes.
 
-## Run locally
+## Quick start
 
-Requires Node.js 18 or newer. From the project folder, run:
+Requires Node.js 22.9 or newer (`nvm use` reads `.nvmrc`). No database install is needed.
 
 ```sh
-npm start
+npm install
+npm run dev
 ```
 
-Open <http://127.0.0.1:4173> in your browser. The app has no install step and saves changes in that browser using `localStorage`. To reset the demo to its original sample data, clear the site's local storage.
+Open <http://localhost:5173>. The API runs on :4000, with an embedded SurrealDB in `apps/api/data/`.
+On first start it loads a demo project, "Hackathon 2026".
 
-## MVP behavior
+Try it:
 
-- Send team messages; the mock assistant follows the conversation and surfaces possible tasks or open decisions in AI insights.
-- Review, edit, approve, or dismiss task suggestions. Approval creates a task and moves the view to the task board.
-- Create, edit, assign, prioritize, move, and delete tasks. Convert ideas into tasks.
-- Add and vote on ideas, and filter them by theme.
-- Project content is shared within this browser profile only. There is no account, multi-user sync, invitation, upload, or server-side persistence yet.
+1. In chat, write something like `I'll build the pitch deck. We still need to book a room. @AI tasks?`
+2. Review the proposed action items, then choose **Add to Board**. The tasks appear in **To Do**.
+3. Open the app in a second browser window. Changes appear live in both.
+4. Drag the chat header out of the dock to float it, or use the window button to open it in its own window.
 
-## AI integration
+| Command | |
+| --- | --- |
+| `npm run dev` | API + web with reload |
+| `npm test` | API tests (AI rules, HTTP + realtime flow) |
+| `npm run typecheck` | TypeScript, all packages |
+| `npm run build` | Production build |
+| `npm run db:seed` | Reset the local database to the demo data (stop `dev` first) |
 
-The current assistant is an explicit local mock adapter in `app.js`: it uses simple phrase matching and canned replies, and does not call an AI provider or send project data anywhere. To enable a real provider, add a server-side endpoint and credentials in environment variables, then replace `detectInsight` / `mockReply` with a provider adapter. Keep credentials out of browser code and preserve the approval step for consequential actions.
+Configuration lives in `apps/api/.env`. Copy `apps/api/.env.example` to start.
+
+## Status
+
+- **AI:** it's a local mock (rule-based, no external calls) and is labelled as such in the UI.
+  A real model plugs in behind `AiProvider` in `apps/api/src/ai/`.
+- **Login:** there isn't one yet. Pick who you are with "Acting as" in the sidebar. This is for
+  development only.
+- **Placeholders:** Calendar, Files, Overview, Team and Settings are labelled placeholders.
+
+## Docs
+
+- [AGENTS.md](AGENTS.md): how to work in this repo. It's written for AI coding agents and the people directing them.
+- [docs/PRODUCT_BRIEF.md](docs/PRODUCT_BRIEF.md): what we're building and why.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how it fits together.
+- [docs/PROGRESS.md](docs/PROGRESS.md): what's done, what's next, and the decision log.
+
+## Working with AI assistants
+
+Using Claude Code, Codex, Cursor or similar? Pull `main` and start the session with:
+
+> Read AGENTS.md and docs/PROGRESS.md, then continue with the next task.
+
+In Claude Code you can also run `/continue-build`. Before you finish, the agent updates
+`docs/PROGRESS.md`, so the next person (or agent) can pick up where you stopped.

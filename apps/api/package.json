@@ -1,0 +1,29 @@
+{
+  "name": "@project-room/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --conditions=development --env-file-if-exists=.env src/index.ts",
+    "build": "tsc -p tsconfig.json && cp src/db/schema.surql dist/db/",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seed": "tsx --conditions=development --env-file-if-exists=.env src/db/seed.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@project-room/shared": "0.1.0",
+    "@surrealdb/node": "^3.1.0",
+    "express": "^5.3.0",
+    "surrealdb": "^2.1.1",
+    "ws": "^8.22.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.5"
+  }
+}

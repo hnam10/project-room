@@ -1,20 +1,30 @@
 {
   "name": "project-room",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered collaborative workspace: chat, task board and brainstorming connected by an AI action engine.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "start": "node server.js"
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm run dev -w @project-room/api\" \"npm run dev -w @project-room/web\"",
+    "build": "npm run build -w @project-room/shared && npm run build -w @project-room/api && npm run build -w @project-room/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:seed": "npm run seed -w @project-room/api",
+    "prototype": "node prototype/server.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hnam10/project-room.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/hnam10/project-room/issues"
+  "engines": {
+    "node": ">=22.9"
   },
-  "homepage": "https://github.com/hnam10/project-room#readme"
+  "devDependencies": {
+    "concurrently": "^10.0.6",
+    "typescript": "^6.0.3"
+  }
 }
