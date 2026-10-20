@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-20 — **AI tool entry files.** `GEMINI.md` and `.github/copilot-instructions.md` point to
+  AGENTS.md like `CLAUDE.md` does; shared notes moved from CLAUDE.md into AGENTS.md; personal AI settings
+  (`CLAUDE.local.md`, `.claude/settings.local.json`, …) are git-ignored.
 - 2026-10-20 — **CI and code quality.** GitHub Actions on every PR and `main`: Prettier check, ESLint
   (typescript-eslint + react-hooks), typecheck, tests, build, `npm audit` (production deps). `npm run check`
   runs the same locally. Fixed the issues the new React hooks rules found (ref writes during render,

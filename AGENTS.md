@@ -15,6 +15,16 @@ and approves. Core loop: **Conversations → Insights → Decisions → Actions 
 - Structure (how): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Status, next steps, decision log: [docs/PROGRESS.md](docs/PROGRESS.md)
 
+## Working notes
+
+- The team works in Korean and English: reply in the language the person writes in. Code, comments,
+  commit messages and docs stay in English.
+- SurrealDB SDK is `surrealdb` 2.x with the embedded engine `@surrealdb/node` (SurrealDB 3.x). Its API
+  differs from older examples online — check `node_modules/surrealdb/README.md` before using a new method.
+- Tool-specific entry files (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`) point here.
+  Put shared rules in this file. If you change a product rule, also update the short summary in
+  `.github/copilot-instructions.md` (Copilot can't import files).
+
 ## Start of every session
 
 1. `git pull`, then `npm install` if `package-lock.json` changed.

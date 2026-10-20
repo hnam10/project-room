@@ -154,3 +154,10 @@ apps/api/data/
 # Build output
 packages/shared/dist/
 apps/*/dist/
+
+# Personal AI-assistant settings (shared instructions live in AGENTS.md)
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/worktrees/
+.cursor/*.local.*
+.aider*
