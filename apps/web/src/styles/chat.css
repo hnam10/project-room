@@ -296,3 +296,70 @@
 .channel-select:hover {
   background: var(--surface-2);
 }
+
+/* Per-item reason + quote under AI action items */
+.action-why {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.action-why q {
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+/* Decisions: record an outcome, ask the project */
+.decision {
+  grid-template-columns: auto 1fr auto;
+}
+.decision span.sub {
+  display: block;
+}
+.decide-form {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+}
+.decide-form input,
+.ask-project input {
+  padding: 6px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  font: inherit;
+  background: var(--surface);
+}
+.ask-project {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+}
+.ask-project form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ask-project form input {
+  flex: 1;
+}
+.ask-answer {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+.ask-answer p {
+  margin: 0;
+  white-space: pre-line;
+}
+.ask-answer ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+.ask-answer .sub {
+  color: var(--muted);
+  font-size: 11.5px;
+}

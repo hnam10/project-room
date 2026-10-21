@@ -87,6 +87,12 @@ export interface Decision {
   status: DecisionStatus;
   raisedById: string;
   decidedById: string | null;
+  /** What the team settled on, e.g. "Use SurrealDB". Set when the decision is recorded as decided. */
+  outcome: string | null;
+  /** Why it was decided that way, when someone said so. */
+  reason: string | null;
+  /** Words from the conversation that back the decision. */
+  quote: string | null;
   createdAt: string;
   decidedAt: string | null;
 }
@@ -99,6 +105,10 @@ export interface ActionItem {
   assigneeId: string | null;
   priority: Priority;
   include: boolean;
+  /** Why the AI proposed this task. */
+  reason: string | null;
+  /** The words in the conversation it is based on. */
+  quote: string | null;
 }
 
 /** Structured AI output. Nothing in here changes project data until a member approves it. */
@@ -110,6 +120,8 @@ export interface Suggestion {
   title: string;
   /** What approving creates, when that isn't a list of items (e.g. the decision to log). */
   proposal: string | null;
+  /** Decisions only: what the conversation already settled on. Null means the question is still open. */
+  outcome: string | null;
   /** Why the AI produced this suggestion. */
   reason: string;
   /** Supporting context from the conversation, when there is any. */
@@ -134,4 +146,15 @@ export interface WorkspaceSnapshot {
   ideas: Idea[];
   decisions: Decision[];
   suggestions: Suggestion[];
+}
+
+/** The answer to a question about the project, written only from approved decisions. */
+export interface MemoryAnswer {
+  question: string;
+  answer: string;
+  /** False when no approved decision covers the question. */
+  found: boolean;
+  /** The approved decisions the answer relies on. */
+  sources: Decision[];
+  ai: { provider: string; isMock: boolean };
 }

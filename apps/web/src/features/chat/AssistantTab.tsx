@@ -7,7 +7,7 @@ import { useSession } from '../../state/session';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 
 const KINDS: Record<'decision' | 'risk', { label: string; icon: IconName; color: string }> = {
-  decision: { label: 'Decision needed', icon: 'flag', color: '#a06c00' },
+  decision: { label: 'Decision', icon: 'flag', color: '#a06c00' },
   risk: { label: 'Deadline risk', icon: 'alert', color: '#dc4b4b' },
 };
 
@@ -22,7 +22,7 @@ export function AssistantTab({ onOpenDecisions }: { onOpenDecisions: () => void 
       {me?.ai.isMock && (
         <div className="mock-note">
           <Icon name="sparkle" />
-          Mock AI mode — suggestions come from simple local rules. Nothing changes until you confirm.
+          Mock AI — no ANTHROPIC_API_KEY is set, so suggestions come from simple local rules. Nothing changes until you confirm.
         </div>
       )}
       {pending.length ? (
@@ -61,6 +61,11 @@ function InsightCard({ suggestion, onOpenDecisions }: { suggestion: Suggestion; 
         {kind.label}
       </span>
       <h3>{suggestion.title}</h3>
+      {suggestion.outcome && (
+        <p>
+          <strong>Settled on:</strong> {suggestion.outcome}
+        </p>
+      )}
       <p>
         <strong>Why:</strong> {suggestion.reason}
       </p>
@@ -74,9 +79,15 @@ function InsightCard({ suggestion, onOpenDecisions }: { suggestion: Suggestion; 
           <button
             className="btn primary sm"
             disabled={busy}
-            onClick={() => act(() => api.approveSuggestion(projectId, suggestion.id), 'Logged as an open decision', onOpenDecisions)}
+            onClick={() =>
+              act(
+                () => api.approveSuggestion(projectId, suggestion.id),
+                suggestion.outcome ? 'Recorded as a decision' : 'Logged as an open decision',
+                onOpenDecisions,
+              )
+            }
           >
-            Log as open decision
+            {suggestion.outcome ? 'Record decision' : 'Log as open decision'}
           </button>
         ) : (
           <>

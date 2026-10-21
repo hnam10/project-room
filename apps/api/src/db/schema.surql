@@ -61,6 +61,9 @@ DEFINE FIELD OVERWRITE title       ON decision TYPE string ASSERT string::len($v
 DEFINE FIELD OVERWRITE status      ON decision TYPE string ASSERT $value IN ['open', 'decided'];
 DEFINE FIELD OVERWRITE raisedById  ON decision TYPE record<member>;
 DEFINE FIELD OVERWRITE decidedById ON decision TYPE null | record<member> DEFAULT null;
+DEFINE FIELD OVERWRITE outcome     ON decision TYPE null | string DEFAULT null;
+DEFINE FIELD OVERWRITE reason      ON decision TYPE null | string DEFAULT null;
+DEFINE FIELD OVERWRITE quote       ON decision TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE createdAt   ON decision TYPE datetime DEFAULT time::now() READONLY;
 DEFINE FIELD OVERWRITE decidedAt   ON decision TYPE null | datetime DEFAULT null;
 
@@ -71,6 +74,7 @@ DEFINE FIELD OVERWRITE kind             ON suggestion TYPE string ASSERT $value 
 DEFINE FIELD OVERWRITE status           ON suggestion TYPE string ASSERT $value IN ['pending', 'approved', 'dismissed'];
 DEFINE FIELD OVERWRITE title            ON suggestion TYPE string;
 DEFINE FIELD OVERWRITE proposal         ON suggestion TYPE null | string DEFAULT null;
+DEFINE FIELD OVERWRITE outcome          ON suggestion TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE reason           ON suggestion TYPE string;
 DEFINE FIELD OVERWRITE quote            ON suggestion TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE cite             ON suggestion TYPE null | string DEFAULT null;
@@ -80,6 +84,8 @@ DEFINE FIELD OVERWRITE items.*.title      ON suggestion TYPE string;
 DEFINE FIELD OVERWRITE items.*.assigneeId ON suggestion TYPE null | record<member>;
 DEFINE FIELD OVERWRITE items.*.priority   ON suggestion TYPE string;
 DEFINE FIELD OVERWRITE items.*.include    ON suggestion TYPE bool;
+DEFINE FIELD OVERWRITE items.*.reason     ON suggestion TYPE null | string DEFAULT null;
+DEFINE FIELD OVERWRITE items.*.quote      ON suggestion TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE taskId           ON suggestion TYPE null | record<task> DEFAULT null;
 DEFINE FIELD OVERWRITE createdTaskIds   ON suggestion TYPE array<record<task>> DEFAULT [];
 DEFINE FIELD OVERWRITE resolvedById     ON suggestion TYPE null | record<member> DEFAULT null;

@@ -2,8 +2,10 @@ import { pathToFileURL } from 'node:url';
 import { closeDb, connectDb, getDb } from './client.js';
 import { rid } from './records.js';
 
-// Demo data for the "Hackathon 2026" project. Runs automatically on an empty database, or
-// `npm run db:seed` to wipe and reseed.
+// Demo data for the "Hackathon 2026" project. Runs automatically on an empty database (dev/test), or
+// `npm run db:seed` to wipe and reseed. In Clerk mode the project id must be a Clerk organization id, so
+// seed with `npm run db:seed -- --org org_xxx` (or set SEED_ORG_ID on the server). The demo teammates are
+// placeholder members; real Clerk users join the project the first time they open it.
 
 const TABLES = ['suggestion', 'message', 'task', 'idea', 'decision', 'channel', 'project', 'member'] as const;
 
@@ -23,11 +25,15 @@ export async function isDatabaseEmpty(): Promise<boolean> {
   return !rows?.[0]?.n;
 }
 
-export async function seedDemoData(): Promise<void> {
+export const DEMO_PROJECT_ID = 'hackathon';
+
+export async function seedDemoData({ projectId = DEMO_PROJECT_ID }: { projectId?: string } = {}): Promise<void> {
   const db = getDb();
-  const p = rid('project', 'hackathon');
-  const m = (id: string) => rid('member', id);
-  const ch = (name: string) => rid('channel', `hackathon-${name}`);
+  // Record ids are global per table, so a project other than the default gets prefixed ids.
+  const scoped = (id: string) => (projectId === DEMO_PROJECT_ID ? id : `${projectId}_${id}`);
+  const p = rid('project', projectId);
+  const m = (id: string) => rid('member', scoped(id));
+  const ch = (name: string) => rid('channel', `${projectId}-${name}`);
 
   const members = [
     { id: m('alex'), name: 'Alex', color: '#5b4ff0', role: 'Product & frontend' },
@@ -60,6 +66,7 @@ export async function seedDemoData(): Promise<void> {
     ['m3', 'general', 'taylor', 'I can handle the onboarding screens in Figma.', 38],
     ['m4', 'general', 'morgan', "We still haven't decided which database to use, and the demo is due Friday.", 37],
     ['m5', 'general', 'alex', '@AI can you create tasks based on our discussion?', 36],
+    ['m12', 'general', 'taylor', 'Landing page UI still has no owner and it is due Friday.', 33],
     ['m7', 'design', 'taylor', 'Uploaded the first moodboard. Leaning towards a calm, light palette.', 180],
     ['m8', 'design', 'alex', 'Looks great — keep the accent colour for actions only.', 170],
     ['m9', 'development', 'jamie', 'Repo is set up with CI. PRs need one review before merge.', 120],
@@ -93,7 +100,7 @@ export async function seedDemoData(): Promise<void> {
        INSERT INTO idea $ideas;
        INSERT INTO decision $decisions;
        INSERT INTO suggestion $suggestions;
-       CREATE message:m6 CONTENT $aiMessage;
+       CREATE $aiMessageId CONTENT $aiMessage;
        COMMIT;`,
       {
         members,
@@ -109,7 +116,7 @@ export async function seedDemoData(): Promise<void> {
         },
         channels: ['general', 'design', 'development', 'research', 'random'].map((name) => ({ id: ch(name), projectId: p, name })),
         tasks: tasks.map(([num, title, label, priority, status, assignee, dueDate]) => ({
-          id: rid('task', `t${num}`),
+          id: rid('task', scoped(`t${num}`)),
           projectId: p,
           num,
           title,
@@ -120,15 +127,15 @@ export async function seedDemoData(): Promise<void> {
           dueDate,
         })),
         messages: messages.map(([id, channel, author, text, ago]) => ({
-          id: rid('message', id),
+          id: rid('message', scoped(id)),
           projectId: p,
           channelId: ch(channel),
-          authorId: author,
+          authorId: author === 'ai' ? author : scoped(author),
           text,
           createdAt: minutesAgo(ago),
         })),
         ideas: ideas.map(([id, title, description, theme, author, voters], i) => ({
-          id: rid('idea', id),
+          id: rid('idea', scoped(id)),
           projectId: p,
           title,
           description,
@@ -138,72 +145,139 @@ export async function seedDemoData(): Promise<void> {
           createdAt: day(-2, `09:0${i}`),
         })),
         decisions: [
+          // The project's memory: approved decisions with what was decided and why. Hosting was reversed
+          // on purpose so "where do we host?" has a time-aware answer.
           {
-            id: rid('decision', 'd1'),
+            id: rid('decision', scoped('d1')),
             projectId: p,
-            title: 'Use Next.js + Supabase for the stack',
-            status: 'decided',
-            raisedById: m('jamie'),
-            decidedById: m('jamie'),
-            createdAt: day(-5),
-            decidedAt: day(-4),
-          },
-          {
-            id: rid('decision', 'd2'),
-            projectId: p,
-            title: 'Target users: students working on group projects',
+            title: 'Target users',
+            outcome: 'Students working on group projects',
+            reason: 'The sharpest pain we can reach at campus hackathons, and we can interview them this week.',
             status: 'decided',
             raisedById: m('alex'),
             decidedById: m('alex'),
+            createdAt: day(-7),
+            decidedAt: day(-7),
+          },
+          {
+            id: rid('decision', scoped('d2')),
+            projectId: p,
+            title: 'Which frontend framework to use',
+            outcome: 'React + Vite, not Next.js',
+            reason: 'We need an app-like workspace with no SEO or server rendering, and Vite keeps the dev loop fast.',
+            status: 'decided',
+            raisedById: m('jamie'),
+            decidedById: m('jamie'),
+            createdAt: day(-6),
+            decidedAt: day(-5),
+          },
+          {
+            id: rid('decision', scoped('d3')),
+            projectId: p,
+            title: 'Which AI model powers suggestions',
+            outcome: 'Claude through the Anthropic API, behind our AiProvider interface',
+            reason: 'Structured output gives every suggestion a reason and a quote, and the interface lets us swap models.',
+            status: 'decided',
+            raisedById: m('alex'),
+            decidedById: m('alex'),
+            createdAt: day(-4),
+            decidedAt: day(-4),
+          },
+          {
+            id: rid('decision', scoped('d4')),
+            projectId: p,
+            title: 'Where to host the demo',
+            outcome: 'Vercel',
+            reason: 'Free tier and one-click deploys from GitHub.',
+            status: 'decided',
+            raisedById: m('morgan'),
+            decidedById: m('morgan'),
             createdAt: day(-6),
             decidedAt: day(-6),
+          },
+          {
+            id: rid('decision', scoped('d5')),
+            projectId: p,
+            title: 'Where to host the demo (revisited)',
+            outcome: 'Fly.io with a persistent volume, replacing Vercel',
+            reason: 'The embedded SurrealDB needs a persistent disk, which Vercel functions do not provide.',
+            status: 'decided',
+            raisedById: m('morgan'),
+            decidedById: m('jamie'),
+            createdAt: day(-2),
+            decidedAt: day(-2),
           },
         ],
         suggestions: [
           {
-            id: rid('suggestion', 's1'),
+            id: rid('suggestion', scoped('s1')),
             projectId: p,
             kind: 'action_items',
             status: 'pending',
             title: '3 action items from the conversation',
             reason: 'A team member asked the AI to turn the recent discussion into tasks.',
             items: [
-              { title: 'Implement password reset flow', assigneeId: m('jamie'), priority: 'high', include: true },
-              { title: 'Design onboarding screens in Figma', assigneeId: m('taylor'), priority: 'medium', include: true },
-              { title: 'Decide which database to use', assigneeId: null, priority: 'high', include: true },
+              {
+                title: 'Implement password reset flow',
+                assigneeId: m('jamie'),
+                priority: 'high',
+                include: true,
+                reason: 'Jamie committed to this in chat, so it is proposed with them as owner.',
+                quote: "I'll work on the password reset flow.",
+              },
+              {
+                title: 'Design onboarding screens in Figma',
+                assigneeId: m('taylor'),
+                priority: 'medium',
+                include: true,
+                reason: 'Taylor offered to take the onboarding screens.',
+                quote: 'I can handle the onboarding screens in Figma.',
+              },
+              {
+                title: 'Decide which database to use',
+                assigneeId: null,
+                priority: 'high',
+                include: true,
+                reason: 'Morgan said the database is undecided and the demo is due Friday, and no approved decision covers it.',
+                quote: "We still haven't decided which database to use, and the demo is due Friday.",
+              },
             ],
             createdAt: minutesAgo(35),
           },
           {
-            id: rid('suggestion', 's2'),
+            id: rid('suggestion', scoped('s2')),
             projectId: p,
             kind: 'decision',
             status: 'pending',
-            title: 'Database choice is still undecided',
+            title: 'Open question: Which database to use',
             proposal: 'Which database to use',
             reason: 'Morgan raised it in #general and no decision has been recorded. Task #16 “Database schema” depends on it.',
             quote: "We still haven't decided which database to use, and the demo is due Friday.",
             cite: `Morgan · #general · ${minutesAgo(37).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
-            sourceMessageId: rid('message', 'm4'),
+            sourceMessageId: rid('message', scoped('m4')),
             createdAt: minutesAgo(34),
           },
           {
-            id: rid('suggestion', 's3'),
+            id: rid('suggestion', scoped('s3')),
             projectId: p,
             kind: 'risk',
             status: 'pending',
             title: 'Landing page UI has no owner',
             reason: `Task #18 is due ${isoDay(4)} and nobody is assigned. Alex and Morgan currently have the lightest load.`,
-            taskId: rid('task', 't18'),
+            quote: 'Landing page UI still has no owner and it is due Friday.',
+            cite: `Taylor · #general · ${minutesAgo(33).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+            sourceMessageId: rid('message', scoped('m12')),
+            taskId: rid('task', scoped('t18')),
             createdAt: minutesAgo(33),
           },
         ],
+        aiMessageId: rid('message', scoped('m6')),
         aiMessage: {
           projectId: p,
           channelId: ch('general'),
           authorId: 'ai',
           text: 'I’ve detected the following action items:',
-          suggestionId: rid('suggestion', 's1'),
+          suggestionId: rid('suggestion', scoped('s1')),
           createdAt: minutesAgo(35),
         },
       },
@@ -219,9 +293,11 @@ export async function wipe(): Promise<void> {
 
 // `npm run db:seed`
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  const orgFlag = process.argv.indexOf('--org');
+  const projectId = (orgFlag > 0 && process.argv[orgFlag + 1]) || DEMO_PROJECT_ID;
   await connectDb();
   await wipe();
-  await seedDemoData();
+  await seedDemoData({ projectId });
   await closeDb();
-  console.log('Database reset with demo data.');
+  console.log(`Database reset with demo data (project id: ${projectId}).`);
 }

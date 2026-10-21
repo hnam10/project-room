@@ -125,13 +125,20 @@ prototype/         the first static prototype; do not build on it
 
 ## Auth status
 
-Auth has two modes, chosen by environment (`authMode` in `apps/api/src/config.ts`, `clerkEnabled` in
-`apps/web/src/api/auth.ts`):
+Clerk is required; there is no anonymous or "Acting as" mode. Set `CLERK_PUBLISHABLE_KEY` +
+`CLERK_SECRET_KEY` in `apps/api/.env` and `VITE_CLERK_PUBLISHABLE_KEY` in `apps/web/.env.local`. The API
+refuses to start without them and the web app shows a setup screen. The API verifies the Clerk session
+token; a Clerk Organization is a project (same id), and a token only opens the project of the org it is
+scoped to.
 
-- **Clerk** (`CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` in `apps/api/.env`, `VITE_CLERK_PUBLISHABLE_KEY`
-  in `apps/web/.env.local`): Clerk sign-in; the API verifies the session token. A Clerk Organization is a
-  project (same id); a token only opens the project of the org it is scoped to.
-- **Dev** (no keys): the web sends `x-member-id` (picked in "Acting as"); the WebSocket uses `?member=`.
-  No security at all, so never deploy without Clerk keys. Tests run in this mode.
+The only exception is the test suite: with no keys `authMode` is `'dev'` and `x-member-id` / `?member=`
+identify the caller, so tests can act as several members. That path never runs in a server (`index.ts`
+exits first). Routes read the caller with `caller(res)` / `ctx(res)`; never read `x-member-id` or Clerk directly.
 
-Routes read the caller with `caller(res)` / `ctx(res)`; never read `x-member-id` or Clerk directly.
+## AI status
+
+`getAiProvider()` returns Claude (`src/ai/anthropic.ts`, structured output via `messages.parse` + zod) when
+`ANTHROPIC_API_KEY` is set, otherwise the labelled mock. Tests force the mock (`AI_PROVIDER=mock` in
+`vitest.config.ts`) so they never call the API. The model's output is a proposal: ids, tasks and quotes are
+validated against project data before a suggestion is stored. Questions about the project
+(`POST .../decisions/ask`) are answered from **approved decisions only**, never from the chat log.

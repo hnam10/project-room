@@ -5,7 +5,7 @@
  ─────────────────                    ─────────────                         ─────────
  pages/ + features/  ──REST /api──▶   http/routes ─▶ services ─▶ repositories ──▶ tables
         ▲                                   │                                   │
-        │                                   └──▶ ai/ (AiProvider: mock today)   │
+        │                                   └──▶ ai/ (AiProvider: Claude or mock)   │
         └────────── WebSocket /ws ◀── realtime/hub ◀──── LIVE SELECT ◀──────────┘
 ```
 
@@ -31,16 +31,29 @@ All records carry `projectId`; repositories always filter by it.
 
 1. `POST …/channels/:id/messages` stores the message and responds immediately.
 2. `services/ai-engine.ts` then runs on the message:
-   - `detectOpenQuestion` → a `decision` suggestion (shows in the AI Assistant tab, not in chat);
-   - if the text mentions `@AI`: `extractActionItems` over the messages since the AI last spoke →
-     an `action_items` suggestion plus an AI chat message that renders it.
+   - `detectOpenQuestion` → a `decision` suggestion (shows in the AI Assistant tab, not in chat). With
+     Claude it only runs on messages that read like a question or an unsettled choice;
+   - if the text mentions `@AI`: `analyzeConversation` over the messages since the AI last spoke returns
+     action items, decisions and risks, each with a `reason` and a verbatim `quote` → an `action_items`
+     suggestion (plus an AI chat message that renders it), and `decision` / `risk` suggestions in the panel.
 3. Members review: edit items (`PATCH /suggestions/:id`), `approve`, or `dismiss`.
 4. `services/suggestions.ts#approveSuggestion` is the only place AI output turns into real changes:
    creates tasks / logs a decision / assigns an owner (risk requires an explicit `assigneeId`).
 5. All of the above reach every open browser through realtime.
 
-The provider is chosen by `AI_PROVIDER` (`src/ai/index.ts`). `mock` uses regex rules and calls nothing
-external; it is labelled in the UI.
+The provider is chosen in `src/ai/index.ts`: Claude (`ai/anthropic.ts`) when `ANTHROPIC_API_KEY` is set,
+otherwise the mock (regex rules, nothing external, labelled in the UI). `AI_PROVIDER=mock` forces the mock.
+Claude calls use structured output (`client.messages.parse` with a zod schema). The result is then checked
+against real data: unknown member/task ids are dropped, and a `quote` is kept only if it appears verbatim in
+a message, so a hallucinated quote never reaches the UI. Chat text is passed as data inside tags.
+
+## Project memory
+
+The memory of a project is its **approved decisions** (`decision.status = 'decided'`, with `outcome`,
+`reason`, `quote`). `POST .../decisions/ask` (`services/memory.ts`) hands only those records to
+`AiProvider.answerFromDecisions` and returns the answer with the decisions it used as `sources`. The chat log
+is never read. A decision becomes "decided" only through a member: approving a `decision` suggestion whose
+`outcome` the AI saw settled, or "Mark decided" in the Decisions tab (which asks for the outcome).
 
 ## Realtime
 
@@ -54,7 +67,7 @@ come from the database, writes from any API instance (or a DB console) reach cli
 - `authenticate` runs on every `/api` route and sets the `Caller` (`memberId`, `orgId`).
   - Clerk mode: `clerkMiddleware()` then `getAuth()`; 401 without a session. The Clerk user id is the
     member id; the member row is created from the Clerk profile on first use.
-  - Dev mode: `x-member-id` header (no security).
+  - Test-only dev mode (no keys): `x-member-id` header. `index.ts` refuses to start a server in this mode.
 - `projectForCaller()` decides project access for both HTTP (`requireProjectMember`) and the WebSocket.
   In Clerk mode the session's `orgId` must equal the project id; the project (with `#general`) and the
   membership are created on first use.
@@ -79,15 +92,17 @@ come from the database, writes from any API instance (or a DB console) reach cli
 
 ## Configuration (`apps/api/.env`)
 
-| Variable                                     | Default                     | Notes                                                         |
-| -------------------------------------------- | --------------------------- | ------------------------------------------------------------- |
-| `PORT`                                       | 4000                        | API port                                                      |
-| `SURREAL_URL`                                | `surrealkv://./data/dev.db` | `mem://` for throwaway; `ws://host:8000` for a server         |
-| `SURREAL_NS` / `SURREAL_DB`                  | `project_room` / `dev`      |                                                               |
-| `SURREAL_USER` / `SURREAL_PASS`              | —                           | remote connections only                                       |
-| `SEED_WHEN_EMPTY`                            | `true`                      | loads the demo project into an empty DB                       |
-| `AI_PROVIDER`                                | `mock`                      |                                                               |
-| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | both set = Clerk mode; web needs `VITE_CLERK_PUBLISHABLE_KEY` |
+| Variable                                     | Default                     | Notes                                                       |
+| -------------------------------------------- | --------------------------- | ----------------------------------------------------------- |
+| `PORT`                                       | 4000                        | API port                                                    |
+| `SURREAL_URL`                                | `surrealkv://./data/dev.db` | `mem://` for throwaway; `ws://host:8000` for a server       |
+| `SURREAL_NS` / `SURREAL_DB`                  | `project_room` / `dev`      |                                                             |
+| `SURREAL_USER` / `SURREAL_PASS`              | —                           | remote connections only                                     |
+| `SEED_ORG_ID`                                | —                           | Clerk org id: loads the demo project into it if it has none |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`      | — / `claude-opus-5-5`       | key set = Claude, otherwise the labelled mock               |
+| `AI_PROVIDER`                                | —                           | `mock` forces the mock even when a key is set               |
+| `WEB_DIST`                                   | `apps/web/dist`             | built web app served by the API when it exists              |
+| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`            |
 
 To use a SurrealDB server instead of the embedded engine:
 `surreal start --user root --pass root rocksdb:./data/server.db`, then `SURREAL_URL=ws://127.0.0.1:8000`.
