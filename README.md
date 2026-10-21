@@ -38,8 +38,9 @@ Configuration lives in `apps/api/.env`. Copy `apps/api/.env.example` to start.
 
 - **AI:** it's a local mock (rule-based, no external calls) and is labelled as such in the UI.
   A real model plugs in behind `AiProvider` in `apps/api/src/ai/`.
-- **Login:** there isn't one yet. Pick who you are with "Acting as" in the sidebar. This is for
-  development only.
+- **Login:** Clerk, when keys are set (`apps/api/.env` and `apps/web/.env.local`, see the `.env.example`
+  files); each Clerk organization is a project. Without keys you pick who you are with "Acting as" in the
+  sidebar, which is for development only.
 - **Placeholders:** Calendar, Files, Overview, Team and Settings are labelled placeholders.
 
 ## Docs

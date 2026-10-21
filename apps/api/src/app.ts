@@ -1,5 +1,8 @@
 import express from 'express';
-import { requireProjectMember } from './http/context.js';
+import { clerkMiddleware } from '@clerk/express';
+import { clerk } from './auth/clerk.js';
+import { authMode } from './config.js';
+import { authenticate, requireProjectMember } from './http/context.js';
 import { errorHandler, notFoundRoute } from './http/errors.js';
 import { decisionsRouter } from './http/routes/decisions.js';
 import { ideasRouter } from './http/routes/ideas.js';
@@ -16,6 +19,8 @@ export function createApp() {
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
   });
+  if (authMode === 'clerk') app.use('/api', clerkMiddleware({ clerkClient: clerk() }));
+  app.use('/api', authenticate);
   app.use('/api', meRouter);
 
   // Everything below is scoped to one project and requires membership.

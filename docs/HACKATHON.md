@@ -24,8 +24,10 @@ small but real, and only do step 5 if there's time left.
 - **A Clerk Organization is a Project Room project.** Creating a team, switching teams and inviting
   members use Clerk's `<OrganizationSwitcher>` / organization UI, so we don't build invite flows.
 - Org roles map to product rules: e.g. only `org:admin` can make a suggestion an official decision.
-- Keys: `CLERK_SECRET_KEY` (api), `VITE_CLERK_PUBLISHABLE_KEY` (web). Without them the app keeps the
-  dev "Acting as" mode, so tests and teammates without keys still work.
+- Keys: `CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (api), `VITE_CLERK_PUBLISHABLE_KEY` (web), and
+  **Organizations enabled** in the Clerk dashboard. Without keys the app keeps the dev "Acting as"
+  mode, so tests and teammates without keys still work.
+- Status: sign-in, org = project, team switcher and invites are built (see PROGRESS.md); roles are next.
 
 ## 2. Best Overall — the core loop with a real model
 
@@ -73,10 +75,10 @@ with exact answer keys, reachable over MCP/REST, graded by code instead of an LL
 
 Put them in `apps/api/.env` / `apps/web/.env.local` (git-ignored); never commit them.
 
-| Service      | Variables                                        |
-| ------------ | ------------------------------------------------ |
-| Clerk        | `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` |
-| Anthropic    | `ANTHROPIC_API_KEY`                              |
-| Agent Memory | `AGENT_MEMORY_ENDPOINT`, `AGENT_MEMORY_API_KEY`  |
-| Era          | from the Era console setup (`.env` it generates) |
-| Expo         | Expo account for EAS (`eas login`)               |
+| Service      | Variables                                                                 |
+| ------------ | ------------------------------------------------------------------------- |
+| Clerk        | `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` |
+| Anthropic    | `ANTHROPIC_API_KEY`                                                       |
+| Agent Memory | `AGENT_MEMORY_ENDPOINT`, `AGENT_MEMORY_API_KEY`                           |
+| Era          | from the Era console setup (`.env` it generates)                          |
+| Expo         | Expo account for EAS (`eas login`)                                        |

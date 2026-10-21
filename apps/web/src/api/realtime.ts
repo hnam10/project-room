@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RealtimeEvent, ServerMessage } from '@project-room/shared';
+import { socketAuthQuery } from './auth';
 
 export type ConnectionState = 'connecting' | 'online' | 'offline';
 
@@ -28,10 +29,12 @@ export function useRealtime(
     let closed = false;
     let wasOnline = false;
 
-    const connect = () => {
+    const connect = async () => {
       setState('connecting');
       const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-      socket = new WebSocket(`${scheme}://${location.host}/ws?member=${encodeURIComponent(memberId)}`);
+      const auth = await socketAuthQuery(projectId).catch(() => '');
+      if (closed) return;
+      socket = new WebSocket(`${scheme}://${location.host}/ws?${auth}`);
       socket.onopen = () => socket?.send(JSON.stringify({ type: 'subscribe', projectId }));
       socket.onmessage = (raw) => {
         const msg = JSON.parse(String(raw.data)) as ServerMessage;
@@ -47,11 +50,11 @@ export function useRealtime(
       socket.onclose = () => {
         if (closed) return;
         setState('offline');
-        timer = window.setTimeout(connect, Math.min(1000 * 2 ** retry++, 15000));
+        timer = window.setTimeout(() => void connect(), Math.min(1000 * 2 ** retry++, 15000));
       };
     };
 
-    connect();
+    void connect();
     return () => {
       closed = true;
       window.clearTimeout(timer);

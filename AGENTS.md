@@ -125,6 +125,13 @@ prototype/         the first static prototype; do not build on it
 
 ## Auth status
 
-There is **no real authentication yet**. The web sends `x-member-id` (picked in the sidebar,
-"Acting as"); the WebSocket uses `?member=`. This is dev-only and must be replaced before any
-shared deployment (tracked in PROGRESS.md).
+Auth has two modes, chosen by environment (`authMode` in `apps/api/src/config.ts`, `clerkEnabled` in
+`apps/web/src/api/auth.ts`):
+
+- **Clerk** (`CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` in `apps/api/.env`, `VITE_CLERK_PUBLISHABLE_KEY`
+  in `apps/web/.env.local`): Clerk sign-in; the API verifies the session token. A Clerk Organization is a
+  project (same id); a token only opens the project of the org it is scoped to.
+- **Dev** (no keys): the web sends `x-member-id` (picked in "Acting as"); the WebSocket uses `?member=`.
+  No security at all, so never deploy without Clerk keys. Tests run in this mode.
+
+Routes read the caller with `caller(res)` / `ctx(res)`; never read `x-member-id` or Clerk directly.

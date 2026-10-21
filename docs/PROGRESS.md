@@ -5,6 +5,11 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-20 — **Clerk authentication + organizations.** With Clerk keys set, the web app shows Clerk
+  sign-in and the API verifies Clerk session tokens (`clerkMiddleware` + `getAuth`; the WebSocket gets
+  `?token=`). A Clerk Organization is a project: the sidebar uses `<OrganizationSwitcher>` to create and
+  switch teams, the top-bar "+" opens Clerk's invite dialog, and members/projects (with `#general`) are
+  created on first use. Without keys the app stays in dev mode ("Acting as"), which tests use.
 - 2026-10-20 — **AI tool entry files.** `GEMINI.md` and `.github/copilot-instructions.md` point to
   AGENTS.md like `CLAUDE.md` does; shared notes moved from CLAUDE.md into AGENTS.md; personal AI settings
   (`CLAUDE.local.md`, `.claude/settings.local.json`, …) are git-ignored.
@@ -31,9 +36,8 @@ Pick from the top unless the team agrees otherwise. Put your name next to an ite
 
 Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKATHON.md).
 
-- [ ] **Clerk auth + organizations** (Clerk prize) — Clerk sign-in replaces the dev `x-member-id` header
-      / `?member=` socket param; a Clerk Organization is a project, so team creation and invites come
-      from Clerk. Keep dev mode when no keys are set. Then remove "Acting as" in Clerk mode.
+- [ ] **Clerk roles** (Clerk prize, follow-up) — use org roles for product rules, e.g. only `org:admin`
+      can make a suggestion an official decision; Clerk webhooks to drop members who leave a team.
 - [ ] **Real AI provider** (Best Overall) — implement `AiProvider` with the Anthropic API (`src/ai/anthropic.ts`,
       `ANTHROPIC_API_KEY`, structured output for action items/open questions). Keep `mock` as default
       when no key is set. Add conversation summarisation ("summarize this channel") as a suggestion kind.
@@ -52,7 +56,14 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
-- No auth (see Next up). Anyone who can reach the API can act as any member.
+- Dev mode (no Clerk keys) has no auth: anyone who can reach the API can act as any member. Never
+  deploy without `CLERK_*` keys.
+- Clerk mode: people who leave a Clerk team lose access (their tokens no longer carry that org) but
+  stay in the project's member list until webhooks are added. Not yet tested against a real Clerk
+  instance in CI; the API tests run in dev mode.
+- The web bundle grew ~120 kB (Vite's 500 kB chunk warning) because `@clerk/react` is bundled even in
+  dev mode; lazy-load it if load time matters.
+- Clerk mode starts teams empty (only `#general`); the demo project stays dev-only.
 - Picture-in-Picture chat works in Chrome/Edge only; other browsers get the popup window fallback.
 - Messages load the latest 200 per channel; no pagination or search yet. Top-bar search only filters tasks.
 - AI only reacts to new messages; it doesn't yet watch deadlines/workload on a schedule (the seeded
@@ -61,6 +72,12 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-20 — **Clerk for auth** (`@clerk/express`, `@clerk/react`; Clerk prize): a Clerk Organization
+  _is_ a project (same id), so team creation, switching and invites come from Clerk instead of our own
+  UI. Projects check membership from the org in the session token; the web asks for a token scoped to the
+  URL's project (`getToken({ organizationId })`). Members/projects are created lazily on first request
+  rather than via webhooks, so local development needs no public URL. Dev mode stays when keys are
+  unset so tests and teammates without keys keep working.
 - 2026-10-20 — **Hackathon: enter all five prizes** in the order in [HACKATHON.md](HACKATHON.md)
   (Clerk → Claude → Agent Memory → Era → Expo): auth unblocks everything, memory builds on the real
   model, the Era eval measures both, and the mobile app reuses auth and the API.

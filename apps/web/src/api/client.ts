@@ -12,16 +12,9 @@ import type {
   TaskUpdateInput,
   WorkspaceSnapshot,
 } from '@project-room/shared';
+import { authHeaders } from './auth';
 
-// Thin typed wrapper over the REST API. Every call is made as the current (dev) member.
-
-let memberId = 'alex';
-export function setApiMember(id: string) {
-  memberId = id;
-}
-export function getApiMember() {
-  return memberId;
-}
+// Thin typed wrapper over the REST API. Every call carries the caller's credentials (see ./auth).
 
 export class ApiError extends Error {
   constructor(
@@ -33,11 +26,12 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const projectId = /^\/projects\/([^/]+)/.exec(path)?.[1];
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
       method,
-      headers: { 'content-type': 'application/json', 'x-member-id': memberId },
+      headers: { 'content-type': 'application/json', ...(await authHeaders(projectId && decodeURIComponent(projectId))) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -54,6 +48,7 @@ const p = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
 export interface Me {
   member: Member;
   projects: Project[];
+  auth: 'clerk' | 'dev';
   ai: { provider: string; isMock: boolean };
 }
 
