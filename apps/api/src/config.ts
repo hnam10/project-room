@@ -18,13 +18,17 @@ export const config = {
   surrealDatabase: env('SURREAL_DB', 'dev'),
   surrealUser: process.env.SURREAL_USER || null,
   surrealPass: process.env.SURREAL_PASS || null,
-  /** Seed demo data on startup when the database has no projects. */
-  seedWhenEmpty: env('SEED_WHEN_EMPTY', 'true') === 'true',
-  /** Only "mock" exists today. See src/ai/index.ts for adding a real provider. */
-  aiProvider: env('AI_PROVIDER', 'mock'),
+  /** Built web app to serve (default: apps/web/dist, if it exists). */
+  webDist: process.env.WEB_DIST || null,
+  /** Clerk organization id to load the demo project into on startup, if that project doesn't exist yet. */
+  seedOrgId: process.env.SEED_ORG_ID || null,
+  /** Claude is used whenever ANTHROPIC_API_KEY is set; without it the labelled mock runs. AI_PROVIDER=mock forces the mock. */
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
+  anthropicModel: env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
+  forceMockAi: process.env.AI_PROVIDER === 'mock',
   /**
-   * Clerk keys. When both are set, callers sign in with Clerk and a Clerk Organization is a project.
-   * When unset, the API stays in dev mode (member picked via the `x-member-id` header).
+   * Clerk keys. Callers sign in with Clerk and a Clerk Organization is a project. The server refuses to
+   * start without them (see index.ts); only the test suite runs without keys, in `dev` auth mode.
    */
   clerkSecretKey: process.env.CLERK_SECRET_KEY || null,
   clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || null,
