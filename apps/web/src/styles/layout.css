@@ -394,6 +394,9 @@ kbd {
   color: var(--muted);
   font-size: 12px;
 }
+.team-switcher {
+  padding: 2px 0 6px;
+}
 .dev-member select {
   flex: 1;
   min-width: 0;

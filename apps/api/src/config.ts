@@ -22,6 +22,14 @@ export const config = {
   seedWhenEmpty: env('SEED_WHEN_EMPTY', 'true') === 'true',
   /** Only "mock" exists today. See src/ai/index.ts for adding a real provider. */
   aiProvider: env('AI_PROVIDER', 'mock'),
+  /**
+   * Clerk keys. When both are set, callers sign in with Clerk and a Clerk Organization is a project.
+   * When unset, the API stays in dev mode (member picked via the `x-member-id` header).
+   */
+  clerkSecretKey: process.env.CLERK_SECRET_KEY || null,
+  clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || null,
 } as const;
+
+export const authMode: 'clerk' | 'dev' = config.clerkSecretKey && config.clerkPublishableKey ? 'clerk' : 'dev';
 
 export const isEmbedded = !/^(wss?|https?):\/\//.test(config.surrealUrl);
