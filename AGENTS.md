@@ -14,6 +14,7 @@ and approves. Core loop: **Conversations → Insights → Decisions → Actions 
 - Product spec (what & why): [docs/PRODUCT_BRIEF.md](docs/PRODUCT_BRIEF.md)
 - Structure (how): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Status, next steps, decision log: [docs/PROGRESS.md](docs/PROGRESS.md)
+- Hackathon prize plan (what we build next and why): [docs/HACKATHON.md](docs/HACKATHON.md)
 
 ## Working notes
 

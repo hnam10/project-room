@@ -29,12 +29,21 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 Pick from the top unless the team agrees otherwise. Put your name next to an item when you start it.
 
-- [ ] **Real AI provider** — implement `AiProvider` with the Anthropic API (`src/ai/anthropic.ts`,
+Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKATHON.md).
+
+- [ ] **Clerk auth + organizations** (Clerk prize) — Clerk sign-in replaces the dev `x-member-id` header
+      / `?member=` socket param; a Clerk Organization is a project, so team creation and invites come
+      from Clerk. Keep dev mode when no keys are set. Then remove "Acting as" in Clerk mode.
+- [ ] **Real AI provider** (Best Overall) — implement `AiProvider` with the Anthropic API (`src/ai/anthropic.ts`,
       `ANTHROPIC_API_KEY`, structured output for action items/open questions). Keep `mock` as default
       when no key is set. Add conversation summarisation ("summarize this channel") as a suggestion kind.
-- [ ] **Authentication** — replace the dev `x-member-id` header / `?member=` socket param with real
-      sessions (e.g. SurrealDB record access + JWT, or email magic link). Then remove "Acting as".
-- [ ] **Create projects, channels and invite members** (buttons currently show "isn't built yet").
+- [ ] **SurrealDB Agent Memory** (Agent Memory prize) — project-scoped long-term memory: remember
+      messages/decisions, recall before suggesting, "Ask the project" with sources.
+- [ ] **Era eval harness** (Eon prize) — score action-item extraction against Era's simulated
+      Slack/Jira ground truth; compare mock vs. Claude vs. Claude + memory.
+- [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
+      chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
+- [ ] **Create channels** (buttons currently show "isn't built yet"; projects and invites come from Clerk).
 - [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open decisions, workload per member.
 - [ ] **Calendar page** — tasks with due dates by week; project deadline.
 - [ ] **Brainstorm grouping** — themes as columns, compare proposals, "start a vote" (needs confirmation).
@@ -52,6 +61,9 @@ Pick from the top unless the team agrees otherwise. Put your name next to an ite
 
 ## Decision log
 
+- 2026-10-20 — **Hackathon: enter all five prizes** in the order in [HACKATHON.md](HACKATHON.md)
+  (Clerk → Claude → Agent Memory → Era → Expo): auth unblocks everything, memory builds on the real
+  model, the Era eval measures both, and the mobile app reuses auth and the API.
 - 2026-10-20 — **ESLint + Prettier** (not Biome): the React hooks rules (incl. the React Compiler checks)
   only exist as an ESLint plugin. Prettier uses the existing style (single quotes, 140 columns) so the
   first format pass was small. Lint warnings fail CI so they don't pile up.
