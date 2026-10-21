@@ -1,7 +1,8 @@
-import { NavLink, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
 import { useFeedback } from '../components/Feedback';
+import { TaskSearch } from '../features/board/TaskSearch';
 import { DetachedChat } from '../features/dock/DetachedChat';
 import { ChatWindowProvider } from '../state/chatWindow';
 import { useSession } from '../state/session';
@@ -72,8 +73,6 @@ function Shell() {
 function TopBar() {
   const { snapshot } = useWorkspace();
   const { toast } = useFeedback();
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
   const project = snapshot!.project;
 
   return (
@@ -96,16 +95,7 @@ function TopBar() {
           </NavLink>
         ))}
       </nav> */}
-      <label className="search">
-        <Icon name="search" />
-        <input
-          type="search"
-          placeholder="Search tasks…"
-          autoComplete="off"
-          value={params.get('q') ?? ''}
-          onChange={(e) => navigate(`board${e.target.value ? `?q=${encodeURIComponent(e.target.value)}` : ''}`, { replace: true })}
-        />
-      </label>
+      <TaskSearch />
       <div className="member-stack" aria-label="Project members">
         {snapshot!.members.map((m) => (
           <Avatar key={m.id} member={m} />

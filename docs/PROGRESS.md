@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-20 — **Task search dropdown.** The top-bar search shows matching tasks in a dropdown while typing
+  (case-insensitive, partial, every keyword must match title, #number, label, status, priority or assignee;
+  title matches first). Arrow keys/Enter or a click opens the task on the board via `board?task=<id>`.
+  It no longer filters the board columns.
 - 2026-10-20 — **AI tool entry files.** `GEMINI.md` and `.github/copilot-instructions.md` point to
   AGENTS.md like `CLAUDE.md` does; shared notes moved from CLAUDE.md into AGENTS.md; personal AI settings
   (`CLAUDE.local.md`, `.claude/settings.local.json`, …) are git-ignored.
@@ -29,9 +33,6 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 Pick from the top unless the team agrees otherwise. Put your name next to an item when you start it.
 
-- [ ] **Real AI provider** — implement `AiProvider` with the Anthropic API (`src/ai/anthropic.ts`,
-      `ANTHROPIC_API_KEY`, structured output for action items/open questions). Keep `mock` as default
-      when no key is set. Add conversation summarisation ("summarize this channel") as a suggestion kind.
 - [ ] **Authentication** — replace the dev `x-member-id` header / `?member=` socket param with real
       sessions (e.g. SurrealDB record access + JWT, or email magic link). Then remove "Acting as".
 - [ ] **Create projects, channels and invite members** (buttons currently show "isn't built yet").
@@ -40,15 +41,19 @@ Pick from the top unless the team agrees otherwise. Put your name next to an ite
 - [ ] **Brainstorm grouping** — themes as columns, compare proposals, "start a vote" (needs confirmation).
 - [ ] **Web tests** — Playwright for: approve AI action items → task appears; drag task; detach chat.
 - [ ] Files page (needs storage decision: SurrealDB files vs. S3-compatible bucket).
+- [ ] **Real AI provider** — implement `AiProvider` with the Anthropic API (`src/ai/anthropic.ts`,
+      `ANTHROPIC_API_KEY`, structured output for action items/open questions). Keep `mock` as default
+      when no key is set. Add conversation summarisation ("summarize this channel") as a suggestion kind.
 
 ## Known gaps
 
 - No auth (see Next up). Anyone who can reach the API can act as any member.
 - Picture-in-Picture chat works in Chrome/Edge only; other browsers get the popup window fallback.
-- Messages load the latest 200 per channel; no pagination or search yet. Top-bar search only filters tasks.
+- Messages load the latest 200 per channel; no pagination or search yet. Top-bar search only covers tasks.
 - AI only reacts to new messages; it doesn't yet watch deadlines/workload on a schedule (the seeded
   "risk" suggestion shows the intended UX).
 - Mind Map and Notes tabs are placeholders.
+- Task search logic (`features/board/search.ts`) has no tests: the web app has no unit-test setup yet.
 
 ## Decision log
 

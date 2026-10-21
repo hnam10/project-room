@@ -10,17 +10,34 @@ import { useSnapshot } from '../state/workspace';
 
 export function BoardPage() {
   const { project, tasks, members } = useSnapshot();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [assignee, setAssignee] = useState<string>('all');
   const [dialog, setDialog] = useState<TaskDialogState>(null);
   const boardRef = useRef<HTMLElement>(null);
 
-  const query = (params.get('q') ?? '').trim().toLowerCase();
-  const visible = tasks
-    .filter((t) => assignee === 'all' || (t.assigneeId ?? '') === assignee)
-    .filter((t) => !query || t.title.toLowerCase().includes(query) || `#${t.num}` === query || t.label.includes(query))
-    .sort((a, b) => a.num - b.num);
+  const visible = tasks.filter((t) => assignee === 'all' || (t.assigneeId ?? '') === assignee).sort((a, b) => a.num - b.num);
+
+  // `?task=<id>` (set by the top-bar search) opens that task; closing the dialog clears it.
+  const openTaskId = params.get('task');
+  const [openedFor, setOpenedFor] = useState<string | null>(null);
+  if (openTaskId !== openedFor) {
+    setOpenedFor(openTaskId);
+    const task = openTaskId && tasks.find((t) => t.id === openTaskId);
+    if (task) setDialog({ task });
+  }
+  const closeDialog = () => {
+    setDialog(null);
+    if (openTaskId) {
+      setParams(
+        (p) => {
+          p.delete('task');
+          return p;
+        },
+        { replace: true },
+      );
+    }
+  };
 
   const done = tasks.filter((t) => t.status === 'done').length;
   const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
@@ -76,12 +93,12 @@ export function BoardPage() {
         boardRef={boardRef}
         tasks={visible}
         groupBy={groupBy}
-        emptyText={query ? 'No matching tasks' : 'Drop tasks here'}
+        emptyText="Drop tasks here"
         onOpenTask={(task: Task) => setDialog({ task })}
         onAddTask={(preset) => setDialog({ preset })}
       />
       <Dock boardRef={boardRef} />
-      <TaskDialog state={dialog} onClose={() => setDialog(null)} />
+      <TaskDialog state={dialog} onClose={closeDialog} />
     </div>
   );
 }
