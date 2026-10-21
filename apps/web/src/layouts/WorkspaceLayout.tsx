@@ -2,6 +2,8 @@ import { NavLink, Outlet, useNavigate, useParams, useSearchParams } from 'react-
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
 import { useFeedback } from '../components/Feedback';
+import { clerkEnabled } from '../api/auth';
+import { AccountButton, ActiveTeamSync, InviteButton, TeamSwitcher } from '../features/account/ClerkAccount';
 import { DetachedChat } from '../features/dock/DetachedChat';
 import { ChatWindowProvider } from '../state/chatWindow';
 import { useSession } from '../state/session';
@@ -33,6 +35,7 @@ export function WorkspaceLayout() {
   const { projectId = '' } = useParams();
   return (
     <WorkspaceProvider projectId={projectId}>
+      {clerkEnabled && <ActiveTeamSync projectId={projectId} />}
       <ChatWindowProvider projectId={projectId}>
         <Shell />
       </ChatWindowProvider>
@@ -111,9 +114,17 @@ function TopBar() {
           <Avatar key={m.id} member={m} />
         ))}
       </div>
-      <button className="icon-btn round invite-button" aria-label="Invite member" onClick={() => toast('Invitations aren’t built yet.')}>
-        <Icon name="plus" />
-      </button>
+      {clerkEnabled ? (
+        <InviteButton>
+          <button className="icon-btn round invite-button" aria-label="Invite member">
+            <Icon name="plus" />
+          </button>
+        </InviteButton>
+      ) : (
+        <button className="icon-btn round invite-button" aria-label="Invite member" onClick={() => toast('Invitations aren’t built yet.')}>
+          <Icon name="plus" />
+        </button>
+      )}
       <button className="btn primary share-button" onClick={() => toast('Sharing isn’t built yet.')}>
         <Icon name="plus" />
         Share
@@ -136,16 +147,22 @@ function Sidebar() {
         <strong>Project Room</strong>
         <Icon name="chevron" />
       </button>
-      {(me?.projects ?? [project]).map((p) => (
-        <NavLink key={p.id} to={`/p/${p.id}/board`} className={() => `side-link${p.id === project.id ? ' active' : ''}`}>
-          <span className="project-dot" style={{ background: p.color }} />
-          {p.name}
-        </NavLink>
-      ))}
-      <button className="side-link muted" onClick={() => toast('Creating projects isn’t built yet.')}>
-        <Icon name="plus" />
-        New Project
-      </button>
+      {clerkEnabled ? (
+        <TeamSwitcher />
+      ) : (
+        <>
+          {(me?.projects ?? [project]).map((p) => (
+            <NavLink key={p.id} to={`/p/${p.id}/board`} className={() => `side-link${p.id === project.id ? ' active' : ''}`}>
+              <span className="project-dot" style={{ background: p.color }} />
+              {p.name}
+            </NavLink>
+          ))}
+          <button className="side-link muted" onClick={() => toast('Creating projects isn’t built yet.')}>
+            <Icon name="plus" />
+            New Project
+          </button>
+        </>
+      )}
 
       <nav className="side-nav" aria-label="Main navigation">
         {SIDE_NAV.map(([path, label, icon]) => (
@@ -178,17 +195,25 @@ function Sidebar() {
         ))}
       </div>
 
-      <label className="dev-member" title="Development only: there is no login yet">
-        <span className={`conn-dot${connection === 'online' ? ' online' : ''}`} title={`Realtime: ${connection}`} />
-        Acting as
-        <select value={memberId} onChange={(e) => switchMember(e.target.value)}>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {clerkEnabled ? (
+        <div className="dev-member">
+          <span className={`conn-dot${connection === 'online' ? ' online' : ''}`} title={`Realtime: ${connection}`} />
+          <AccountButton />
+          {me?.member.name}
+        </div>
+      ) : (
+        <label className="dev-member" title="Development only: there is no login yet">
+          <span className={`conn-dot${connection === 'online' ? ' online' : ''}`} title={`Realtime: ${connection}`} />
+          Acting as
+          <select value={memberId} onChange={(e) => switchMember(e.target.value)}>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
     </aside>
   );
 }

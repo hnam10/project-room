@@ -3,8 +3,9 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { Table, type LiveSubscription, type Surreal } from 'surrealdb';
 import type { ClientSubscribe, RealtimeAction, RealtimeTable, ServerMessage } from '@project-room/shared';
 import { toPlain } from '../db/records.js';
-import { getProject } from '../repositories/projects.js';
-import { DEV_DEFAULT_MEMBER } from '../http/context.js';
+import { ensureClerkMember, verifySessionToken } from '../auth/clerk.js';
+import { authMode } from '../config.js';
+import { devMemberId, projectForCaller, type Caller } from '../http/context.js';
 
 // Pushes database changes to browsers. SurrealDB LIVE SELECT queries report every change to the
 // realtime tables; each change is forwarded to the sockets subscribed to that record's project.
@@ -22,9 +23,10 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
   const socketsByProject = new Map<string, Set<WebSocket>>();
 
   wss.on('connection', (socket, request) => {
-    // DEV ONLY: browsers can't set headers on WebSocket, so the member comes from the query string.
+    // Browsers can't set headers on a WebSocket, so the identity comes from the query string:
+    // a Clerk session token (`?token=`), or in dev mode the member id (`?member=`).
     const url = new URL(request.url ?? '/', 'http://localhost');
-    const memberId = url.searchParams.get('member') || DEV_DEFAULT_MEMBER;
+    const caller = authenticateSocket(url).catch(() => null);
     let projectId: string | null = null;
 
     socket.on('message', async (raw) => {
@@ -35,8 +37,9 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
         return;
       }
       if (msg.type !== 'subscribe' || typeof msg.projectId !== 'string') return;
-      const project = await getProject(msg.projectId);
-      if (!project || !project.memberIds.includes(memberId)) {
+      const who = await caller;
+      const project = who && (await projectForCaller(who, msg.projectId));
+      if (!project) {
         socket.close(4403, 'Not a member of this project');
         return;
       }
@@ -76,6 +79,15 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
       await new Promise<void>((resolve) => wss.close(() => resolve()));
     },
   };
+}
+
+async function authenticateSocket(url: URL): Promise<Caller | null> {
+  if (authMode === 'dev') return { memberId: devMemberId(url.searchParams.get('member')), orgId: null };
+  const token = url.searchParams.get('token');
+  const auth = token ? await verifySessionToken(token) : null;
+  if (!auth) return null;
+  await ensureClerkMember(auth.userId);
+  return { memberId: auth.userId, orgId: auth.orgId };
 }
 
 function send(socket: WebSocket, message: ServerMessage): void {
