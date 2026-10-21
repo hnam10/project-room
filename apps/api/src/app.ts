@@ -1,7 +1,9 @@
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { clerkMiddleware } from '@clerk/express';
 import { clerk } from './auth/clerk.js';
-import { authMode } from './config.js';
+import { authMode, config } from './config.js';
 import { authenticate, requireProjectMember } from './http/context.js';
 import { errorHandler, notFoundRoute } from './http/errors.js';
 import { decisionsRouter } from './http/routes/decisions.js';
@@ -35,6 +37,13 @@ export function createApp() {
   app.use('/api/projects/:projectId', project);
 
   app.use('/api', notFoundRoute);
+
+  // Production: one process serves the built web app too, so a single URL is the whole product.
+  const webDist = config.webDist ?? fileURLToPath(new URL('../../web/dist', import.meta.url));
+  if (existsSync(`${webDist}/index.html`)) {
+    app.use(express.static(webDist));
+    app.get(/^\/(?!api\/|ws).*/, (_req, res) => res.sendFile('index.html', { root: webDist }));
+  }
   app.use(errorHandler);
   return app;
 }
