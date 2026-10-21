@@ -13,7 +13,7 @@ import {
 } from '@clerk/react';
 import { clerkPublishableKey } from '../../api/auth';
 
-// Clerk UI, used only when VITE_CLERK_PUBLISHABLE_KEY is set (see api/auth.ts).
+// Clerk UI. VITE_CLERK_PUBLISHABLE_KEY is required (see main.tsx).
 // A Clerk Organization is a Project Room project: creating, switching and inviting go through Clerk.
 
 const projectUrl = (org: { id: string }) => `/p/${org.id}/board`;

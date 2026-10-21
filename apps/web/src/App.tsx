@@ -3,7 +3,6 @@ import { WorkspaceLayout } from './layouts/WorkspaceLayout';
 import { BoardPage } from './pages/BoardPage';
 import { ChatPopoutPage } from './pages/ChatPopoutPage';
 import { BrainstormPage, ChatPage, DecisionsPage, PlaceholderPage } from './pages/FeaturePages';
-import { clerkEnabled } from './api/auth';
 import { ChooseTeam } from './features/account/ClerkAccount';
 import { useSession } from './state/session';
 
@@ -42,7 +41,7 @@ export function App() {
   );
 }
 
-/** Sends the member to their first project (with Clerk: the active team, or a team picker). */
+/** Sends the member to their active team's project, or shows the team picker. */
 function Home() {
   const { me, error } = useSession();
   if (error) {
@@ -60,6 +59,6 @@ function Home() {
   }
   if (!me) return <div className="boot">Loading…</div>;
   const first = me.projects[0];
-  if (!first) return clerkEnabled ? <ChooseTeam /> : <div className="boot">You’re not in any projects yet.</div>;
+  if (!first) return <ChooseTeam />;
   return <Navigate to={`/p/${first.id}/board`} replace />;
 }
