@@ -7,15 +7,15 @@ import { ChatWindowProvider } from '../state/chatWindow';
 import { useSession } from '../state/session';
 import { WorkspaceProvider, useWorkspace } from '../state/workspace';
 
-const TOP_TABS: [string, string][] = [
-  // ['board', 'Board'],
-  // ['chat', 'Chat'],
-  // ['brainstorm', 'Brainstorm'],
-  // ['decisions', 'Decisions'],
-  // ['calendar', 'Calendar'],
-  // ['files', 'Files'],
-  // ['overview', 'Overview'],
-];
+// const TOP_TABS: [string, string][] = [
+//   ['board', 'Board'],
+//   ['chat', 'Chat'],
+//   ['brainstorm', 'Brainstorm'],
+//   ['decisions', 'Decisions'],
+//   ['calendar', 'Calendar'],
+//   ['files', 'Files'],
+//   ['overview', 'Overview'],
+// ];
 
 const SIDE_NAV: [string, string, IconName][] = [
   ['board', 'Tasks', 'tasks'],
