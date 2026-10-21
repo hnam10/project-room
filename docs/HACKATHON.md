@@ -25,15 +25,17 @@ small but real, and only do step 5 if there's time left.
   members use Clerk's `<OrganizationSwitcher>` / organization UI, so we don't build invite flows.
 - Org roles map to product rules: e.g. only `org:admin` can make a suggestion an official decision.
 - Keys: `CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (api), `VITE_CLERK_PUBLISHABLE_KEY` (web), and
-  **Organizations enabled** in the Clerk dashboard. Without keys the app keeps the dev "Acting as"
-  mode, so tests and teammates without keys still work.
+  **Organizations enabled** in the Clerk dashboard. They are required: the dev "Acting as" picker is gone
+  and the API will not start without keys (only the test suite runs keyless).
 - Status: sign-in, org = project, team switcher and invites are built (see PROGRESS.md); roles are next.
 
 ## 2. Best Overall — the core loop with a real model
 
-- Implement `AiProvider` with Claude (`src/ai/anthropic.ts`, `ANTHROPIC_API_KEY`, structured output
-  for action items and open questions). Keep `mock` as the default when no key is set.
-- Add "summarize this channel" as a suggestion kind.
+- Built: `AiProvider` with Claude (`src/ai/anthropic.ts`, `ANTHROPIC_API_KEY`), structured output for
+  action items, decisions and risks, each with a reason and a verbatim quote. The mock runs only when the
+  key is missing and stays labelled in the UI.
+- Built: "Ask the project" (`POST .../decisions/ask`) answers from approved decisions, not the chat log.
+- Still open: "summarize this channel" as a suggestion kind.
 - Demo script (≈2 min): chat → @AI → suggestions with reason + quoted message → approve → task on the
   board → progress bar moves. Pitch line: **AI suggests, people decide.**
 

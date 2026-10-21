@@ -8,6 +8,8 @@ The rules that matter most when suggesting code:
 
 - AI output is stored as a `suggestion` record; only `POST /suggestions/:id/approve` may change tasks,
   decisions or assignments.
+- Clerk is required (no anonymous mode). Questions about the project are answered from approved decisions
+  only, never from the chat log.
 - Every project route goes through `requireProjectMember`, and every repository query filters by `projectId`.
 - Only `apps/api/src/repositories/` contains SurrealQL. Shared types and zod schemas live in `packages/shared`.
 - `npm run check` must pass (format, lint, typecheck, test).

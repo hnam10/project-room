@@ -32,15 +32,19 @@ Try it:
 | `npm run build`     | Production build                                             |
 | `npm run db:seed`   | Reset the local database to the demo data (stop `dev` first) |
 
-Configuration lives in `apps/api/.env`. Copy `apps/api/.env.example` to start.
+Configuration lives in `apps/api/.env` (copy `apps/api/.env.example`) and `apps/web/.env.local`. The API will not start without Clerk keys.
 
 ## Status
 
-- **AI:** it's a local mock (rule-based, no external calls) and is labelled as such in the UI.
-  A real model plugs in behind `AiProvider` in `apps/api/src/ai/`.
-- **Login:** Clerk, when keys are set (`apps/api/.env` and `apps/web/.env.local`, see the `.env.example`
-  files); each Clerk organization is a project. Without keys you pick who you are with "Acting as" in the
-  sidebar, which is for development only.
+- **AI:** Claude when `ANTHROPIC_API_KEY` is set (structured action items, decisions and risks, each with a
+  reason and a quote; plus "Ask the project", answered from approved decisions only). Without a key a local
+  rule-based mock runs and is labelled as such in the UI.
+- **Login:** Clerk is required (`apps/api/.env` and `apps/web/.env.local`, see the `.env.example` files);
+  each Clerk organization is a project. There is no anonymous or "Acting as" mode.
+- **Demo data:** `npm run db:seed -- --org org_xxx` (or `SEED_ORG_ID` on the server) loads the demo project
+  into one of your Clerk organizations.
+- **Deploy:** the [Dockerfile](Dockerfile) builds one image that serves the API and the web app; mount a
+  volume at `/data` for the embedded database.
 - **Placeholders:** Calendar, Files, Overview, Team and Settings are labelled placeholders.
 
 ## Docs

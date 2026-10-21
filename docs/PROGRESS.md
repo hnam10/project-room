@@ -5,6 +5,18 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-20 — **Claude provider, structured suggestions and project memory.** `ANTHROPIC_API_KEY` switches
+  the AI from the mock to Claude (`src/ai/anthropic.ts`, `messages.parse` + zod). One `@AI` call returns
+  action items, decisions and risks, each with a `reason` and a `quote`. Output is validated before use
+  (unknown member/task ids dropped, quotes kept only if verbatim in a message). New "Ask the project" box
+  in the Decisions tab (`POST .../decisions/ask`) answers from approved decisions only, with the decisions
+  as sources. Decisions now carry `outcome`/`reason`/`quote`; "Mark decided" asks for the outcome. The mock
+  runs only without a key and keeps its UI label. Seed rewritten around this (five approved decisions
+  including a reversed hosting choice, items with reasons and quotes).
+- 2026-10-20 — **"Acting as" removed; Clerk is required.** The API exits at startup without Clerk keys and
+  the web app shows a setup screen. Only the test suite runs keyless (`x-member-id`).
+- 2026-10-20 — **Deployable image.** `Dockerfile` builds one image where the API also serves the built web
+  app; the demo loads into a Clerk organization via `SEED_ORG_ID` / `npm run db:seed -- --org org_xxx`.
 - 2026-10-20 — **Clerk authentication + organizations.** With Clerk keys set, the web app shows Clerk
   sign-in and the API verifies Clerk session tokens (`clerkMiddleware` + `getAuth`; the WebSocket gets
   `?token=`). A Clerk Organization is a project: the sidebar uses `<OrganizationSwitcher>` to create and
@@ -38,9 +50,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 - [ ] **Clerk roles** (Clerk prize, follow-up) — use org roles for product rules, e.g. only `org:admin`
       can make a suggestion an official decision; Clerk webhooks to drop members who leave a team.
-- [ ] **Real AI provider** (Best Overall) — implement `AiProvider` with the Anthropic API (`src/ai/anthropic.ts`,
-      `ANTHROPIC_API_KEY`, structured output for action items/open questions). Keep `mock` as default
-      when no key is set. Add conversation summarisation ("summarize this channel") as a suggestion kind.
+- [ ] **Live URL** (needs a host account) — build and deploy the Dockerfile with a persistent volume at
+      `/data`, set the env vars from `apps/api/.env.example`, `SEED_ORG_ID`, and the Clerk production keys.
+- [ ] **Summarize this channel** as a suggestion kind (Claude provider follow-up).
 - [ ] **SurrealDB Agent Memory** (Agent Memory prize) — project-scoped long-term memory: remember
       messages/decisions, recall before suggesting, "Ask the project" with sources.
 - [ ] **Era eval harness** (Eon prize) — score action-item extraction against Era's simulated
@@ -56,8 +68,15 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
-- Dev mode (no Clerk keys) has no auth: anyone who can reach the API can act as any member. Never
-  deploy without `CLERK_*` keys.
+- The Claude provider is covered by tests with a fake client (validation, prompts) but has not been run
+  against the live API in CI; try it once with a real key (`@AI` in #general, then "Ask the project").
+- Claude is called synchronously on `@AI` and, for messages that look like a question, on post. The model
+  is `claude-opus-5-5` by default (`ANTHROPIC_MODEL` to change); a cheaper model for the per-message check
+  would cut cost. Refusal fallbacks (`server-side-fallback`) are not enabled; a refusal posts an error message.
+- Demo teammates (Alex, Jamie, Taylor, Morgan) are placeholder members with no login; real Clerk users are
+  added to the project the first time they open it.
+- Existing local databases created before this change lack the new decision/suggestion fields until
+  reseeded (`npm run db:seed -- --org <id>`).
 - Clerk mode: people who leave a Clerk team lose access (their tokens no longer carry that org) but
   stay in the project's member list until webhooks are added. Not yet tested against a real Clerk
   instance in CI; the API tests run in dev mode.
@@ -72,6 +91,14 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-20 — **Memory = approved decisions** (not a vector store over chat): answers must be traceable to
+  something a member confirmed, which fits "AI suggests, people decide" and avoids answering from
+  half-remembered chat. Decisions gained `outcome`/`reason`/`quote` so there is something to answer from.
+  Agent Memory (SurrealDB) can still be layered on later for raw messages.
+- 2026-10-20 — **No anonymous mode.** Removing "Acting as" is the security story for the Clerk prize; the
+  test-only keyless path stays because tests act as several members, and the server refuses to start in it.
+- 2026-10-20 — **New dependency `@anthropic-ai/sdk`** (api): official SDK; `messages.parse` + its zod helper
+  give validated structured output without hand-written JSON parsing.
 - 2026-10-20 — **Clerk for auth** (`@clerk/express`, `@clerk/react`; Clerk prize): a Clerk Organization
   _is_ a project (same id), so team creation, switching and invites come from Clerk instead of our own
   UI. Projects check membership from the org in the session token; the web asks for a token scoped to the
