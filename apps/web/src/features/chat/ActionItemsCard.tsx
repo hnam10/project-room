@@ -44,6 +44,12 @@ export function ActionItemsCard({ suggestion }: { suggestion: Suggestion }) {
               {item.assigneeId ? (members.get(item.assigneeId)?.name ?? 'Unknown') : 'Unassigned'}
             </span>
             <span className={`action-prio ${item.priority}`}>({cap(item.priority)})</span>
+            {(item.reason || item.quote) && (
+              <div className="action-why">
+                {item.reason && <span>{item.reason}</span>}
+                {item.quote && <q>{item.quote}</q>}
+              </div>
+            )}
           </div>
         ))}
       </div>

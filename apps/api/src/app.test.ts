@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import type { ServerMessage, Suggestion, Task, WorkspaceSnapshot } from '@project-room/shared';
+import type { Decision, MemoryAnswer, ServerMessage, Suggestion, Task, WorkspaceSnapshot } from '@project-room/shared';
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
@@ -129,6 +129,47 @@ describe('workspace API', () => {
     expect(ok.body.status).toBe('approved');
     const tasks = await api<Task[]>('/projects/hackathon/tasks');
     expect(tasks.body.find((t) => t.id === 't18')?.assigneeId).toBe('morgan');
+  });
+
+  it('answers project questions from approved decisions, with the decisions as sources', async () => {
+    const hit = await api<MemoryAnswer>('/projects/hackathon/decisions/ask', {
+      method: 'POST',
+      body: JSON.stringify({ question: 'Where do we host the demo?' }),
+    });
+    expect(hit.status).toBe(200);
+    expect(hit.body.found).toBe(true);
+    expect(hit.body.ai.isMock).toBe(true);
+    expect(hit.body.sources.every((d) => d.status === 'decided')).toBe(true);
+    expect(hit.body.sources.map((d) => d.id)).toContain('d5');
+
+    // The database question is still open, so memory must not invent an answer from the chat log.
+    const miss = await api<MemoryAnswer>('/projects/hackathon/decisions/ask', {
+      method: 'POST',
+      body: JSON.stringify({ question: 'Which database did we pick?' }),
+    });
+    expect(miss.body.found).toBe(false);
+    expect(miss.body.sources).toEqual([]);
+  });
+
+  it('records an open decision with its outcome, after which memory can answer from it', async () => {
+    const approved = await api<Suggestion>('/projects/hackathon/suggestions/s2/approve', { method: 'POST', body: '{}' });
+    expect(approved.body.status).toBe('approved');
+    const decisions = await api<Decision[]>('/projects/hackathon/decisions');
+    const open = decisions.body.find((d) => d.title === 'Which database to use');
+    expect(open?.status).toBe('open');
+
+    const decided = await api<Decision>(`/projects/hackathon/decisions/${open!.id}/decide`, {
+      method: 'POST',
+      body: JSON.stringify({ outcome: 'SurrealDB, embedded', reason: 'Live queries fit our realtime chat' }),
+    });
+    expect(decided.body).toMatchObject({ status: 'decided', outcome: 'SurrealDB, embedded', decidedById: 'alex' });
+
+    const answer = await api<MemoryAnswer>('/projects/hackathon/decisions/ask', {
+      method: 'POST',
+      body: JSON.stringify({ question: 'Which database did we pick?' }),
+    });
+    expect(answer.body.found).toBe(true);
+    expect(answer.body.sources.map((d) => d.id)).toEqual([open!.id]);
   });
 
   it('converts an idea to a task once', async () => {

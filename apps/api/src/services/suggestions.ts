@@ -37,7 +37,13 @@ export async function approveSuggestion(
       );
     }
     case 'decision': {
-      await createDecision(projectId, memberId, suggestion.proposal ?? suggestion.title);
+      // Approving is the member's confirmation. A settled outcome is recorded as decided; otherwise the
+      // question is logged as open until someone decides it.
+      await createDecision(projectId, memberId, suggestion.proposal ?? suggestion.title, {
+        outcome: suggestion.outcome,
+        quote: suggestion.quote,
+        reason: suggestion.outcome ? suggestion.reason : null,
+      });
       return resolveSuggestion(suggestion.id, 'approved', memberId);
     }
     case 'risk': {

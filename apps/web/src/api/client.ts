@@ -3,6 +3,7 @@ import type {
   Idea,
   IdeaCreateInput,
   Member,
+  MemoryAnswer,
   Message,
   Project,
   Suggestion,
@@ -70,7 +71,9 @@ export const api = {
   convertIdea: (projectId: string, ideaId: string) =>
     request<{ idea: Idea; task: Task }>('POST', `${p(projectId)}/ideas/${ideaId}/convert`),
 
-  decide: (projectId: string, decisionId: string) => request<Decision>('POST', `${p(projectId)}/decisions/${decisionId}/decide`),
+  decide: (projectId: string, decisionId: string, details: { outcome: string; reason?: string }) =>
+    request<Decision>('POST', `${p(projectId)}/decisions/${decisionId}/decide`, details),
+  askProject: (projectId: string, question: string) => request<MemoryAnswer>('POST', `${p(projectId)}/decisions/ask`, { question }),
 
   updateSuggestion: (projectId: string, suggestionId: string, input: SuggestionUpdateInput) =>
     request<Suggestion>('PATCH', `${p(projectId)}/suggestions/${suggestionId}`, input),

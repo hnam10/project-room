@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { detectOpenQuestionByRules, extractActionItemsByRules } from './mock.js';
+import type { Decision } from '@project-room/shared';
+import { answerFromDecisionsByRules, detectOpenQuestionByRules, extractActionItemsByRules } from './mock.js';
 
 const msg = (authorId: string, text: string) => ({ id: text, authorId, authorName: authorId, text });
 
 describe('mock AI rules', () => {
   it('turns commitments into tasks owned by the speaker', () => {
     const items = extractActionItemsByRules([msg('jamie', "I'll work on the password reset flow.")], []);
-    expect(items).toEqual([{ title: 'Work on password reset flow', assigneeId: 'jamie', priority: 'medium', include: true }]);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ title: 'Work on password reset flow', assigneeId: 'jamie', priority: 'medium', include: true });
+    // Every item says why it exists and quotes the sentence it came from.
+    expect(items[0]?.reason).toContain('jamie');
+    expect(items[0]?.quote).toBe("I'll work on the password reset flow.");
   });
 
   it('finds several items in one message and marks deadline talk as high priority', () => {
@@ -25,5 +30,27 @@ describe('mock AI rules', () => {
     expect(detectOpenQuestionByRules("We still haven't decided which database to use.")).toEqual({ topic: 'which database to use' });
     expect(detectOpenQuestionByRules('Should we ship dark mode first?')).toEqual({ topic: 'ship dark mode first' });
     expect(detectOpenQuestionByRules('Nice work everyone')).toBeNull();
+  });
+
+  it('answers memory questions from approved decisions only, and says when none match', () => {
+    const decision = (id: string, title: string, outcome: string, reason: string): Decision => ({
+      id,
+      projectId: 'p',
+      title,
+      status: 'decided',
+      raisedById: 'alex',
+      decidedById: 'alex',
+      outcome,
+      reason,
+      quote: null,
+      createdAt: '2026-10-01T00:00:00Z',
+      decidedAt: '2026-10-01T00:00:00Z',
+    });
+    const decisions = [
+      decision('d1', 'Which frontend framework to use', 'React + Vite, not Next.js', 'No SEO needed'),
+      decision('d2', 'Where to host the demo', 'Fly.io', 'Needs a persistent disk'),
+    ];
+    expect(answerFromDecisionsByRules('why did we choose Vite for the frontend?', decisions).sourceDecisionIds).toEqual(['d1']);
+    expect(answerFromDecisionsByRules('which database did we pick?', decisions).sourceDecisionIds).toEqual([]);
   });
 });
