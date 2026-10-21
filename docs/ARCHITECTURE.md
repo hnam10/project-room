@@ -14,15 +14,15 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 
 ## Data model (SurrealDB, `apps/api/src/db/schema.surql`)
 
-| Table | Purpose | Key links |
-| --- | --- | --- |
-| `member` | A person | — |
-| `project` | Workspace; holds `memberIds` and the `taskCounter` for #numbers | `memberIds → member` |
-| `channel` | Chat channel | `projectId` |
-| `message` | Chat message; `authorId` is a member id or `'ai'` | `channelId`, `suggestionId` |
-| `task` | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from | `assigneeId → member` |
-| `idea` | Brainstorm card; votes are `voterIds` | `taskId` once converted |
-| `decision` | Open question or recorded decision | `raisedById`, `decidedById` |
+| Table        | Purpose                                                                                                                                                                     | Key links                                     |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `member`     | A person                                                                                                                                                                    | —                                             |
+| `project`    | Workspace; holds `memberIds` and the `taskCounter` for #numbers                                                                                                             | `memberIds → member`                          |
+| `channel`    | Chat channel                                                                                                                                                                | `projectId`                                   |
+| `message`    | Chat message; `authorId` is a member id or `'ai'`                                                                                                                           | `channelId`, `suggestionId`                   |
+| `task`       | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from                                                                                           | `assigneeId → member`                         |
+| `idea`       | Brainstorm card; votes are `voterIds`                                                                                                                                       | `taskId` once converted                       |
+| `decision`   | Open question or recorded decision                                                                                                                                          | `raisedById`, `decidedById`                   |
 | `suggestion` | **Structured AI output** awaiting review: `kind` = `action_items` / `decision` / `risk`, `status` = `pending` / `approved` / `dismissed`, with `reason`, `quote`, `items[]` | `sourceMessageId`, `taskId`, `createdTaskIds` |
 
 All records carry `projectId`; repositories always filter by it.
@@ -66,14 +66,14 @@ come from the database, writes from any API instance (or a DB console) reach cli
 
 ## Configuration (`apps/api/.env`)
 
-| Variable | Default | Notes |
-| --- | --- | --- |
-| `PORT` | 4000 | API port |
-| `SURREAL_URL` | `surrealkv://./data/dev.db` | `mem://` for throwaway; `ws://host:8000` for a server |
-| `SURREAL_NS` / `SURREAL_DB` | `project_room` / `dev` | |
-| `SURREAL_USER` / `SURREAL_PASS` | — | remote connections only |
-| `SEED_WHEN_EMPTY` | `true` | loads the demo project into an empty DB |
-| `AI_PROVIDER` | `mock` | |
+| Variable                        | Default                     | Notes                                                 |
+| ------------------------------- | --------------------------- | ----------------------------------------------------- |
+| `PORT`                          | 4000                        | API port                                              |
+| `SURREAL_URL`                   | `surrealkv://./data/dev.db` | `mem://` for throwaway; `ws://host:8000` for a server |
+| `SURREAL_NS` / `SURREAL_DB`     | `project_room` / `dev`      |                                                       |
+| `SURREAL_USER` / `SURREAL_PASS` | —                           | remote connections only                               |
+| `SEED_WHEN_EMPTY`               | `true`                      | loads the demo project into an empty DB               |
+| `AI_PROVIDER`                   | `mock`                      |                                                       |
 
 To use a SurrealDB server instead of the embedded engine:
 `surreal start --user root --pass root rocksdb:./data/server.db`, then `SURREAL_URL=ws://127.0.0.1:8000`.

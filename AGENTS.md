@@ -15,6 +15,16 @@ and approves. Core loop: **Conversations → Insights → Decisions → Actions 
 - Structure (how): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Status, next steps, decision log: [docs/PROGRESS.md](docs/PROGRESS.md)
 
+## Working notes
+
+- The team works in Korean and English: reply in the language the person writes in. Code, comments,
+  commit messages and docs stay in English.
+- SurrealDB SDK is `surrealdb` 2.x with the embedded engine `@surrealdb/node` (SurrealDB 3.x). Its API
+  differs from older examples online — check `node_modules/surrealdb/README.md` before using a new method.
+- Tool-specific entry files (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`) point here.
+  Put shared rules in this file. If you change a product rule, also update the short summary in
+  `.github/copilot-instructions.md` (Copilot can't import files).
+
 ## Start of every session
 
 1. `git pull`, then `npm install` if `package-lock.json` changed.
@@ -22,11 +32,12 @@ and approves. Core loop: **Conversations → Insights → Decisions → Actions 
    decisions were made. Don't re-litigate a logged decision without a new reason.
 3. If the person hasn't said what to work on, propose the top unclaimed item from
    "Next up" in PROGRESS.md and confirm before starting.
-4. Run `npm run typecheck && npm test` before changing anything, so you know the baseline.
+4. Run `npm run check` before changing anything, so you know the baseline.
 
 ## End of every session (or before opening a PR)
 
-1. `npm run typecheck && npm test` pass. For UI changes, run the app and check the flow in a browser.
+1. `npm run check` passes (the same checks CI runs on every PR; `npm run format` and `npm run lint:fix`
+   fix most failures). For UI changes, run the app and check the flow in a browser.
 2. Update [docs/PROGRESS.md](docs/PROGRESS.md): move finished items to "Done", add anything you
    discovered to "Known gaps", and log any significant decision with its reason (one line each).
 3. Update docs/ARCHITECTURE.md if you added a layer, table, route group, or cross-cutting pattern.
@@ -34,14 +45,17 @@ and approves. Core loop: **Conversations → Insights → Decisions → Actions 
 
 ## Commands
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | API (http://localhost:4000) + web (http://localhost:5173) with reload |
-| `npm test` | API tests (vitest): AI rules + full HTTP/realtime flow on an in-memory DB |
-| `npm run typecheck` | TypeScript across all workspaces |
-| `npm run build` | Production build of shared, api, web |
-| `npm run db:seed` | Wipe the local DB and reload the demo project (stop `npm run dev` first) |
-| `npm run prototype` | The original static HTML prototype (reference only) |
+| Command             | What it does                                                              |
+| ------------------- | ------------------------------------------------------------------------- |
+| `npm run dev`       | API (http://localhost:4000) + web (http://localhost:5173) with reload     |
+| `npm run check`     | Everything CI runs except the build: format, lint, typecheck, test        |
+| `npm test`          | API tests (vitest): AI rules + full HTTP/realtime flow on an in-memory DB |
+| `npm run typecheck` | TypeScript across all workspaces                                          |
+| `npm run lint`      | ESLint (TypeScript + React hooks rules); warnings fail too                |
+| `npm run format`    | Prettier rewrite; `format:check` only reports                             |
+| `npm run build`     | Production build of shared, api, web                                      |
+| `npm run db:seed`   | Wipe the local DB and reload the demo project (stop `npm run dev` first)  |
+| `npm run prototype` | The original static HTML prototype (reference only)                       |
 
 Node ≥ 22.9 (see `.nvmrc`). No database server is needed for development: SurrealDB runs
 embedded and stores data in `apps/api/data/` (git-ignored). Config is in `apps/api/.env`
@@ -101,7 +115,11 @@ prototype/         the first static prototype; do not build on it
 - **UI:** reuse classes from `src/styles/*` and primitives from `src/components/`; light theme,
   tokens in `base.css`. Confirm destructive or sensitive actions with `useFeedback().confirm`.
   Modals render in place (no portal) so they work inside the Picture-in-Picture chat window.
-- Match the surrounding code's style; no new dependencies without a reason noted in PROGRESS.md.
+- Match the surrounding code's style; Prettier owns formatting (`.prettierrc.json`), ESLint owns
+  correctness (`eslint.config.mjs`). Don't silence a rule inline without a comment saying why.
+- No new dependencies without a reason noted in PROGRESS.md.
+- CI (`.github/workflows/ci.yml`) runs format, lint, typecheck, test, build and a production
+  dependency audit on every PR and on `main`. Keep it green; don't merge a red PR.
 - Tests: business rules and API flows get vitest tests in `apps/api/src/**/*.test.ts`.
 
 ## Auth status

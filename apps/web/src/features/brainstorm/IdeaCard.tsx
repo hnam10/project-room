@@ -2,7 +2,7 @@ import type { Idea, Member } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 
-export const PAPER: Record<string, string> = { Product: '#fdf1c4', Engagement: '#f6def8', Platform: '#dcefff' };
+const PAPER: Record<string, string> = { Product: '#fdf1c4', Engagement: '#f6def8', Platform: '#dcefff' };
 
 export function IdeaCard(props: { idea: Idea; author: Member | undefined; voted: boolean; onVote: () => void; onConvert: () => void }) {
   const { idea } = props;
@@ -22,7 +22,12 @@ export function IdeaCard(props: { idea: Idea; author: Member | undefined; voted:
         <Avatar member={props.author} />
         {props.author?.name ?? 'Former member'}
         <span className="idea-meta">
-          <button className={props.voted ? 'voted' : ''} onClick={props.onVote} aria-pressed={props.voted} aria-label={`Vote for ${idea.title}`}>
+          <button
+            className={props.voted ? 'voted' : ''}
+            onClick={props.onVote}
+            aria-pressed={props.voted}
+            aria-label={`Vote for ${idea.title}`}
+          >
             <Icon name="heart" />
             {idea.voterIds.length}
           </button>

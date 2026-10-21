@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PRIORITIES, type ActionItem, type Suggestion } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Modal } from '../../components/Modal';
@@ -10,9 +10,12 @@ export function ActionItemsDialog({ suggestion, onClose }: { suggestion: Suggest
   const { toastError } = useFeedback();
   const [items, setItems] = useState<ActionItem[]>([]);
 
-  useEffect(() => {
+  // Copy the items to edit whenever a different suggestion is opened.
+  const [itemsFor, setItemsFor] = useState<Suggestion | null>(null);
+  if (suggestion !== itemsFor) {
+    setItemsFor(suggestion);
     if (suggestion) setItems(suggestion.items.map((i) => ({ ...i })));
-  }, [suggestion]);
+  }
 
   const patch = (index: number, change: Partial<ActionItem>) =>
     setItems((list) => list.map((item, i) => (i === index ? { ...item, ...change } : item)));
@@ -52,7 +55,12 @@ export function ActionItemsDialog({ suggestion, onClose }: { suggestion: Suggest
       <div className="action-rows">
         {items.map((item, i) => (
           <div key={i} className="action-row">
-            <input type="checkbox" checked={item.include} onChange={(e) => patch(i, { include: e.target.checked })} aria-label="Include item" />
+            <input
+              type="checkbox"
+              checked={item.include}
+              onChange={(e) => patch(i, { include: e.target.checked })}
+              aria-label="Include item"
+            />
             <input value={item.title} maxLength={120} onChange={(e) => patch(i, { title: e.target.value })} aria-label="Task title" />
             <select value={item.assigneeId ?? ''} onChange={(e) => patch(i, { assigneeId: e.target.value || null })} aria-label="Assignee">
               <option value="">Unassigned</option>
@@ -62,7 +70,11 @@ export function ActionItemsDialog({ suggestion, onClose }: { suggestion: Suggest
                 </option>
               ))}
             </select>
-            <select value={item.priority} onChange={(e) => patch(i, { priority: e.target.value as ActionItem['priority'] })} aria-label="Priority">
+            <select
+              value={item.priority}
+              onChange={(e) => patch(i, { priority: e.target.value as ActionItem['priority'] })}
+              aria-label="Priority"
+            >
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
                   {p}

@@ -29,7 +29,12 @@ export async function approveSuggestion(
           ),
         );
       }
-      return resolveSuggestion(suggestion.id, 'approved', memberId, created.map((t) => t.id));
+      return resolveSuggestion(
+        suggestion.id,
+        'approved',
+        memberId,
+        created.map((t) => t.id),
+      );
     }
     case 'decision': {
       await createDecision(projectId, memberId, suggestion.proposal ?? suggestion.title);

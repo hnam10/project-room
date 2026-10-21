@@ -9,7 +9,7 @@ description: Resume building Project Room where the team left off. Use at the st
    Run `npm install` if `package-lock.json` changed since the last pull.
 2. Read `docs/PROGRESS.md` fully, then the sections of `AGENTS.md` relevant to the area you'll touch.
    Skim `docs/PRODUCT_BRIEF.md` sections for that feature so the work matches the product intent.
-3. Baseline: `npm run typecheck && npm test`. If anything fails, report it before starting new work.
+3. Baseline: `npm run check`. If anything fails, report it before starting new work.
 4. Choose work:
    - If the person named a task, do that.
    - Otherwise propose the first unchecked item under "Next up" in PROGRESS.md (say what you'd build and
@@ -17,6 +17,6 @@ description: Resume building Project Room where the team left off. Use at the st
 5. Create a branch `feat/<short-name>` (or `fix/…`) from up-to-date `main`.
 6. Build it following AGENTS.md conventions: shared types/schemas first, then API (schema.surql →
    repository → service → route + test), then web (feature components → page/route).
-7. Verify: `npm run typecheck && npm test`; for UI, run `npm run dev` and exercise the flow in a browser.
+7. Verify: `npm run check` and `npm run build`; for UI, run `npm run dev` and exercise the flow in a browser.
 8. Update `docs/PROGRESS.md` (Done / Known gaps / Decision log) and `docs/ARCHITECTURE.md` if the
    structure changed. Commit, and offer to open a PR.

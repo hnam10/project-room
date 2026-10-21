@@ -23,7 +23,12 @@ export function ChatWindowActions({ placement }: { placement: 'dock' | 'floating
         </button>
       )}
       {placement !== 'pip' && (
-        <button className="icon-btn" title="Open in separate window" aria-label="Open chat in a separate window" onClick={() => void openSeparateWindow()}>
+        <button
+          className="icon-btn"
+          title="Open in separate window"
+          aria-label="Open chat in a separate window"
+          onClick={() => void openSeparateWindow()}
+        >
           <Icon name="window" />
         </button>
       )}

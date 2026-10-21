@@ -82,7 +82,7 @@ const WorkspaceContext = createContext<Workspace | null>(null);
 export function WorkspaceProvider({ projectId, children }: { projectId: string; children: ReactNode }) {
   const { memberId } = useSession();
   const [state, dispatch] = useReducer(reducer, { snapshot: null, messages: {}, error: null });
-  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [chosenChannelId, setActiveChannelId] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     api
@@ -111,12 +111,10 @@ export function WorkspaceProvider({ projectId, children }: { projectId: string; 
     },
   );
 
-  // Default to #general (or the first channel) once channels are known.
+  // Default to #general (or the first channel) until a valid channel is chosen.
   const channels = state.snapshot?.channels;
-  useEffect(() => {
-    if (!channels?.length || (activeChannelId && channels.some((c) => c.id === activeChannelId))) return;
-    setActiveChannelId((channels.find((c) => c.name === 'general') ?? channels[0])!.id);
-  }, [channels, activeChannelId]);
+  const activeChannelId =
+    channels?.find((c) => c.id === chosenChannelId)?.id ?? (channels?.find((c) => c.name === 'general') ?? channels?.[0])?.id ?? null;
 
   const value = useMemo<Workspace>(
     () => ({
@@ -151,4 +149,3 @@ export function useSnapshot(): WorkspaceSnapshot {
   if (!snapshot) throw new Error('Workspace snapshot not loaded yet');
   return snapshot;
 }
-

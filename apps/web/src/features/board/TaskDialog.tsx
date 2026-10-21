@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PRIORITIES, TASK_LABELS, type Task, type TaskCreateInput } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
@@ -21,16 +21,20 @@ export function TaskDialog({ state, onClose }: { state: TaskDialogState; onClose
   const [saving, setSaving] = useState(false);
   const editing = state && 'task' in state ? state.task : null;
 
-  useEffect(() => {
-    if (!state) return;
-    const source = 'task' in state ? state.task : state.preset;
-    setForm({
-      ...EMPTY,
-      ...Object.fromEntries(Object.entries(source).filter(([k]) => k in EMPTY)),
-      assigneeId: source.assigneeId ?? '',
-      dueDate: source.dueDate ?? '',
-    } as Form);
-  }, [state]);
+  // Reset the form whenever the dialog opens for a different task or preset.
+  const [formFor, setFormFor] = useState<TaskDialogState>(null);
+  if (state !== formFor) {
+    setFormFor(state);
+    if (state) {
+      const source = 'task' in state ? state.task : state.preset;
+      setForm({
+        ...EMPTY,
+        ...Object.fromEntries(Object.entries(source).filter(([k]) => k in EMPTY)),
+        assigneeId: source.assigneeId ?? '',
+        dueDate: source.dueDate ?? '',
+      } as Form);
+    }
+  }
 
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -94,7 +98,14 @@ export function TaskDialog({ state, onClose }: { state: TaskDialogState; onClose
     >
       <label>
         Title
-        <input value={form.title} onChange={(e) => set('title', e.target.value)} required maxLength={120} placeholder="What needs to get done?" autoFocus />
+        <input
+          value={form.title}
+          onChange={(e) => set('title', e.target.value)}
+          required
+          maxLength={120}
+          placeholder="What needs to get done?"
+          autoFocus
+        />
       </label>
       <div className="form-row">
         <label>

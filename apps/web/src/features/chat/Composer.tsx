@@ -35,7 +35,14 @@ export function Composer({ channelId }: { channelId: string }) {
       }}
     >
       <Icon name="arrow" />
-      <input ref={input} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} autoComplete="off" placeholder="Message @team or @AI…" />
+      <input
+        ref={input}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        maxLength={2000}
+        autoComplete="off"
+        placeholder="Message @team or @AI…"
+      />
       <button type="button" className="icon-btn round" aria-label="Attach file" onClick={() => toast('File uploads aren’t built yet.')}>
         <Icon name="plus" />
       </button>

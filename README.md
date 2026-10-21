@@ -23,13 +23,14 @@ Try it:
 3. Open the app in a second browser window. Changes appear live in both.
 4. Drag the chat header out of the dock to float it, or use the window button to open it in its own window.
 
-| Command | |
-| --- | --- |
-| `npm run dev` | API + web with reload |
-| `npm test` | API tests (AI rules, HTTP + realtime flow) |
-| `npm run typecheck` | TypeScript, all packages |
-| `npm run build` | Production build |
-| `npm run db:seed` | Reset the local database to the demo data (stop `dev` first) |
+| Command             |                                                              |
+| ------------------- | ------------------------------------------------------------ |
+| `npm run dev`       | API + web with reload                                        |
+| `npm run check`     | Format, lint, typecheck and tests (what CI runs)             |
+| `npm test`          | API tests (AI rules, HTTP + realtime flow)                   |
+| `npm run typecheck` | TypeScript, all packages                                     |
+| `npm run build`     | Production build                                             |
+| `npm run db:seed`   | Reset the local database to the demo data (stop `dev` first) |
 
 Configuration lives in `apps/api/.env`. Copy `apps/api/.env.example` to start.
 

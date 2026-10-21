@@ -7,15 +7,15 @@ import { ChatWindowProvider } from '../state/chatWindow';
 import { useSession } from '../state/session';
 import { WorkspaceProvider, useWorkspace } from '../state/workspace';
 
-const TOP_TABS: [string, string][] = [
-  ['board', 'Board'],
-  ['chat', 'Chat'],
-  ['brainstorm', 'Brainstorm'],
-  ['decisions', 'Decisions'],
-  ['calendar', 'Calendar'],
-  ['files', 'Files'],
-  ['overview', 'Overview'],
-];
+// const TOP_TABS: [string, string][] = [
+//   ['board', 'Board'],
+//   ['chat', 'Chat'],
+//   ['brainstorm', 'Brainstorm'],
+//   ['decisions', 'Decisions'],
+//   ['calendar', 'Calendar'],
+//   ['files', 'Files'],
+//   ['overview', 'Overview'],
+// ];
 
 const SIDE_NAV: [string, string, IconName][] = [
   ['board', 'Tasks', 'tasks'],
@@ -89,13 +89,13 @@ function TopBar() {
         <span className="crumb-sep">/</span>
         <span className="crumb-project">{project.name}</span>
       </div>
-      <nav className="top-tabs" aria-label="Workspace views">
+      {/* <nav className="top-tabs" aria-label="Workspace views">
         {TOP_TABS.map(([path, label]) => (
           <NavLink key={path} to={path} className={({ isActive }) => `top-tab${isActive ? ' active' : ''}`}>
             {label}
           </NavLink>
         ))}
-      </nav>
+      </nav> */}
       <label className="search">
         <Icon name="search" />
         <input

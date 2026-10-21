@@ -25,7 +25,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    setError(null);
     api
       .me()
       .then((result) => !cancelled && setMe(result))
@@ -38,6 +37,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const switchMember = useCallback((id: string) => {
     writeStored(MEMBER_KEY, id);
     setApiMember(id);
+    setError(null);
     setMemberId(id);
   }, []);
 

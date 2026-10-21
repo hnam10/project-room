@@ -64,7 +64,12 @@ export function ChatPanel(props: {
           <>
             <div className="channel-title">
               <Icon name="hash" />
-              <select className="channel-select" value={activeChannelId} onChange={(e) => setActiveChannelId(e.target.value)} aria-label="Channel">
+              <select
+                className="channel-select"
+                value={activeChannelId}
+                onChange={(e) => setActiveChannelId(e.target.value)}
+                aria-label="Channel"
+              >
                 {channels.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}

@@ -76,7 +76,16 @@ export function ActionItemsCard({ suggestion }: { suggestion: Suggestion }) {
               <Icon name="pencil" />
               Edit
             </button>
-            <button className="btn sm" disabled={busy} onClick={() => run(() => api.dismissSuggestion(projectId, suggestion.id), () => 'Suggestion dismissed')}>
+            <button
+              className="btn sm"
+              disabled={busy}
+              onClick={() =>
+                run(
+                  () => api.dismissSuggestion(projectId, suggestion.id),
+                  () => 'Suggestion dismissed',
+                )
+              }
+            >
               <Icon name="x" />
               Dismiss
             </button>

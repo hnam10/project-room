@@ -5,6 +5,13 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-20 — **AI tool entry files.** `GEMINI.md` and `.github/copilot-instructions.md` point to
+  AGENTS.md like `CLAUDE.md` does; shared notes moved from CLAUDE.md into AGENTS.md; personal AI settings
+  (`CLAUDE.local.md`, `.claude/settings.local.json`, …) are git-ignored.
+- 2026-10-20 — **CI and code quality.** GitHub Actions on every PR and `main`: Prettier check, ESLint
+  (typescript-eslint + react-hooks), typecheck, tests, build, `npm audit` (production deps). `npm run check`
+  runs the same locally. Fixed the issues the new React hooks rules found (ref writes during render,
+  form resets in effects).
 - 2026-10-20 — **Full-stack scaffold.** npm workspaces (`packages/shared`, `apps/api`, `apps/web`).
   - API: Express 5 + SurrealDB 3 (embedded `surrealkv`, or remote via `SURREAL_URL`), schema with
     ASSERTs, per-project membership checks, zod validation, demo seed, realtime via LIVE SELECT → WebSocket.
@@ -45,6 +52,9 @@ Pick from the top unless the team agrees otherwise. Put your name next to an ite
 
 ## Decision log
 
+- 2026-10-20 — **ESLint + Prettier** (not Biome): the React hooks rules (incl. the React Compiler checks)
+  only exist as an ESLint plugin. Prettier uses the existing style (single quotes, 140 columns) so the
+  first format pass was small. Lint warnings fail CI so they don't pile up.
 - 2026-10-20 — **SurrealDB** chosen by the team for the database: live queries fit realtime chat/board;
   record links model "message → suggestion → task" provenance. No ORM; schema lives in `schema.surql`.
 - 2026-10-20 — **Embedded SurrealDB for development** (`@surrealdb/node`): no server to install; the

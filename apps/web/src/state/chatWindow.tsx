@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFeedback } from '../components/Feedback';
 import { readStored, writeStored } from './storage';
 
@@ -71,7 +71,9 @@ export function ChatWindowProvider({ projectId, children }: { projectId: string;
   const dockRef = useRef<HTMLElement | null>(null);
   const popupRef = useRef<Window | null>(null);
   const layoutRef = useRef(layout);
-  layoutRef.current = layout;
+  useLayoutEffect(() => {
+    layoutRef.current = layout;
+  }, [layout]);
 
   const update = useCallback((changes: Partial<DockLayout>) => {
     setLayout((current) => {
@@ -94,14 +96,10 @@ export function ChatWindowProvider({ projectId, children }: { projectId: string;
   );
 
   const dock = useCallback(() => switchTo({ mode: 'docked' }), [switchTo]);
-  const floatInPage = useCallback(
-    () => switchTo({ mode: 'floating', float: clampFloat(layoutRef.current.float) }),
-    [switchTo],
-  );
+  const floatInPage = useCallback(() => switchTo({ mode: 'floating', float: clampFloat(layoutRef.current.float) }), [switchTo]);
 
   const openSeparateWindow = useCallback(async () => {
-    const pip = (window as Window & { documentPictureInPicture?: { requestWindow(o: object): Promise<Window> } })
-      .documentPictureInPicture;
+    const pip = (window as Window & { documentPictureInPicture?: { requestWindow(o: object): Promise<Window> } }).documentPictureInPicture;
     if (pip) {
       try {
         const win = await pip.requestWindow({ width: 420, height: 640 });

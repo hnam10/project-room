@@ -68,7 +68,14 @@ export async function seedDemoData(): Promise<void> {
   ];
 
   const ideas: [string, string, string, string, string, string[]][] = [
-    ['i1', 'AI-powered study planner', 'Personalized schedule based on goals and deadlines.', 'Product', 'alex', ['jamie', 'taylor', 'morgan']],
+    [
+      'i1',
+      'AI-powered study planner',
+      'Personalized schedule based on goals and deadlines.',
+      'Product',
+      'alex',
+      ['jamie', 'taylor', 'morgan'],
+    ],
     ['i2', 'Collaborative note-taking', 'Real-time collaboration with AI summaries.', 'Product', 'jamie', ['alex', 'taylor', 'morgan']],
     ['i3', 'Smart resource recommendation', 'Suggest relevant papers, videos, and tools.', 'Product', 'taylor', ['alex', 'jamie']],
     ['i4', 'Gamification', 'Motivate users with streaks and achievements.', 'Engagement', 'morgan', ['taylor']],
@@ -131,8 +138,26 @@ export async function seedDemoData(): Promise<void> {
           createdAt: day(-2, `09:0${i}`),
         })),
         decisions: [
-          { id: rid('decision', 'd1'), projectId: p, title: 'Use Next.js + Supabase for the stack', status: 'decided', raisedById: m('jamie'), decidedById: m('jamie'), createdAt: day(-5), decidedAt: day(-4) },
-          { id: rid('decision', 'd2'), projectId: p, title: 'Target users: students working on group projects', status: 'decided', raisedById: m('alex'), decidedById: m('alex'), createdAt: day(-6), decidedAt: day(-6) },
+          {
+            id: rid('decision', 'd1'),
+            projectId: p,
+            title: 'Use Next.js + Supabase for the stack',
+            status: 'decided',
+            raisedById: m('jamie'),
+            decidedById: m('jamie'),
+            createdAt: day(-5),
+            decidedAt: day(-4),
+          },
+          {
+            id: rid('decision', 'd2'),
+            projectId: p,
+            title: 'Target users: students working on group projects',
+            status: 'decided',
+            raisedById: m('alex'),
+            decidedById: m('alex'),
+            createdAt: day(-6),
+            decidedAt: day(-6),
+          },
         ],
         suggestions: [
           {
@@ -187,7 +212,9 @@ export async function seedDemoData(): Promise<void> {
 }
 
 export async function wipe(): Promise<void> {
-  await getDb().query(TABLES.map((t) => `DELETE ${t};`).join('\n')).collect();
+  await getDb()
+    .query(TABLES.map((t) => `DELETE ${t};`).join('\n'))
+    .collect();
 }
 
 // `npm run db:seed`
