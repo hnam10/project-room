@@ -104,3 +104,28 @@ describe('rtc relay', () => {
     stranger.ws.close();
   });
 });
+
+describe('dropped members', () => {
+  const participants = async (id: string) => (await api<{ meeting: Meeting }>(`${M}/${id}`)).body.meeting.participantIds;
+  const waitFor = async (id: string, expected: string[]) => {
+    for (let i = 0; i < 20 && (await participants(id)).sort().join() !== expected.join(); i++) await new Promise((r) => setTimeout(r, 100));
+    return (await participants(id)).sort();
+  };
+
+  it('removes a participant when their last socket closes', async () => {
+    const meeting = (await api<Meeting>(M, 'alex', 'POST')).body;
+    await api(`${M}/${meeting.id}/join`, 'jamie', 'POST');
+    const alex = await client('alex');
+    const jamie1 = await client('jamie');
+    const jamie2 = await client('jamie');
+
+    jamie1.ws.close();
+    await pause();
+    expect((await participants(meeting.id)).sort()).toEqual(['alex', 'jamie']); // still connected on the other socket
+
+    jamie2.ws.close();
+    expect(await waitFor(meeting.id, ['alex'])).toEqual(['alex']);
+    alex.ws.close();
+    await api(`${M}/${meeting.id}/end`, 'alex', 'POST');
+  });
+});

@@ -6,6 +6,7 @@ import { toPlain } from '../db/records.js';
 import { ensureClerkMember, verifySessionToken } from '../auth/clerk.js';
 import { authMode } from '../config.js';
 import { relayRtc } from './rtc-relay.js';
+import { dropFromLiveMeeting } from '../services/meetings.js';
 import { devMemberId, projectForCaller, type Caller } from '../http/context.js';
 
 // Pushes database changes to browsers. SurrealDB LIVE SELECT queries report every change to the
@@ -66,7 +67,14 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
     });
 
     socket.on('close', () => {
-      if (projectId) socketsByProject.get(projectId)?.delete(socket);
+      if (!projectId) return;
+      const sockets = socketsByProject.get(projectId);
+      sockets?.delete(socket);
+      const member = memberIds.get(socket);
+      // A call member whose last socket closed has dropped (closed tab, lost network): free their place.
+      if (member && ![...(sockets ?? [])].some((s) => memberIds.get(s) === member)) {
+        dropFromLiveMeeting(projectId, member).catch((error) => console.error('Removing a dropped meeting member failed', error));
+      }
     });
   });
 

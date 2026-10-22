@@ -51,6 +51,12 @@ export async function leaveMeeting(projectId: string, meetingId: string, memberI
   return removeParticipant(meetingId, memberId);
 }
 
+/** A member's last socket closed: take them out of the project's live call, if they were in it. */
+export async function dropFromLiveMeeting(projectId: string, memberId: string): Promise<void> {
+  const meeting = await findLiveMeeting(projectId);
+  if (meeting?.participantIds.includes(memberId)) await removeParticipant(meeting.id, memberId);
+}
+
 export async function addLine(projectId: string, meetingId: string, memberId: string, text: string): Promise<TranscriptLine> {
   const meeting = await liveMeeting(projectId, meetingId);
   if (!meeting.participantIds.includes(memberId)) throw new ForbiddenError('Join the meeting to speak in it');

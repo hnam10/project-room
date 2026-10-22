@@ -100,7 +100,7 @@ export function MeetingPage() {
     onSignal,
     muted,
   });
-  const audioFailed = [...peers.values()].includes('failed');
+  const audioFailed = [...peers].some(([id, state]) => state === 'failed' && (meeting?.participantIds ?? []).includes(id));
   const [blocked, setBlocked] = useState(false);
   const audioBox = useRef<HTMLDivElement>(null);
 

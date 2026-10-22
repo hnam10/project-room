@@ -26,11 +26,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown, init?: RequestInit): Promise<T> {
   const projectId = /^\/projects\/([^/]+)/.exec(path)?.[1];
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
+      ...init,
       method,
       headers: { 'content-type': 'application/json', ...(await authHeaders(projectId && decodeURIComponent(projectId))) },
       body: body === undefined ? undefined : JSON.stringify(body),
