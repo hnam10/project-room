@@ -74,6 +74,7 @@ export function useMeshAudio({ enabled, meetingId, me, participantIds, iceServer
       pending: RTCIceCandidateInit[];
       chain: Promise<void>;
       timer: number;
+      closed: boolean;
     }
     const pcs = new Map<string, Peer>();
     const listed = new Set<string>(); // ids we have seen in participantIds (only those are closed on absence)
@@ -91,8 +92,9 @@ export function useMeshAudio({ enabled, meetingId, me, participantIds, iceServer
         ignoreOffer: false,
         pending: [],
         chain: Promise.resolve(),
+        closed: false,
         timer: window.setTimeout(() => {
-          if (pc.connectionState !== 'connected') setPeer(id, 'failed');
+          if (pc.connectionState !== 'connected') broken(id);
         }, CONNECT_TIMEOUT_MS),
       };
       pcs.set(id, peer);
@@ -120,7 +122,7 @@ export function useMeshAudio({ enabled, meetingId, me, participantIds, iceServer
       pc.onconnectionstatechange = () => {
         const s = pc.connectionState;
         if (s === 'connected') setPeer(id, 'connected');
-        else if (s === 'failed') setPeer(id, 'failed');
+        else if (s === 'failed') broken(id);
         else if (s === 'connecting' || s === 'new') setPeer(id, 'connecting');
       };
       return peer;
@@ -129,6 +131,7 @@ export function useMeshAudio({ enabled, meetingId, me, participantIds, iceServer
     const close = (id: string) => {
       const peer = pcs.get(id);
       if (!peer) return;
+      peer.closed = true;
       window.clearTimeout(peer.timer);
       peer.pc.onnegotiationneeded = peer.pc.onicecandidate = peer.pc.ontrack = peer.pc.onconnectionstatechange = null;
       peer.pc.close();
@@ -138,8 +141,21 @@ export function useMeshAudio({ enabled, meetingId, me, participantIds, iceServer
       setRemoteStreams((m) => (m.delete(id) ? new Map(m) : m));
     };
 
-    const handle = async (id: string, signal: RtcSignal) => {
-      const peer = ensure(id);
+    // A failed or stuck connection: unlisted (ghost) peers are dropped; listed ones are rebuilt, at most 3 times a minute.
+    const rebuilds = new Map<string, number[]>();
+    function broken(id: string) {
+      if (!listed.has(id)) return close(id);
+      const now = Date.now();
+      const recent = (rebuilds.get(id) ?? []).filter((t) => now - t < 60_000);
+      if (recent.length >= 3) return setPeer(id, 'failed');
+      rebuilds.set(id, [...recent, now]);
+      close(id);
+      listed.add(id);
+      ensure(id);
+    }
+
+    const handle = async (id: string, peer: Peer, signal: RtcSignal) => {
+      if (peer.closed || pcs.get(id) !== peer) return; // closed while queued: never rebuild here
       const { pc } = peer;
       try {
         if (signal.kind === 'ice') {
@@ -167,7 +183,7 @@ export function useMeshAudio({ enabled, meetingId, me, participantIds, iceServer
     const off = onSignal((msg) => {
       if (msg.meetingId !== meetingId || msg.from === latest.current.me) return;
       const peer = ensure(msg.from);
-      peer.chain = peer.chain.then(() => handle(msg.from, msg.signal));
+      peer.chain = peer.chain.then(() => handle(msg.from, peer, msg.signal));
     });
     sync.current = (ids) => {
       const want = new Set(ids.filter((id) => id !== latest.current.me));
