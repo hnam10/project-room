@@ -4,6 +4,8 @@ import { meetingsApi } from '../api/meetings';
 import { useFeedback } from '../components/Feedback';
 import { ConsentDialog } from '../features/meeting/ConsentDialog';
 import { MeetingAiPanel } from '../features/meeting/MeetingAiPanel';
+import { LastTimeCard } from '../features/meeting/LastTimeCard';
+import { MeetingSummaryView } from '../features/meeting/MeetingSummaryView';
 import { MeetingTimer } from '../features/meeting/MeetingTimer';
 import { Participants } from '../features/meeting/Participants';
 import { splitLine } from '../features/meeting/splitLine';
@@ -33,7 +35,7 @@ export function MeetingPage() {
   const { projectId } = useWorkspace();
   const { memberId } = useSession();
   const { toast, toastError, confirm } = useFeedback();
-  const { current, loaded, reload, applyPoll, setCurrent, dismiss, sendSignal, onSignal } = useMeeting(projectId);
+  const { current, loaded, reload, applyPoll, setCurrent, dismiss, select, recent, sendSignal, onSignal } = useMeeting(projectId);
   const [consent, setConsent] = useState<'start' | 'join' | null>(null);
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('ko-KR');
@@ -180,6 +182,20 @@ export function MeetingPage() {
             </select>
           </label>
           <button className="btn primary">Start meeting</button>
+          {recent.length > 0 && (
+            <>
+              <h2>Recent meetings</h2>
+              <ul className="recent-meetings">
+                {recent.map((r) => (
+                  <li key={r.id}>
+                    <button type="button" onClick={() => void select(projectId, r.id).catch(toastError)}>
+                      <b>{r.title}</b> <span>{new Date(r.startedAt).toLocaleDateString()}</span> <span>{r.status}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </form>
       ) : (
         <>
@@ -196,7 +212,7 @@ export function MeetingPage() {
                 }}
               />
             ) : (
-              <span className="meeting-timer">Ended</span>
+              <span className="meeting-timer">{meeting.status === 'summarizing' ? 'Summarizing' : 'Ended'}</span>
             )}
             <span className="spacer" />
             {live && !joined && (
@@ -223,45 +239,50 @@ export function MeetingPage() {
               </button>
             )}
           </div>
-          <div className="meeting-cols">
-            <section>
-              <h2>In the call</h2>
-              {joined && micError && <p className="meeting-notice">Microphone unavailable — others can’t hear you.</p>}
-              {joined && audioFailed && (
-                <p className="meeting-notice">Can’t connect audio on this network — the transcript and AI still work.</p>
-              )}
-              {joined && blocked && (
-                <button
-                  className="btn"
-                  onClick={() => {
-                    audioBox.current?.querySelectorAll('audio').forEach((a) => void a.play().catch(() => {}));
-                    setBlocked(false);
-                  }}
-                >
-                  Click to enable audio
-                </button>
-              )}
-              <div ref={audioBox} hidden>
-                {joined &&
-                  [...remoteStreams].map(([id, stream]) => <RemoteAudio key={id} stream={stream} onBlocked={() => setBlocked(true)} />)}
-              </div>
-              <Participants meeting={meeting} localStream={localStream} remoteStreams={remoteStreams} muted={muted} />
-            </section>
-            <section>
-              <h2>Transcript{listening ? ' · listening' : ''}</h2>
-              {joined && error && <p className="meeting-notice">{error}</p>}
-              {joined && !supported && (
-                <p className="meeting-notice">
-                  Your speech isn’t transcribed in this browser. Use Chrome to be heard; you can still read along.
-                </p>
-              )}
-              {joined && stopped && <p className="meeting-notice">The meeting has ended, so transcribing stopped.</p>}
-              <TranscriptView lines={current.lines} interim={joined ? interim : ''} />
-            </section>
-            <section>
-              <MeetingAiPanel detail={current} joined={joined} applyPoll={applyPoll} setCurrent={setCurrent} />
-            </section>
-          </div>
+          {!live ? (
+            <MeetingSummaryView detail={current} applyPoll={applyPoll} setCurrent={setCurrent} />
+          ) : (
+            <div className="meeting-cols">
+              <section>
+                <h2>In the call</h2>
+                {joined && micError && <p className="meeting-notice">Microphone unavailable — others can’t hear you.</p>}
+                {joined && audioFailed && (
+                  <p className="meeting-notice">Can’t connect audio on this network — the transcript and AI still work.</p>
+                )}
+                {joined && blocked && (
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      audioBox.current?.querySelectorAll('audio').forEach((a) => void a.play().catch(() => {}));
+                      setBlocked(false);
+                    }}
+                  >
+                    Click to enable audio
+                  </button>
+                )}
+                <div ref={audioBox} hidden>
+                  {joined &&
+                    [...remoteStreams].map(([id, stream]) => <RemoteAudio key={id} stream={stream} onBlocked={() => setBlocked(true)} />)}
+                </div>
+                <Participants meeting={meeting} localStream={localStream} remoteStreams={remoteStreams} muted={muted} />
+              </section>
+              <section>
+                <h2>Transcript{listening ? ' · listening' : ''}</h2>
+                {meeting.previousMeetingId && <LastTimeCard projectId={projectId} previousId={meeting.previousMeetingId} />}
+                {joined && error && <p className="meeting-notice">{error}</p>}
+                {joined && !supported && (
+                  <p className="meeting-notice">
+                    Your speech isn’t transcribed in this browser. Use Chrome to be heard; you can still read along.
+                  </p>
+                )}
+                {joined && stopped && <p className="meeting-notice">The meeting has ended, so transcribing stopped.</p>}
+                <TranscriptView lines={current.lines} interim={joined ? interim : ''} />
+              </section>
+              <section>
+                <MeetingAiPanel detail={current} joined={joined} applyPoll={applyPoll} setCurrent={setCurrent} />
+              </section>
+            </div>
+          )}
         </>
       )}
       <ConsentDialog open={!!consent} action={consent ?? 'join'} onClose={() => setConsent(null)} onAccept={() => void accept()} />

@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-21 — **AI Meeting Room** (Hansol). In-app voice meetings (WebRTC mesh, 60-minute cap) with a live
+  transcript from each browser's speech recognition. Claude (fast model) joins read-only and proposes tickets,
+  ideas and polls as suggestions; ending the meeting writes an AI summary and a "Notes for next time"
+  checklist. Confirmed notes become the next meeting's "Last time" card. Spec:
+  [superpowers/specs/2026-10-21-ai-meeting-room-design.md](superpowers/specs/2026-10-21-ai-meeting-room-design.md).
+
 - 2026-10-20 — **Claude provider, structured suggestions and project memory.** `ANTHROPIC_API_KEY` switches
   the AI from the mock to Claude (`src/ai/anthropic.ts`, `messages.parse` + zod). One `@AI` call returns
   action items, decisions and risks, each with a `reason` and a `quote`. Output is validated before use
@@ -48,10 +54,6 @@ Pick from the top unless the team agrees otherwise. Put your name next to an ite
 
 Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKATHON.md).
 
-- [ ] **AI Meeting Room** (Hansol) — in-app voice meetings with a live transcript; Claude joins read-only and
-      suggests tickets, ideas and polls live; 60-minute cap; member-confirmed notes carry over to the next
-      meeting. Spec: [superpowers/specs/2026-10-21-ai-meeting-room-design.md](superpowers/specs/2026-10-21-ai-meeting-room-design.md)
-      (§15 lists the shared files it touches).
 - [ ] **Clerk roles** (Clerk prize, follow-up) — use org roles for product rules, e.g. only `org:admin`
       can make a suggestion an official decision; Clerk webhooks to drop members who leave a team.
 - [ ] **Live URL** (needs a host account) — build and deploy the Dockerfile with a persistent volume at
@@ -72,6 +74,13 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
+- Meeting page has no sidebar link yet (reachable at /p/<id>/meeting); add one line in WorkspaceLayout after
+  feat/task-search merges.
+- Meetings: no TURN relay, so peer connections may fail on strict networks (transcript and AI still work).
+- Meetings: live state, the AI trigger and the signaling relay are in-process (single API instance).
+- Meetings: transcription is Chrome/Edge only (Web Speech API; audio goes to Google).
+- Meetings: no meeting or transcript deletion; mixed-language speech is transcribed in one language.
+- The web meeting UI has no automated tests and hasn't been tried in a real browser by the agents.
 - The Claude provider is covered by tests with a fake client (validation, prompts) but has not been run
   against the live API in CI; try it once with a real key (`@AI` in #general, then "Ask the project").
 - Claude is called synchronously on `@AI` and, for messages that look like a question, on post. The model
@@ -95,6 +104,11 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-21 — **Voice via WebRTC mesh with WS signaling, no new dependency**: teams are <= 6, and a hosted SFU would add a vendor and key.
+- 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.
+- 2026-10-21 — **Meetings are capped at 60 minutes and live AI reads a fixed-size context** (running summary + new lines): cost stays bounded.
+- 2026-10-21 — **Carry-over is a member-confirmed note, not the transcript**: consistent with "memory = confirmed records".
+- 2026-10-21 — **`ANTHROPIC_FAST_MODEL`** (default `claude-haiku-5-5`) for frequent live calls; summaries stay on `ANTHROPIC_MODEL`.
 - 2026-10-20 — **Memory = approved decisions** (not a vector store over chat): answers must be traceable to
   something a member confirmed, which fits "AI suggests, people decide" and avoids answering from
   half-remembered chat. Decisions gained `outcome`/`reason`/`quote` so there is something to answer from.

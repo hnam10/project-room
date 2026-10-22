@@ -73,6 +73,12 @@ export function useMeeting(projectId: string) {
     void reload().catch(() => {});
   }, [reload]);
 
+  /** Open a recent meeting (its ended view). */
+  const select = useCallback(async (projectId_: string, id: string) => {
+    currentId.current = id;
+    setCurrent(await meetingsApi.get(projectId_, id));
+  }, []);
+
   const listeners = useRef(new Set<(msg: ServerRtc) => void>());
   const sender = useRef<((msg: ClientRtc) => boolean) | null>(null);
   useRealtime(
@@ -94,5 +100,5 @@ export function useMeeting(projectId: string) {
     return () => void listeners.current.delete(fn);
   }, []);
 
-  return { sendSignal, onSignal, current, recent, loaded, reload, apply, applyPoll, setCurrent, dismiss };
+  return { sendSignal, onSignal, current, recent, loaded, reload, apply, applyPoll, setCurrent, dismiss, select };
 }

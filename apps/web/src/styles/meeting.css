@@ -237,3 +237,52 @@
 .poll-edit-row input {
   flex: 1;
 }
+
+/* Ended view, Last time */
+.meeting-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+}
+.last-time {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+.last-time h3,
+.meeting-summary h3 {
+  margin: 8px 0 4px;
+  font-size: 13px;
+}
+.note-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 0;
+}
+.note-row input[type='text'],
+.note-row input:not([type]) {
+  flex: 1;
+}
+.meeting-note-small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.recent-meetings {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+}
+.recent-meetings button {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}

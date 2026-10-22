@@ -14,16 +14,19 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 
 ## Data model (SurrealDB, `apps/api/src/db/schema.surql`)
 
-| Table        | Purpose                                                                                                                                                                     | Key links                                     |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `member`     | A person                                                                                                                                                                    | —                                             |
-| `project`    | Workspace; holds `memberIds` and the `taskCounter` for #numbers                                                                                                             | `memberIds → member`                          |
-| `channel`    | Chat channel                                                                                                                                                                | `projectId`                                   |
-| `message`    | Chat message; `authorId` is a member id or `'ai'`                                                                                                                           | `channelId`, `suggestionId`                   |
-| `task`       | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from                                                                                           | `assigneeId → member`                         |
-| `idea`       | Brainstorm card; votes are `voterIds`                                                                                                                                       | `taskId` once converted                       |
-| `decision`   | Open question or recorded decision                                                                                                                                          | `raisedById`, `decidedById`                   |
-| `suggestion` | **Structured AI output** awaiting review: `kind` = `action_items` / `decision` / `risk`, `status` = `pending` / `approved` / `dismissed`, with `reason`, `quote`, `items[]` | `sourceMessageId`, `taskId`, `createdTaskIds` |
+| Table             | Purpose                                                                                                                                                                                                                                                                                             | Key links                                     |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `member`          | A person                                                                                                                                                                                                                                                                                            | —                                             |
+| `project`         | Workspace; holds `memberIds` and the `taskCounter` for #numbers                                                                                                                                                                                                                                     | `memberIds → member`                          |
+| `channel`         | Chat channel                                                                                                                                                                                                                                                                                        | `projectId`                                   |
+| `message`         | Chat message; `authorId` is a member id or `'ai'`                                                                                                                                                                                                                                                   | `channelId`, `suggestionId`                   |
+| `task`            | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from                                                                                                                                                                                                                   | `assigneeId → member`                         |
+| `idea`            | Brainstorm card; votes are `voterIds`                                                                                                                                                                                                                                                               | `taskId` once converted                       |
+| `decision`        | Open question or recorded decision                                                                                                                                                                                                                                                                  | `raisedById`, `decidedById`                   |
+| `suggestion`      | **Structured AI output** awaiting review: `kind` = `action_items` / `decision` / `risk`, `status` = `pending` / `approved` / `dismissed`, with `reason`, `quote`, `items[]`. Meeting kinds: `idea`, `poll`, `meeting_notes`; fields `meetingId`, `sourceLineId`, `ideaId`, `ideaDraft`, `pollDraft` | `sourceMessageId`, `taskId`, `createdTaskIds` |
+| `meeting`         | AI Meeting Room session: `status` = `live` / `summarizing` / `ended`, 60-minute `endsAt`, `participantIds`, `summary`, `carryOver` (confirmed notes), `usage`, `summaryError`                                                                                                                       | `previousMeetingId`                           |
+| `transcript_line` | One final speech result (<= 1000 chars) from a participant's browser                                                                                                                                                                                                                                | `meetingId`, `speakerId`                      |
+| `poll`            | Meeting poll with 2-5 options; one movable vote per member                                                                                                                                                                                                                                          | `meetingId`, `sourceSuggestionId`             |
 
 All records carry `projectId`; repositories always filter by it.
 
@@ -54,6 +57,19 @@ The memory of a project is its **approved decisions** (`decision.status = 'decid
 `AiProvider.answerFromDecisions` and returns the answer with the decisions it used as `sources`. The chat log
 is never read. A decision becomes "decided" only through a member: approving a `decision` suggestion whose
 `outcome` the AI saw settled, or "Mark decided" in the Decisions tab (which asks for the outcome).
+
+## Meetings
+
+- **Lifecycle:** `live` (max 60 minutes, then expired) -> `summarizing` -> `ended`. One live meeting per project.
+- **Transcript:** each browser runs the Web Speech API on its own mic and posts final results to
+  `POST /meetings/:id/lines`; the speaker is always the caller.
+- **Voice:** WebRTC mesh. `rtc` offer/answer/ICE signals are relayed between participants over `/ws`; STUN/TURN
+  come from `RTC_ICE_SERVERS`.
+- **Live AI:** new lines trigger `MeetingAi` (fast model, running summary + new lines) which stores
+  `action_items` / `idea` / `poll` suggestions. Members approve them; AI never writes tasks, ideas or polls.
+- **End:** `POST /meetings/:id/end` summarizes on the main model into `meeting.summary` plus a `meeting_notes`
+  suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
+  shows a "Last time" card.
 
 ## Realtime
 
@@ -100,6 +116,8 @@ come from the database, writes from any API instance (or a DB console) reach cli
 | `SURREAL_USER` / `SURREAL_PASS`              | —                           | remote connections only                                     |
 | `SEED_ORG_ID`                                | —                           | Clerk org id: loads the demo project into it if it has none |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`      | — / `claude-opus-5-5`       | key set = Claude, otherwise the labelled mock               |
+| `ANTHROPIC_FAST_MODEL`                       | `claude-haiku-5-5`          | model for frequent live-meeting calls                       |
+| `RTC_ICE_SERVERS`                            | Google STUN                 | JSON array of ICE servers for meeting audio (add TURN here) |
 | `AI_PROVIDER`                                | —                           | `mock` forces the mock even when a key is set               |
 | `WEB_DIST`                                   | `apps/web/dist`             | built web app served by the API when it exists              |
 | `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`            |
