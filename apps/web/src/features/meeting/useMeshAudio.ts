@@ -137,8 +137,14 @@ export function useMeshAudio({ enabled, meetingId, me, participantIds, iceServer
       peer.pc.close();
       pcs.delete(id);
       listed.delete(id);
-      setPeers((m) => (m.delete(id) ? new Map(m) : m));
-      setRemoteStreams((m) => (m.delete(id) ? new Map(m) : m));
+      setPeers((m) => {
+        const n = new Map(m);
+        return n.delete(id) ? n : m;
+      });
+      setRemoteStreams((m) => {
+        const n = new Map(m);
+        return n.delete(id) ? n : m;
+      });
     };
 
     // A failed or stuck connection: unlisted (ghost) peers are dropped; listed ones are rebuilt, at most 3 times a minute.
