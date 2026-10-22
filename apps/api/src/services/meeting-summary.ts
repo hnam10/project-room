@@ -104,8 +104,10 @@ export async function summarize(
 
 /** On API start: end meetings left live past their cap, then finish every summary that was interrupted. */
 export async function resumeMeetings(): Promise<void> {
+  // Snapshot first: meetings ended by the sweep below are summarized by it, not again by this loop.
+  const interrupted = await listSummarizingMeetings();
   await endExpiredMeetings();
-  for (const meeting of await listSummarizingMeetings()) {
+  for (const meeting of interrupted) {
     try {
       await summarize(meeting.projectId, meeting.id);
     } catch (error) {
