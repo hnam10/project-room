@@ -126,7 +126,7 @@ describe('meetings API', () => {
     const started = await post('', 'alex');
     expect(started.status).toBe(201);
     const ended = await post(`/${started.body.id}/end`, 'alex');
-    expect(ended.body).toMatchObject({ status: 'ended', participantIds: [] });
+    expect(ended.body).toMatchObject({ status: 'summarizing', participantIds: [] });
     expect(ended.body.endedAt).toBeTruthy();
   });
 });

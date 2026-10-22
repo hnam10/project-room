@@ -69,6 +69,14 @@ export interface RawTick {
   usage?: { inputTokens: number; outputTokens: number };
 }
 
+/** What a provider hands to validateSummary: loosely typed, nothing trusted yet. */
+export interface RawSummary {
+  summary: MeetingSummary;
+  actionItems: RawTick['actionItems'];
+  carryOverItems: string[];
+  usage?: { inputTokens: number; outputTokens: number };
+}
+
 const norm = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 const toPriority = (value: string): Priority => PRIORITIES.find((p) => p === value.trim().toLowerCase()) ?? 'medium';
 const toTheme = (value: string): IdeaTheme => IDEA_THEMES.find((t) => t.toLowerCase() === value.trim().toLowerCase()) ?? 'Product';
@@ -117,6 +125,48 @@ export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTick
       .filter((p) => p.options.length >= 2 && p.options.length <= 5 && p.options.every(Boolean) && fresh(p.question))
       .map((p) => ({ draft: { question: p.question.trim().slice(0, 160), options: p.options }, reason: p.reason, ...cite(p.quote) })),
     runningSummary: raw.runningSummary.trim().split(/\s+/).slice(0, MAX_SUMMARY_WORDS).join(' '),
+    usage: raw.usage ?? { inputTokens: 0, outputTokens: 0 },
+  };
+}
+
+const MAX_OVERVIEW_WORDS = 120;
+const capList = (items: string[], max: number, length = 300) =>
+  items
+    .map((s) => s.trim().slice(0, length))
+    .filter(Boolean)
+    .slice(0, max);
+
+export function validateSummary(raw: RawSummary, input: SummarizeInput): SummarizeResult {
+  const memberIds = new Set(input.members.map((m) => m.id));
+  const seen = new Set(input.suggestions.map((s) => norm(s.title.replace(PREFIXES, ''))));
+  const cite = (quote: string | null) => {
+    const wanted = quote ? norm(quote.replace(/^["“]|["”]$/g, '')) : '';
+    return wanted && input.lines.some((l) => norm(l.text).includes(wanted)) ? quote!.trim() : null;
+  };
+  const { summary } = raw;
+  return {
+    summary: {
+      overview: summary.overview.trim().split(/\s+/).slice(0, MAX_OVERVIEW_WORDS).join(' '),
+      decisions: capList(summary.decisions, 10),
+      openQuestions: capList(summary.openQuestions, 10),
+      nextSteps: capList(summary.nextSteps, 10),
+    },
+    actionItems: raw.actionItems
+      .filter((i) => {
+        const key = norm(i.title);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((i) => ({
+        title: i.title.trim().slice(0, 120),
+        assigneeId: i.assigneeId && memberIds.has(i.assigneeId) ? i.assigneeId : null,
+        priority: toPriority(i.priority),
+        include: true,
+        reason: i.reason,
+        quote: cite(i.quote),
+      })),
+    carryOverItems: capList(raw.carryOverItems, 10, 200),
     usage: raw.usage ?? { inputTokens: 0, outputTokens: 0 },
   };
 }

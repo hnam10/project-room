@@ -1,7 +1,7 @@
 import type { Suggestion } from '@project-room/shared';
 import { ConflictError } from '../db/records.js';
 import { createDecision } from '../repositories/decisions.js';
-import { approveIdea, approvePoll } from './meeting-approvals.js';
+import { approveIdea, approveMeetingNotes, approvePoll } from './meeting-approvals.js';
 import { getSuggestion, resolveSuggestion } from '../repositories/suggestions.js';
 import { createTask, getTask, updateTask } from '../repositories/tasks.js';
 
@@ -59,9 +59,8 @@ export async function approveSuggestion(
       return approveIdea(projectId, suggestion, memberId);
     case 'poll':
       return approvePoll(projectId, suggestion, memberId);
-    default:
-      // meeting_notes approval arrives with the meeting summary
-      throw new ConflictError('Approving meeting_notes suggestions is not supported yet');
+    case 'meeting_notes':
+      return approveMeetingNotes(projectId, suggestion, memberId);
   }
 }
 

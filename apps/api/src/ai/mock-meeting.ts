@@ -1,5 +1,5 @@
-import type { MeetingAi, MeetingTickInput, RawTick } from './meeting.js';
-import { validateTick } from './meeting.js';
+import type { MeetingAi, MeetingTickInput, RawTick, SummarizeInput } from './meeting.js';
+import { validateSummary, validateTick } from './meeting.js';
 
 // Rule-based stand-in for the live meeting AI: cue phrases only, no external service. Labelled mock in the UI.
 
@@ -57,7 +57,30 @@ export const mockMeetingAi: MeetingAi = {
     return validateTick(raw, input);
   },
 
-  async summarizeMeeting() {
-    throw new Error('summarizeMeeting is not implemented yet');
+  async summarizeMeeting(input: SummarizeInput) {
+    // The first sentence of each speaker turn, plus cue-phrase decisions and questions.
+    const turns: string[] = [];
+    let last: string | null = null;
+    for (const line of input.lines) {
+      if (line.speakerId !== last) turns.push(line.text.split(/(?<=[.!?])\s/)[0]!);
+      last = line.speakerId;
+    }
+    const texts = input.lines.map((l) => l.text);
+    const openQuestions = texts.filter((t) => /\?\s*$/.test(t));
+    const tick = await mockMeetingAi.meetingTick({ ...input, runningSummary: '', alreadySuggested: [] });
+    const actionItems = tick.actionItems.map(({ sourceLineId: _s, include: _i, reason, ...item }) => ({ ...item, reason: reason ?? '' }));
+    return validateSummary(
+      {
+        summary: {
+          overview: turns.join(' '),
+          decisions: texts.filter((t) => /decided|let's go with|정했/i.test(t)),
+          openQuestions,
+          nextSteps: actionItems.map((i) => i.title),
+        },
+        actionItems,
+        carryOverItems: openQuestions.slice(0, 5),
+      },
+      input,
+    );
   },
 };

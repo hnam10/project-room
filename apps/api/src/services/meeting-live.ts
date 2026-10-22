@@ -20,6 +20,7 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
     const lines = await listLinesAfter(projectId, meetingId, meeting.aiCursor, MAX_LINES);
     if (!lines.length) return [];
 
+    const previous = meeting.previousMeetingId ? await getMeeting(projectId, meeting.previousMeetingId) : null;
     const project = await getProject(projectId);
     const [members, ideas, tasks, suggestions] = await Promise.all([
       listMembers(project?.memberIds ?? []),
@@ -31,7 +32,7 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
     const input: MeetingTickInput = {
       lines: lines.map((l) => ({ id: l.id, speakerId: l.speakerId, speakerName: nameOf(l.speakerId), text: l.text })),
       runningSummary: meeting.runningSummary ?? '',
-      carryOver: [], // Task 10
+      carryOver: previous?.carryOver ?? [],
       ideas: ideas.map((i) => ({ id: i.id, title: i.title })),
       taskTitles: tasks.map((t) => t.title),
       alreadySuggested: suggestions.filter((s) => s.meetingId === meetingId).map((s) => s.title),

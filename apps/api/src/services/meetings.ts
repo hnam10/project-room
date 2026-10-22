@@ -5,11 +5,15 @@ import {
   createMeeting,
   findLiveMeeting,
   getMeeting,
+  beginSummarizing,
+  findLatestWithCarryOver,
   listExpiredLiveMeetings,
-  markEnded,
+  restartSummarizing,
   removeParticipant,
 } from '../repositories/meetings.js';
 import { createLine } from '../repositories/transcripts.js';
+import type { MeetingAi } from '../ai/meeting.js';
+import { summarize } from './meeting-summary.js';
 
 type LineListener = (meeting: Meeting, line: TranscriptLine) => void;
 const lineListeners: LineListener[] = [];
@@ -27,7 +31,7 @@ export async function startMeeting(projectId: string, memberId: string, input: M
     startedById: memberId,
     title: input.title ?? 'Team meeting',
     language: input.language ?? 'ko-KR',
-    previousMeetingId: null,
+    previousMeetingId: (await findLatestWithCarryOver(projectId))?.id ?? null,
   });
 }
 
@@ -61,14 +65,35 @@ export async function addLine(projectId: string, meetingId: string, memberId: st
   return line;
 }
 
-// Task 10 replaces this with the summarizing flow.
-export async function endMeeting(projectId: string, meetingId: string, _memberId: string): Promise<Meeting> {
+const summarizeInBackground = (meeting: Meeting) =>
+  void summarize(meeting.projectId, meeting.id).catch((e) => console.error('Meeting summary failed', e));
+
+/**
+ * Ends the call and starts the summary in the background; the caller gets the 'summarizing' meeting.
+ * On an ended meeting whose summary failed, it reruns only the summary.
+ */
+export async function endMeeting(projectId: string, meetingId: string, memberId: string): Promise<Meeting> {
   const meeting = await getMeeting(projectId, meetingId);
-  return meeting.status === 'ended' ? meeting : markEnded(meetingId);
+  if (meeting.status === 'summarizing') return meeting;
+  if (meeting.status === 'ended') {
+    if (!meeting.summaryError) throw new ConflictError('This meeting has already ended');
+    const again = await restartSummarizing(meetingId);
+    if (!again) return getMeeting(projectId, meetingId);
+    summarizeInBackground(again);
+    return again;
+  }
+  if (!meeting.participantIds.includes(memberId)) throw new ForbiddenError('Join the meeting to end it');
+  const summarizing = await beginSummarizing(meetingId); // null: a concurrent end already won
+  if (!summarizing) return getMeeting(projectId, meetingId);
+  summarizeInBackground(summarizing);
+  return summarizing;
 }
 
-export async function endExpiredMeetings(now = new Date()): Promise<void> {
-  for (const meeting of await listExpiredLiveMeetings(now)) await markEnded(meeting.id);
+/** Ends meetings past their cap and summarizes each; `ai` is for tests. */
+export async function endExpiredMeetings(now = new Date(), ai?: MeetingAi): Promise<void> {
+  for (const meeting of await listExpiredLiveMeetings(now)) {
+    if (await beginSummarizing(meeting.id)) await summarize(meeting.projectId, meeting.id, ai);
+  }
 }
 
 /** Enforces the 60-minute cap; returns the stop function. */

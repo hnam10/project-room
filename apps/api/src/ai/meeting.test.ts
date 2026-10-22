@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createAnthropicMeetingAi } from './anthropic-meeting.js';
 import { mockMeetingAi } from './mock-meeting.js';
-import { validateTick, type MeetingTickInput, type RawTick } from './meeting.js';
+import { validateSummary, validateTick, type MeetingTickInput, type RawSummary, type RawTick, type SummarizeInput } from './meeting.js';
 
 const input: MeetingTickInput = {
   lines: [
@@ -122,6 +122,109 @@ describe('Claude meeting AI', () => {
       const parse = vi.fn().mockResolvedValue({ stop_reason, parsed_output: null });
       const ai = createAnthropicMeetingAi('k', 'f', 'm', { messages: { parse } } as never);
       await expect(ai.meetingTick(input)).rejects.toThrow();
+    }
+  });
+});
+
+const sumInput: SummarizeInput = {
+  lines: input.lines,
+  carryOver: ['Old note'],
+  ideas: [],
+  taskTitles: [],
+  suggestions: [
+    { title: '1 action item from the meeting', status: 'pending' },
+    { title: 'Set up CI', status: 'approved' },
+  ],
+  members: input.members,
+};
+const rawSummary = (over: Partial<RawSummary> = {}): RawSummary => ({
+  summary: { overview: 'o', decisions: [], openQuestions: [], nextSteps: [] },
+  actionItems: [],
+  carryOverItems: [],
+  ...over,
+});
+const item = (over = {}) => ({ title: 'T', assigneeId: null, priority: 'high', reason: 'r', quote: null, ...over });
+
+describe('validateSummary', () => {
+  it('checks quotes, assignees and dedupes against suggestions and itself', () => {
+    const out = validateSummary(
+      rawSummary({
+        actionItems: [
+          item({ title: 'set up ci' }),
+          item({ title: 'Ship it', assigneeId: 'stranger', quote: 'never said' }),
+          item({ title: 'SHIP IT' }),
+          item({ title: 'Verbatim', assigneeId: 'alex', quote: 'set up the CI' }),
+        ],
+      }),
+      sumInput,
+    );
+    expect(out.actionItems.map((i) => i.title)).toEqual(['Ship it', 'Verbatim']);
+    expect(out.actionItems[0]).toMatchObject({ assigneeId: null, quote: null, include: true });
+    expect(out.actionItems[1]).toMatchObject({ assigneeId: 'alex', quote: 'set up the CI' });
+  });
+
+  it('caps the overview and lists, and trims carry-over items', () => {
+    const out = validateSummary(
+      rawSummary({
+        summary: { overview: Array(200).fill('w').join(' '), decisions: Array(20).fill('d'), openQuestions: [' ', 'q'], nextSteps: [] },
+        carryOverItems: [' ', ...Array(12).fill('n'), 'x'.repeat(300)],
+      }),
+      sumInput,
+    );
+    expect(out.summary.overview.split(' ')).toHaveLength(120);
+    expect(out.summary.decisions).toHaveLength(10);
+    expect(out.summary.openQuestions).toEqual(['q']);
+    expect(out.carryOverItems).toHaveLength(10);
+    expect(out.carryOverItems.every((n) => n.length <= 200)).toBe(true);
+  });
+});
+
+describe('mock summarizeMeeting', () => {
+  it('builds an overview from speaker turns and uses cues', async () => {
+    const out = await mockMeetingAi.summarizeMeeting({
+      ...sumInput,
+      suggestions: [],
+      lines: [
+        { id: 'a', speakerId: 'alex', speakerName: 'Alex', text: 'We decided to use React. It is fast.' },
+        { id: 'b', speakerId: 'alex', speakerName: 'Alex', text: 'More from me.' },
+        { id: 'c', speakerId: 'jamie', speakerName: 'Jamie', text: 'Which host do we pick?' },
+        { id: 'd', speakerId: 'alex', speakerName: 'Alex', text: "I'll set up the CI pipeline." },
+      ],
+    });
+    expect(out.summary.overview).toBe("We decided to use React. Which host do we pick? I'll set up the CI pipeline.");
+    expect(out.summary.decisions).toEqual(['We decided to use React. It is fast.']);
+    expect(out.summary.openQuestions).toEqual(['Which host do we pick?']);
+    expect(out.summary.nextSteps).toEqual(['Set up the CI pipeline']);
+    expect(out.carryOverItems).toEqual(['Which host do we pick?']);
+    expect(out.usage).toEqual({ inputTokens: 0, outputTokens: 0 });
+  });
+});
+
+describe('Claude summarizeMeeting', () => {
+  it('uses the main model with medium effort and tagged data', async () => {
+    const parse = vi.fn().mockResolvedValue({
+      stop_reason: 'end_turn',
+      parsed_output: rawSummary(),
+      usage: { input_tokens: 40, output_tokens: 9 },
+    });
+    const ai = createAnthropicMeetingAi('k', 'fast', 'claude-main', { messages: { parse } } as never);
+    const out = await ai.summarizeMeeting(sumInput);
+    const req = parse.mock.calls[0]![0];
+    expect(req).toMatchObject({ model: 'claude-main', max_tokens: 16000 });
+    expect(req.output_config.effort).toBe('medium');
+    expect(req).not.toHaveProperty('temperature');
+    expect(req).not.toHaveProperty('fallbacks');
+    expect(req.messages[0].content).toContain('<carry_over>\nOld note\n</carry_over>');
+    expect(req.messages[0].content).toContain('<suggestions>');
+    expect(req.messages[0].content).toContain("[l1] Alex: I'll set up the CI pipeline.");
+    expect(out.usage).toEqual({ inputTokens: 40, outputTokens: 9 });
+  });
+
+  it('throws on refusal and truncation', async () => {
+    for (const stop_reason of ['refusal', 'max_tokens']) {
+      const parse = vi.fn().mockResolvedValue({ stop_reason, parsed_output: null });
+      const ai = createAnthropicMeetingAi('k', 'f', 'm', { messages: { parse } } as never);
+      await expect(ai.summarizeMeeting(sumInput)).rejects.toThrow();
     }
   });
 });

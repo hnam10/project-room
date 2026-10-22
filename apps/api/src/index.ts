@@ -6,6 +6,7 @@ import { seedDemoData } from './db/seed.js';
 import { getAiProvider } from './ai/index.js';
 import { getProject } from './repositories/projects.js';
 import { startRealtime } from './realtime/hub.js';
+import { resumeMeetings } from './services/meeting-summary.js';
 import { startMeetingClock } from './services/meetings.js';
 import { startMeetingLive } from './services/meeting-live.js';
 
@@ -20,6 +21,8 @@ if (config.seedOrgId && !(await getProject(config.seedOrgId))) {
   await seedDemoData({ projectId: config.seedOrgId });
   console.log(`Seeded demo project into Clerk organization ${config.seedOrgId}`);
 }
+
+await resumeMeetings();
 
 const server = createServer(createApp());
 const realtime = await startRealtime(server, db);

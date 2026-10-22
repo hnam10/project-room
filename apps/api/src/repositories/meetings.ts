@@ -1,4 +1,4 @@
-import type { Meeting } from '@project-room/shared';
+import type { Meeting, MeetingSummary } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
 import { NotFoundError, rid } from '../db/records.js';
 
@@ -68,8 +68,59 @@ export function removeParticipant(meetingId: string, memberId: string): Promise<
   return update(meetingId, 'participantIds = array::complement(participantIds, $m)', { m: [rid('member', memberId)] });
 }
 
-export function markEnded(meetingId: string): Promise<Meeting> {
-  return update(meetingId, "status = 'ended', endedAt = time::now(), participantIds = []");
+/** live -> summarizing, guarded in the DB so a sweep and a manual end can't both win. Null when it lost the race. */
+export async function beginSummarizing(meetingId: string): Promise<Meeting | null> {
+  const [meeting] = await queryMany<Meeting>(
+    "UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [] WHERE status = 'live' RETURN AFTER",
+    { id: rid('meeting', meetingId) },
+  );
+  return meeting ?? null;
+}
+
+/** ended with a failed summary -> summarizing again. Null when the meeting isn't in that state. */
+export async function restartSummarizing(meetingId: string): Promise<Meeting | null> {
+  const [meeting] = await queryMany<Meeting>(
+    "UPDATE $id SET status = 'summarizing', summaryError = NULL WHERE status = 'ended' AND summaryError != NULL RETURN AFTER",
+    { id: rid('meeting', meetingId) },
+  );
+  return meeting ?? null;
+}
+
+export function listSummarizingMeetings(): Promise<Meeting[]> {
+  return queryMany<Meeting>("SELECT * FROM meeting WHERE status = 'summarizing'");
+}
+
+/** One UPDATE: stores the summary, adds the call's usage and ends the meeting. */
+export function finishSummary(
+  meetingId: string,
+  summary: MeetingSummary,
+  usage: { inputTokens: number; outputTokens: number },
+): Promise<Meeting> {
+  return update(
+    meetingId,
+    `summary = $summary, status = 'ended', endedAt = endedAt ?? time::now(), summaryError = NULL,
+     usage.calls += 1, usage.inputTokens += $input, usage.outputTokens += $output`,
+    { summary, input: usage.inputTokens, output: usage.outputTokens },
+  );
+}
+
+export function failSummary(meetingId: string, message: string): Promise<Meeting> {
+  return update(meetingId, "status = 'ended', endedAt = endedAt ?? time::now(), summaryError = $message", {
+    message: message.slice(0, 300),
+  });
+}
+
+export function setCarryOver(meetingId: string, carryOver: string[]): Promise<Meeting> {
+  return update(meetingId, 'carryOver = $carryOver', { carryOver });
+}
+
+/** The newest ended meeting whose confirmed notes the next meeting continues from. */
+export async function findLatestWithCarryOver(projectId: string): Promise<Meeting | null> {
+  const [meeting] = await queryMany<Meeting>(
+    "SELECT * FROM meeting WHERE projectId = $project AND status = 'ended' AND array::len(carryOver) > 0 ORDER BY startedAt DESC LIMIT 1",
+    { project: rid('project', projectId) },
+  );
+  return meeting ?? null;
 }
 
 export function setAiEnabled(meetingId: string, enabled: boolean): Promise<Meeting> {
