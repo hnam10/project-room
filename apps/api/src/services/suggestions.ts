@@ -1,6 +1,7 @@
 import type { Suggestion } from '@project-room/shared';
 import { ConflictError } from '../db/records.js';
 import { createDecision } from '../repositories/decisions.js';
+import { approveIdea, approvePoll } from './meeting-approvals.js';
 import { getSuggestion, resolveSuggestion } from '../repositories/suggestions.js';
 import { createTask, getTask, updateTask } from '../repositories/tasks.js';
 
@@ -54,9 +55,13 @@ export async function approveSuggestion(
       await updateTask(projectId, suggestion.taskId, { assigneeId: options.assigneeId });
       return resolveSuggestion(suggestion.id, 'approved', memberId);
     }
+    case 'idea':
+      return approveIdea(projectId, suggestion, memberId);
+    case 'poll':
+      return approvePoll(projectId, suggestion, memberId);
     default:
-      // idea, poll and meeting_notes approval arrive with the meeting feature
-      throw new ConflictError(`Approving ${suggestion.kind} suggestions is not supported yet`);
+      // meeting_notes approval arrives with the meeting summary
+      throw new ConflictError('Approving meeting_notes suggestions is not supported yet');
   }
 }
 

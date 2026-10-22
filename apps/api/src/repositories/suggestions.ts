@@ -78,7 +78,8 @@ export async function updateSuggestionDrafts(
 ): Promise<Suggestion> {
   const suggestion = await queryOne<Suggestion>('UPDATE ONLY $id MERGE $patch RETURN AFTER', {
     id: rid('suggestion', suggestionId),
-    patch,
+    // Only defined keys: a MERGE with an undefined key could unset the other draft.
+    patch: Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
   });
   if (!suggestion) throw new NotFoundError('Suggestion');
   return suggestion;

@@ -41,3 +41,13 @@ export async function linkIdeaToTask(ideaId: string, taskId: string): Promise<Id
   if (!idea) throw new NotFoundError('Idea');
   return idea;
 }
+
+export async function updateIdeaDescription(projectId: string, ideaId: string, description: string): Promise<Idea> {
+  await getIdea(projectId, ideaId);
+  const idea = await queryOne<Idea>('UPDATE ONLY $id SET description = $description RETURN AFTER', {
+    id: rid('idea', ideaId),
+    description,
+  });
+  if (!idea) throw new NotFoundError('Idea');
+  return idea;
+}

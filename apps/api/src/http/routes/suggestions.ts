@@ -20,6 +20,10 @@ suggestionsRouter.patch('/:suggestionId', async (req, res) => {
   const suggestion = await getSuggestion(project.id, req.params.suggestionId);
   if (suggestion.status !== 'pending') throw new ConflictError(`Suggestion is already ${suggestion.status}`);
   const { items, ideaDraft, pollDraft } = suggestionUpdateSchema.parse(req.body);
+  if ((ideaDraft && suggestion.kind !== 'idea') || (pollDraft && suggestion.kind !== 'poll')) {
+    res.status(400).json({ error: 'Draft does not match the suggestion kind' });
+    return;
+  }
   let updated = suggestion;
   if (items) {
     if (items.some((i) => i.assigneeId && !members.has(i.assigneeId))) {
