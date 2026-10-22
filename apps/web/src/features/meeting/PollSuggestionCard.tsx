@@ -40,7 +40,7 @@ export function PollSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   const valid = !!form.question.trim() && form.options.length >= 2 && form.options.every((o) => o.trim());
 
   return (
-    <div className="ai-card">
+    <div className="ai-card poll">
       <span className="ai-badge">
         <Icon name="sparkle" />
         Poll: {draft.question}

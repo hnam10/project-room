@@ -284,13 +284,22 @@
 .poll-card {
   display: grid;
   gap: 6px;
-  padding: 10px;
-  border: 1px dashed var(--line);
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
   border-radius: 8px;
+  background: var(--surface);
   font-size: 13px;
 }
+.ai-card.idea {
+  border-left-color: var(--amber);
+}
+.ai-card.poll,
 .poll-card {
-  border-style: solid;
+  border-left-color: var(--green);
+}
+.ai-panel .action-card {
+  border-left: 3px solid var(--accent);
 }
 .ai-card p,
 .ai-card ul {
@@ -356,7 +365,17 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+.last-time summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.last-time ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
 }
 .last-time h3,
 .meeting-summary h3 {

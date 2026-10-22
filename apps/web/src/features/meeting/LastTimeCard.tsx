@@ -18,15 +18,15 @@ export function LastTimeCard({ projectId, previousId }: { projectId: string; pre
 
   if (!prev?.carryOver.length) return null;
   return (
-    <div className="last-time">
-      <h3>
+    <details className="last-time" open>
+      <summary>
         Last time · {prev.title} · {new Date(prev.startedAt).toLocaleDateString()}
-      </h3>
+      </summary>
       <ul>
         {prev.carryOver.map((n, i) => (
           <li key={i}>{n}</li>
         ))}
       </ul>
-    </div>
+    </details>
   );
 }

@@ -41,7 +41,7 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
     );
 
   return (
-    <div className="ai-card">
+    <div className="ai-card idea">
       <span className="ai-badge">
         <Icon name="sparkle" />
         {existing ? `Develop: ${existing.title}` : `New idea: ${draft.title}`}
