@@ -167,3 +167,73 @@
   font-size: 11px;
   color: var(--muted);
 }
+.ai-panel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  overflow-y: auto;
+}
+.ai-card,
+.poll-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.poll-card {
+  border-style: solid;
+}
+.ai-card p,
+.ai-card ul {
+  margin: 0;
+}
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.poll-option {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.poll-option:disabled {
+  cursor: default;
+}
+.poll-option.mine {
+  border-color: var(--accent, currentColor);
+  font-weight: 600;
+}
+.poll-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: currentColor;
+  opacity: 0.1;
+}
+.poll-label,
+.poll-count {
+  position: relative;
+}
+.poll-closed {
+  color: var(--muted);
+  font-size: 12px;
+}
+.poll-edit-row {
+  display: flex;
+  gap: 6px;
+}
+.poll-edit-row input {
+  flex: 1;
+}

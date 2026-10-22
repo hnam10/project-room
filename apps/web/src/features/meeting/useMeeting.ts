@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ClientRtc, Meeting, MeetingDetail, RealtimeEvent, RtcSignal, ServerRtc } from '@project-room/shared';
+import type { ClientRtc, Meeting, MeetingDetail, Poll, RealtimeEvent, RtcSignal, ServerRtc } from '@project-room/shared';
 import { meetingsApi } from '../../api/meetings';
 import { useRealtime } from '../../api/realtime';
 import { useSession } from '../../state/session';
@@ -59,6 +59,13 @@ export function useMeeting(projectId: string) {
     }
   }, []);
 
+  /** Merge a poll returned by an API call (the realtime echo is an idempotent upsert). */
+  const applyPoll = useCallback(
+    (poll: Poll) =>
+      setCurrent((prev) => (prev && prev.meeting.id === poll.meetingId ? { ...prev, polls: upsert(prev.polls, poll) } : prev)),
+    [],
+  );
+
   /** Leave the ended meeting view and show whatever is live now (or the start form). */
   const dismiss = useCallback(() => {
     currentId.current = null;
@@ -87,5 +94,5 @@ export function useMeeting(projectId: string) {
     return () => void listeners.current.delete(fn);
   }, []);
 
-  return { sendSignal, onSignal, current, recent, loaded, reload, apply, setCurrent, dismiss };
+  return { sendSignal, onSignal, current, recent, loaded, reload, apply, applyPoll, setCurrent, dismiss };
 }

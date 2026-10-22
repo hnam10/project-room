@@ -35,7 +35,7 @@ export function Participants({ meeting, localStream, remoteStreams, muted }: Pro
       ))}
       <li className="ai">
         <Avatar id={AI_AUTHOR} />
-        <span>Claude · reads only</span>
+        <span>Claude · {meeting.aiEnabled ? 'reads only' : 'removed'}</span>
       </li>
     </ul>
   );

@@ -3,6 +3,7 @@ import { ApiError } from '../api/client';
 import { meetingsApi } from '../api/meetings';
 import { useFeedback } from '../components/Feedback';
 import { ConsentDialog } from '../features/meeting/ConsentDialog';
+import { MeetingAiPanel } from '../features/meeting/MeetingAiPanel';
 import { MeetingTimer } from '../features/meeting/MeetingTimer';
 import { Participants } from '../features/meeting/Participants';
 import { splitLine } from '../features/meeting/splitLine';
@@ -32,7 +33,7 @@ export function MeetingPage() {
   const { projectId } = useWorkspace();
   const { memberId } = useSession();
   const { toast, toastError, confirm } = useFeedback();
-  const { current, loaded, reload, setCurrent, dismiss, sendSignal, onSignal } = useMeeting(projectId);
+  const { current, loaded, reload, applyPoll, setCurrent, dismiss, sendSignal, onSignal } = useMeeting(projectId);
   const [consent, setConsent] = useState<'start' | 'join' | null>(null);
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('ko-KR');
@@ -258,10 +259,7 @@ export function MeetingPage() {
               <TranscriptView lines={current.lines} interim={joined ? interim : ''} />
             </section>
             <section>
-              <h2>AI suggestions</h2>
-              <p className="empty-state">
-                The live AI isn’t built yet. It arrives in a later step (Phase 3); nothing is suggested during the meeting for now.
-              </p>
+              <MeetingAiPanel detail={current} joined={joined} applyPoll={applyPoll} setCurrent={setCurrent} />
             </section>
           </div>
         </>
