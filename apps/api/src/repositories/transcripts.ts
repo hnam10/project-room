@@ -16,3 +16,26 @@ export function listLines(projectId: string, meetingId: string): Promise<Transcr
     meeting: rid('meeting', meetingId),
   });
 }
+
+/** Lines spoken after the cursor line (all lines when null), oldest first, capped to the newest `limit`. */
+export async function listLinesAfter(
+  projectId: string,
+  meetingId: string,
+  cursorLineId: string | null,
+  limit: number,
+): Promise<TranscriptLine[]> {
+  const cursor = cursorLineId
+    ? await queryOne<TranscriptLine>('SELECT * FROM ONLY $id', { id: rid('transcript_line', cursorLineId) })
+    : null;
+  const lines = await queryMany<TranscriptLine>(
+    `SELECT * FROM transcript_line WHERE projectId = $project AND meetingId = $meeting ${cursor ? 'AND spokenAt > $after' : ''}
+     ORDER BY spokenAt DESC LIMIT $limit`,
+    {
+      project: rid('project', projectId),
+      meeting: rid('meeting', meetingId),
+      after: cursor ? new Date(cursor.spokenAt) : undefined,
+      limit,
+    },
+  );
+  return lines.reverse();
+}

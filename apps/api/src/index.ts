@@ -7,6 +7,7 @@ import { getAiProvider } from './ai/index.js';
 import { getProject } from './repositories/projects.js';
 import { startRealtime } from './realtime/hub.js';
 import { startMeetingClock } from './services/meetings.js';
+import { startMeetingLive } from './services/meeting-live.js';
 
 // There is no anonymous mode: without Clerk keys anyone could act as anyone, so don't start at all.
 if (authMode !== 'clerk') {
@@ -23,6 +24,7 @@ if (config.seedOrgId && !(await getProject(config.seedOrgId))) {
 const server = createServer(createApp());
 const realtime = await startRealtime(server, db);
 const stopClock = startMeetingClock();
+const stopLive = startMeetingLive();
 
 server.listen(config.port, () => {
   const ai = getAiProvider();
@@ -33,6 +35,7 @@ server.listen(config.port, () => {
 
 async function shutdown() {
   stopClock();
+  stopLive();
   await realtime.close();
   server.close();
   await closeDb();

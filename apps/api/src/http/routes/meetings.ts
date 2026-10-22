@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { meetingCreateSchema, transcriptLineCreateSchema, type MeetingDetail } from '@project-room/shared';
+import { meetingAiSchema, meetingCreateSchema, transcriptLineCreateSchema, type MeetingDetail } from '@project-room/shared';
+import { ForbiddenError } from '../../db/records.js';
 import { config } from '../../config.js';
-import { getMeeting, listMeetings } from '../../repositories/meetings.js';
+import { getMeeting, listMeetings, setAiEnabled } from '../../repositories/meetings.js';
 import { listPolls } from '../../repositories/polls.js';
 import { listLines } from '../../repositories/transcripts.js';
 import { addLine, endMeeting, joinMeeting, leaveMeeting, startMeeting } from '../../services/meetings.js';
@@ -52,4 +53,12 @@ meetingsRouter.post('/:id/lines', async (req, res) => {
 meetingsRouter.post('/:id/end', async (req, res) => {
   const { project, memberId } = ctx(res);
   res.json(await endMeeting(project.id, req.params.id, memberId));
+});
+
+meetingsRouter.post('/:id/ai', async (req, res) => {
+  const { project, memberId } = ctx(res);
+  const { enabled } = meetingAiSchema.parse(req.body);
+  const meeting = await getMeeting(project.id, req.params.id);
+  if (!meeting.participantIds.includes(memberId)) throw new ForbiddenError('Join the meeting to change the AI');
+  res.json(await setAiEnabled(meeting.id, enabled));
 });

@@ -71,3 +71,27 @@ export function removeParticipant(meetingId: string, memberId: string): Promise<
 export function markEnded(meetingId: string): Promise<Meeting> {
   return update(meetingId, "status = 'ended', endedAt = time::now(), participantIds = []");
 }
+
+export function setAiEnabled(meetingId: string, enabled: boolean): Promise<Meeting> {
+  return update(meetingId, 'aiEnabled = $enabled', { enabled });
+}
+
+/** Moves the AI cursor and adds this tick's usage in one atomic UPDATE. */
+export function recordTick(
+  meetingId: string,
+  tick: { aiCursor: string | null; runningSummary: string; usageDelta: { calls: number; inputTokens: number; outputTokens: number } },
+): Promise<Meeting> {
+  const { calls, inputTokens, outputTokens } = tick.usageDelta;
+  return update(
+    meetingId,
+    `aiCursor = $cursor, runningSummary = $summary,
+     usage.calls += $calls, usage.inputTokens += $input, usage.outputTokens += $output`,
+    {
+      cursor: tick.aiCursor ? rid('transcript_line', tick.aiCursor) : null,
+      summary: tick.runningSummary,
+      calls,
+      input: inputTokens,
+      output: outputTokens,
+    },
+  );
+}
