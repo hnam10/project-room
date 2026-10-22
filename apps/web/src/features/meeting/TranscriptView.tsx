@@ -27,16 +27,23 @@ export function TranscriptView({ lines, interim }: { lines: TranscriptLine[]; in
         }}
       >
         {lines.length === 0 && !interim && <p className="empty-state">Nothing said yet. Speak and your words appear here.</p>}
-        {lines.map((l) => (
-          <div className="t-line" key={l.id}>
-            <Avatar member={members.get(l.speakerId)} />
-            <div>
-              <b>{members.get(l.speakerId)?.name ?? 'Unknown'}</b> <time>{time(l.spokenAt)}</time>
-              <p>{l.text}</p>
+        {lines.map((l, i) =>
+          // Consecutive lines from the same speaker read as one turn.
+          lines[i - 1]?.speakerId === l.speakerId ? (
+            <p className="t-more" key={l.id} title={time(l.spokenAt)}>
+              {l.text}
+            </p>
+          ) : (
+            <div className="t-line" key={l.id}>
+              <Avatar member={members.get(l.speakerId)} />
+              <div>
+                <b>{members.get(l.speakerId)?.name ?? 'Unknown'}</b> <time>{time(l.spokenAt)}</time>
+                <p>{l.text}</p>
+              </div>
             </div>
-          </div>
-        ))}
-        {interim && <p className="t-interim">{interim}</p>}
+          ),
+        )}
+        {interim && <p className="t-interim">{interim}…</p>}
       </div>
       {!pinned && (
         <button className="btn sm jump" onClick={() => setPinned(true)}>
