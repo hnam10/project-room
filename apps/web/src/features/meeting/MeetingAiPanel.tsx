@@ -25,7 +25,7 @@ export function MeetingAiPanel(props: {
   const pending = suggestions
     .filter((s) => s.meetingId === meeting.id && s.status === 'pending')
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const shownPolls = polls.filter((p) => p.status === 'open' || meeting.status !== 'live');
+  const shownPolls = [...polls].sort((a, b) => Number(b.status === 'open') - Number(a.status === 'open'));
   const live = meeting.status === 'live';
 
   const toggle = async () => {

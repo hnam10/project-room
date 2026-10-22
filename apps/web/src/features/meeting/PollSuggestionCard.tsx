@@ -82,7 +82,7 @@ export function PollSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
       >
         <label className="form-row">
           Question
-          <input value={form.question} maxLength={200} onChange={(e) => setForm({ ...form, question: e.target.value })} />
+          <input value={form.question} maxLength={160} onChange={(e) => setForm({ ...form, question: e.target.value })} />
         </label>
         {form.options.map((o, i) => (
           <div key={i} className="form-row poll-edit-row">

@@ -80,12 +80,17 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
         {!existing && (
           <label className="form-row">
             Title
-            <input value={form.title} maxLength={120} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            <input value={form.title} maxLength={80} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </label>
         )}
         <label className="form-row">
           Description
-          <textarea value={form.description} rows={4} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <textarea
+            maxLength={2000}
+            value={form.description}
+            rows={4}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
         </label>
         {!existing && (
           <label className="form-row">
