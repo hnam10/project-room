@@ -166,7 +166,7 @@ export function validateSummary(raw: RawSummary, input: SummarizeInput): Summari
         reason: i.reason,
         quote: cite(i.quote),
       })),
-    carryOverItems: capList(raw.carryOverItems, 10, 200),
+    carryOverItems: capList(raw.carryOverItems, 10, 120),
     usage: raw.usage ?? { inputTokens: 0, outputTokens: 0 },
   };
 }

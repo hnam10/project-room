@@ -67,7 +67,7 @@ Rules:
 - actionItems: concrete tasks someone committed to. Skip anything already in <suggestions>, <tasks> or <ideas>.
   Each needs a short "reason" and a "quote": the exact words from one transcript line, copied verbatim
   (null only if no single line supports it). Use only the member ids you are given; null if the owner is unclear.
-- carryOverItems: up to 10 short notes (each under 200 characters) for continuing next time, such as open
+- carryOverItems: up to 10 short notes (each under 120 characters) for continuing next time, such as open
   questions and unfinished work. Take <carry_over> into account: drop what was resolved, keep what is still open.
 - Never invent members, facts or decisions.`;
 

@@ -175,7 +175,7 @@ describe('validateSummary', () => {
     expect(out.summary.decisions).toHaveLength(10);
     expect(out.summary.openQuestions).toEqual(['q']);
     expect(out.carryOverItems).toHaveLength(10);
-    expect(out.carryOverItems.every((n) => n.length <= 200)).toBe(true);
+    expect(out.carryOverItems.every((n) => n.length <= 120)).toBe(true);
   });
 });
 
