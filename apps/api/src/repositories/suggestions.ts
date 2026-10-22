@@ -1,4 +1,4 @@
-import type { ActionItem, Suggestion, SuggestionKind, SuggestionStatus } from '@project-room/shared';
+import type { ActionItem, IdeaDraft, PollDraft, Suggestion, SuggestionKind, SuggestionStatus } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
 import { NotFoundError, rid, ridOrNull } from '../db/records.js';
 
@@ -13,6 +13,11 @@ export interface SuggestionDraft {
   sourceMessageId?: string | null;
   items?: ActionItem[];
   taskId?: string | null;
+  meetingId?: string | null;
+  sourceLineId?: string | null;
+  ideaId?: string | null;
+  ideaDraft?: IdeaDraft | null;
+  pollDraft?: PollDraft | null;
 }
 
 const toDbItems = (items: ActionItem[]) => items.map((i) => ({ ...i, assigneeId: ridOrNull('member', i.assigneeId) }));
@@ -47,6 +52,11 @@ export async function createSuggestion(projectId: string, draft: SuggestionDraft
       sourceMessageId: ridOrNull('message', draft.sourceMessageId),
       items: toDbItems(draft.items ?? []),
       taskId: ridOrNull('task', draft.taskId),
+      meetingId: ridOrNull('meeting', draft.meetingId),
+      sourceLineId: ridOrNull('transcript_line', draft.sourceLineId),
+      ideaId: ridOrNull('idea', draft.ideaId),
+      ideaDraft: draft.ideaDraft ?? null,
+      pollDraft: draft.pollDraft ?? null,
     },
   });
   if (!suggestion) throw new Error('Suggestion creation returned nothing');
@@ -57,6 +67,18 @@ export async function updateSuggestionItems(suggestionId: string, items: ActionI
   const suggestion = await queryOne<Suggestion>('UPDATE ONLY $id SET items = $items RETURN AFTER', {
     id: rid('suggestion', suggestionId),
     items: toDbItems(items),
+  });
+  if (!suggestion) throw new NotFoundError('Suggestion');
+  return suggestion;
+}
+
+export async function updateSuggestionDrafts(
+  suggestionId: string,
+  patch: { ideaDraft?: IdeaDraft; pollDraft?: PollDraft },
+): Promise<Suggestion> {
+  const suggestion = await queryOne<Suggestion>('UPDATE ONLY $id MERGE $patch RETURN AFTER', {
+    id: rid('suggestion', suggestionId),
+    patch,
   });
   if (!suggestion) throw new NotFoundError('Suggestion');
   return suggestion;

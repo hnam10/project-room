@@ -7,7 +7,7 @@ import { useSession } from './session';
 // One project's data, kept in sync with the server: loaded once as a snapshot, then patched
 // by realtime events and by the records our own API calls return (both are idempotent upserts).
 
-type CollectionTable = Exclude<RealtimeTable, 'message'>;
+type CollectionTable = 'task' | 'idea' | 'decision' | 'suggestion';
 const COLLECTION: Record<CollectionTable, 'tasks' | 'ideas' | 'decisions' | 'suggestions'> = {
   task: 'tasks',
   idea: 'ideas',
@@ -55,7 +55,9 @@ function reducer(state: State, action: Action): State {
         return { ...state, messages: { ...state.messages, [message.channelId]: next } };
       }
       if (!state.snapshot) return state;
-      const key = COLLECTION[table];
+      // meeting, transcript_line and poll events are not part of the snapshot
+      const key = COLLECTION[table as CollectionTable] as (typeof COLLECTION)[CollectionTable] | undefined;
+      if (!key) return state;
       const list = state.snapshot[key] as { id: string }[];
       return { ...state, snapshot: { ...state.snapshot, [key]: upsert(list, record as { id: string }, kind === 'delete') } };
     }

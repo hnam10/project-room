@@ -1,4 +1,5 @@
 import type { Decision, Idea, Message, Suggestion, Task } from './domain.js';
+import type { Meeting, Poll, TranscriptLine } from './meeting.js';
 
 // Messages pushed from the API to browsers over the /ws socket.
 
@@ -8,6 +9,9 @@ export interface RealtimeRecords {
   idea: Idea;
   decision: Decision;
   suggestion: Suggestion;
+  meeting: Meeting;
+  transcript_line: TranscriptLine;
+  poll: Poll;
 }
 
 export type RealtimeTable = keyof RealtimeRecords;

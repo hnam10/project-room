@@ -54,6 +54,9 @@ export async function approveSuggestion(
       await updateTask(projectId, suggestion.taskId, { assigneeId: options.assigneeId });
       return resolveSuggestion(suggestion.id, 'approved', memberId);
     }
+    default:
+      // idea, poll and meeting_notes approval arrive with the meeting feature
+      throw new ConflictError(`Approving ${suggestion.kind} suggestions is not supported yet`);
   }
 }
 

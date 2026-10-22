@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --conditions=development --env-file-if-exists=.env src/index.ts",
-    "build": "tsc -p tsconfig.json && cp src/db/schema.surql dist/db/",
+    "build": "tsc -p tsconfig.json && cp src/db/*.surql dist/db/",
     "start": "node --env-file-if-exists=.env dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "seed": "tsx --conditions=development --env-file-if-exists=.env src/db/seed.ts",
