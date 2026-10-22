@@ -43,3 +43,11 @@ export class ConflictError extends Error {
     this.name = 'ConflictError';
   }
 }
+
+/** Thrown when the caller is a project member but may not do this; mapped to 403. */
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}

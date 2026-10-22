@@ -9,6 +9,7 @@ import { errorHandler, notFoundRoute } from './http/errors.js';
 import { decisionsRouter } from './http/routes/decisions.js';
 import { ideasRouter } from './http/routes/ideas.js';
 import { messagesRouter } from './http/routes/messages.js';
+import { meetingsRouter } from './http/routes/meetings.js';
 import { meRouter, projectRouter } from './http/routes/projects.js';
 import { pollsRouter } from './http/routes/polls.js';
 import { suggestionsRouter } from './http/routes/suggestions.js';
@@ -36,6 +37,7 @@ export function createApp() {
   project.use('/decisions', decisionsRouter);
   project.use('/suggestions', suggestionsRouter);
   project.use('/polls', pollsRouter);
+  project.use('/meetings', meetingsRouter);
   app.use('/api/projects/:projectId', project);
 
   app.use('/api', notFoundRoute);
