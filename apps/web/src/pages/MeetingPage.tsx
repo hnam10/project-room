@@ -169,8 +169,14 @@ export function MeetingPage() {
             setConsent('start');
           }}
         >
+          <span className="meeting-start-icon">
+            <Icon name="mic" />
+          </span>
           <h1>Meeting room</h1>
-          <p className="empty-state">No meeting is live. Start one and teammates can join from here. Meetings last at most 60 minutes.</p>
+          <p className="meeting-start-text">
+            No meeting is live. Start one and teammates can join from here. Claude listens along and suggests tasks, ideas and polls.
+            Meetings last at most 60 minutes.
+          </p>
           <label>
             Title (optional)
             <input value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Weekly sync" />
@@ -190,7 +196,9 @@ export function MeetingPage() {
                 {recent.map((r) => (
                   <li key={r.id}>
                     <button type="button" onClick={() => void select(projectId, r.id).catch(toastError)}>
-                      <b>{r.title}</b> <span>{new Date(r.startedAt).toLocaleDateString()}</span> <span>{r.status}</span>
+                      <b>{r.title}</b>
+                      <span>{new Date(r.startedAt).toLocaleDateString()}</span>
+                      <span className={`status-chip ${r.status}`}>{r.status === 'summarizing' ? 'Summarizing' : 'Ended'}</span>
                     </button>
                   </li>
                 ))}

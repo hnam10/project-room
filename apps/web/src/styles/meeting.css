@@ -236,9 +236,39 @@
 .meeting-start {
   margin: auto;
   display: grid;
-  gap: 12px;
-  width: min(380px, 100%);
-  padding: 24px 16px;
+  gap: 14px;
+  width: min(420px, calc(100% - 32px));
+  padding: 28px 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+.meeting-start h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.meeting-start h2 {
+  margin: 8px 0 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.meeting-start-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent-weak);
+  color: var(--accent);
+}
+.meeting-start-text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.5;
 }
 .meeting-start input,
 .meeting-start select {
@@ -377,7 +407,6 @@
   margin: 6px 0 0;
   padding-left: 18px;
 }
-.last-time h3,
 .meeting-summary h3 {
   margin: 8px 0 4px;
   font-size: 13px;
@@ -399,18 +428,46 @@
 .recent-meetings {
   list-style: none;
   padding: 0;
-  margin: 16px 0 0;
+  margin: 0;
+  display: grid;
+  gap: 2px;
 }
 .recent-meetings button {
   display: flex;
+  align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 8px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
   font: inherit;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
+}
+.recent-meetings button:hover {
+  background: var(--surface-2);
+}
+.recent-meetings b {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-meetings span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.recent-meetings .status-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 11px;
+}
+.recent-meetings .status-chip.summarizing {
+  background: var(--accent-weak);
+  color: var(--accent);
 }
 
 /* Call controls */
