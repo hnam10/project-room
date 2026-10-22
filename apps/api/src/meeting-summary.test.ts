@@ -1,13 +1,26 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type * as MeetingRepo from './repositories/meetings.js';
+import type * as SuggestionRepo from './repositories/suggestions.js';
 import type { Meeting, MeetingDetail, Suggestion } from '@project-room/shared';
+vi.mock('./repositories/suggestions.js', async (orig) => {
+  const mod = (await orig()) as typeof SuggestionRepo;
+  return { ...mod, createSuggestion: vi.fn(mod.createSuggestion) };
+});
+vi.mock('./repositories/meetings.js', async (orig) => {
+  const mod = (await orig()) as typeof MeetingRepo;
+  return { ...mod, getMeeting: vi.fn(mod.getMeeting) };
+});
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import type { MeetingAi, MeetingTickInput, SummarizeResult } from './ai/meeting.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
+import { getDb } from './db/client.js';
+import { rid } from './db/records.js';
 import { beginSummarizing, getMeeting } from './repositories/meetings.js';
+import { createSuggestion } from './repositories/suggestions.js';
 import { runLiveTick } from './services/meeting-live.js';
 import { resumeMeetings, summarize } from './services/meeting-summary.js';
 import { endExpiredMeetings } from './services/meetings.js';
@@ -176,5 +189,43 @@ describe('meeting summary', () => {
     await resumeMeetings();
     expect(await getMeeting(P, c)).toMatchObject({ status: 'ended', summaryError: null });
     expect((await getMeeting(P, c)).summary).not.toBeNull();
+  });
+
+  it('keeps a saved summary when creating suggestions fails', async () => {
+    let calls = 0;
+    vi.mocked(createSuggestion).mockRejectedValueOnce(new Error('db down'));
+    const { meeting } = await endedFlow(
+      fakeAi(async () => {
+        calls++;
+        return result();
+      }),
+    );
+    expect(calls).toBe(1);
+    expect(meeting).toMatchObject({ status: 'ended', summaryError: null, usage: { calls: 1, inputTokens: 10, outputTokens: 5 } });
+    expect(meeting.summary).not.toBeNull();
+  });
+
+  it('ends with summaryError when setup fails, so /end can rerun it', async () => {
+    const id = (await post('')).body.id;
+    await getDb().query('UPDATE $id SET previousMeetingId = $prev', { id: rid('meeting', id), prev: rid('meeting', 'missing') });
+    await beginSummarizing(id);
+    const meeting = await summarize(
+      P,
+      id,
+      fakeAi(async () => result()),
+      [0, 0],
+    );
+    expect(meeting).toMatchObject({ status: 'ended', summary: null });
+    expect(meeting.summaryError).toBeTruthy();
+  });
+
+  it('resumeMeetings carries on past a meeting whose summary throws', async () => {
+    const a = (await post('')).body.id;
+    await beginSummarizing(a);
+    vi.mocked(getMeeting).mockRejectedValueOnce(new Error('poisoned'));
+    await expect(resumeMeetings()).resolves.toBeUndefined();
+    expect((await getMeeting(P, a)).status).toBe('summarizing');
+    await resumeMeetings();
+    expect((await getMeeting(P, a)).status).toBe('ended');
   });
 });

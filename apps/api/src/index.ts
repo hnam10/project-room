@@ -22,10 +22,9 @@ if (config.seedOrgId && !(await getProject(config.seedOrgId))) {
   console.log(`Seeded demo project into Clerk organization ${config.seedOrgId}`);
 }
 
-await resumeMeetings();
-
 const server = createServer(createApp());
 const realtime = await startRealtime(server, db);
+void resumeMeetings().catch((e) => console.error('Resuming meetings failed', e));
 const stopClock = startMeetingClock();
 const stopLive = startMeetingLive();
 
