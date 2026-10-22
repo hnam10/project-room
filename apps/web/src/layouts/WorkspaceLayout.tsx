@@ -21,6 +21,7 @@ import { WorkspaceProvider, useWorkspace } from '../state/workspace';
 const SIDE_NAV: [string, string, IconName][] = [
   ['board', 'Tasks', 'tasks'],
   ['chat', 'Chat', 'message'],
+  ['meeting', 'Meeting', 'mic'],
   ['brainstorm', 'Brainstorm', 'bulb'],
   ['decisions', 'Decisions', 'flag'],
   ['calendar', 'Calendar', 'calendar'],

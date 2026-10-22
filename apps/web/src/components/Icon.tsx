@@ -152,6 +152,23 @@ const PATHS = {
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
     </>
   ),
+  mic: (
+    <>
+      <rect width="6" height="12" x="9" y="2" rx="3" />
+      <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+      <path d="M12 18v4" />
+    </>
+  ),
+  micOff: (
+    <>
+      <path d="M15 9.3V5a3 3 0 0 0-5.7-1.3" />
+      <path d="M9 9v2a3 3 0 0 0 5.1 2.1" />
+      <path d="M19 10v1a7 7 0 0 1-.8 3.2" />
+      <path d="M5 10v1a7 7 0 0 0 11.9 5" />
+      <path d="M12 18v4" />
+      <path d="m2 2 20 20" />
+    </>
+  ),
   dockIn: (
     <>
       <rect width="18" height="18" x="3" y="3" rx="2" />
