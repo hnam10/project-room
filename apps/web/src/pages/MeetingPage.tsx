@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../api/client';
 import { meetingsApi } from '../api/meetings';
 import { useFeedback } from '../components/Feedback';
+import { Icon } from '../components/Icon';
 import { ConsentDialog } from '../features/meeting/ConsentDialog';
 import { MeetingAiPanel } from '../features/meeting/MeetingAiPanel';
 import { LastTimeCard } from '../features/meeting/LastTimeCard';
@@ -216,24 +217,6 @@ export function MeetingPage() {
               <span className="meeting-timer">{meeting.status === 'summarizing' ? 'Summarizing' : 'Ended'}</span>
             )}
             <span className="spacer" />
-            {live && !joined && (
-              <button className="btn primary" onClick={() => setConsent('join')}>
-                Join
-              </button>
-            )}
-            {joined && (
-              <>
-                <button className={`btn${muted ? ' primary' : ''}`} aria-pressed={muted} onClick={() => setMuted((m) => !m)}>
-                  {muted ? 'Unmute' : 'Mute'}
-                </button>
-                <button className="btn" onClick={() => void leave()}>
-                  Leave
-                </button>
-                <button className="btn danger-ghost" onClick={() => void end()}>
-                  End for everyone
-                </button>
-              </>
-            )}
             {!live && (
               <button className="btn" onClick={dismiss}>
                 Back
@@ -282,6 +265,33 @@ export function MeetingPage() {
               <section>
                 <MeetingAiPanel detail={current} joined={joined} applyPoll={applyPoll} setCurrent={setCurrent} />
               </section>
+            </div>
+          )}
+          {live && (
+            <div className="call-bar">
+              {joined ? (
+                <>
+                  <button
+                    className={`call-btn${muted ? ' off' : ''}`}
+                    aria-pressed={muted}
+                    aria-label={muted ? 'Unmute' : 'Mute'}
+                    title={muted ? 'Unmute' : 'Mute'}
+                    onClick={() => setMuted((m) => !m)}
+                  >
+                    <Icon name={muted ? 'micOff' : 'mic'} />
+                  </button>
+                  <button className="btn" onClick={() => void leave()}>
+                    Leave
+                  </button>
+                  <button className="btn end-call" onClick={() => void end()}>
+                    End for everyone
+                  </button>
+                </>
+              ) : (
+                <button className="btn primary" onClick={() => setConsent('join')}>
+                  <Icon name="mic" /> Join meeting
+                </button>
+              )}
             </div>
           )}
         </>

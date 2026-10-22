@@ -393,3 +393,41 @@
   text-align: left;
   cursor: pointer;
 }
+
+/* Call controls */
+.call-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.call-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.call-btn:hover {
+  background: var(--surface-2);
+}
+.call-btn.off {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+.btn.end-call {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+.btn.end-call:hover {
+  filter: brightness(0.92);
+}
