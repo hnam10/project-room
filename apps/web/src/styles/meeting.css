@@ -154,3 +154,16 @@
     min-height: 320px;
   }
 }
+.speaking-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.speaking-dot.on {
+  background: #22a559;
+}
+.muted-tag {
+  font-size: 11px;
+  color: var(--muted);
+}

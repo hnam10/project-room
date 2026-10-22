@@ -8,19 +8,37 @@ import { Participants } from '../features/meeting/Participants';
 import { splitLine } from '../features/meeting/splitLine';
 import { TranscriptView } from '../features/meeting/TranscriptView';
 import { useMeeting } from '../features/meeting/useMeeting';
+import { useMeshAudio } from '../features/meeting/useMeshAudio';
 import { useTranscriber } from '../features/meeting/useTranscriber';
 import { useSession } from '../state/session';
 import { useWorkspace } from '../state/workspace';
 
+function RemoteAudio({ stream, onBlocked }: { stream: MediaStream; onBlocked: () => void }) {
+  const ref = useRef<HTMLAudioElement>(null);
+  const blocked = useRef(onBlocked);
+  useEffect(() => {
+    blocked.current = onBlocked;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.srcObject = stream;
+    el.play().catch(() => blocked.current());
+  }, [stream]);
+  return <audio ref={ref} autoPlay />;
+}
+
 export function MeetingPage() {
   const { projectId } = useWorkspace();
   const { memberId } = useSession();
-  const { toastError, confirm } = useFeedback();
-  const { current, loaded, reload, setCurrent, dismiss } = useMeeting(projectId);
+  const { toast, toastError, confirm } = useFeedback();
+  const { current, loaded, reload, setCurrent, dismiss, sendSignal, onSignal } = useMeeting(projectId);
   const [consent, setConsent] = useState<'start' | 'join' | null>(null);
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('ko-KR');
   const [stoppedId, setStoppedId] = useState<string | null>(null);
+  const [muted, setMuted] = useState(false);
+  const [ice, setIce] = useState<{ meetingId: string; servers: RTCIceServer[] } | null>(null);
 
   const meeting = current?.meeting;
   const live = meeting?.status === 'live';
@@ -50,9 +68,47 @@ export function MeetingPage() {
   );
   const { supported, interim, listening, error } = useTranscriber({
     language: meeting?.language ?? language,
-    enabled: joined && !stopped,
+    enabled: joined && !stopped && !muted,
     onFinal: post,
   });
+
+  // ICE servers once per meeting join.
+  useEffect(() => {
+    if (!joined || !meetingId) return;
+    let cancelled = false;
+    meetingsApi
+      .rtcConfig(projectId)
+      .then((c) => c.iceServers as RTCIceServer[])
+      .catch(() => [] as RTCIceServer[])
+      .then((servers) => !cancelled && setIce({ meetingId, servers }));
+    return () => {
+      cancelled = true;
+      setIce(null);
+    };
+  }, [joined, projectId, meetingId]);
+
+  const { peers, localStream, remoteStreams, micError } = useMeshAudio({
+    enabled: joined && !stopped && ice?.meetingId === meetingId,
+    meetingId,
+    me: memberId,
+    participantIds: meeting?.participantIds ?? [],
+    iceServers: ice?.servers ?? [],
+    sendSignal,
+    onSignal,
+    muted,
+  });
+  const audioFailed = [...peers.values()].includes('failed');
+  const [blocked, setBlocked] = useState(false);
+  const audioBox = useRef<HTMLDivElement>(null);
+
+  const count = meeting?.participantIds.length ?? 0;
+  const warned = useRef<string | null>(null);
+  useEffect(() => {
+    if (joined && count > 6 && warned.current !== meetingId) {
+      warned.current = meetingId ?? null;
+      toast('More than 6 people are in this call — audio may stutter.');
+    }
+  }, [joined, count, meetingId, toast]);
 
   // Best-effort leave when the tab closes.
   useEffect(() => {
@@ -149,6 +205,9 @@ export function MeetingPage() {
             )}
             {joined && (
               <>
+                <button className={`btn${muted ? ' primary' : ''}`} aria-pressed={muted} onClick={() => setMuted((m) => !m)}>
+                  {muted ? 'Unmute' : 'Mute'}
+                </button>
                 <button className="btn" onClick={() => void leave()}>
                   Leave
                 </button>
@@ -166,7 +225,26 @@ export function MeetingPage() {
           <div className="meeting-cols">
             <section>
               <h2>In the call</h2>
-              <Participants meeting={meeting} />
+              {joined && micError && <p className="meeting-notice">Microphone unavailable — others can’t hear you.</p>}
+              {joined && audioFailed && (
+                <p className="meeting-notice">Can’t connect audio on this network — the transcript and AI still work.</p>
+              )}
+              {joined && blocked && (
+                <button
+                  className="btn"
+                  onClick={() => {
+                    audioBox.current?.querySelectorAll('audio').forEach((a) => void a.play().catch(() => {}));
+                    setBlocked(false);
+                  }}
+                >
+                  Click to enable audio
+                </button>
+              )}
+              <div ref={audioBox} hidden>
+                {joined &&
+                  [...remoteStreams].map(([id, stream]) => <RemoteAudio key={id} stream={stream} onBlocked={() => setBlocked(true)} />)}
+              </div>
+              <Participants meeting={meeting} localStream={localStream} remoteStreams={remoteStreams} muted={muted} />
             </section>
             <section>
               <h2>Transcript{listening ? ' · listening' : ''}</h2>

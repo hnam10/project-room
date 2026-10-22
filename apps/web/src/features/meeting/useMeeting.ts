@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Meeting, MeetingDetail, RealtimeEvent } from '@project-room/shared';
+import type { ClientRtc, Meeting, MeetingDetail, RealtimeEvent, RtcSignal, ServerRtc } from '@project-room/shared';
 import { meetingsApi } from '../../api/meetings';
 import { useRealtime } from '../../api/realtime';
 import { useSession } from '../../state/session';
@@ -66,7 +66,26 @@ export function useMeeting(projectId: string) {
     void reload().catch(() => {});
   }, [reload]);
 
-  useRealtime(projectId, memberId, apply, () => void reload().catch(() => {}));
+  const listeners = useRef(new Set<(msg: ServerRtc) => void>());
+  const sender = useRef<((msg: ClientRtc) => boolean) | null>(null);
+  useRealtime(
+    projectId,
+    memberId,
+    apply,
+    () => void reload().catch(() => {}),
+    (msg) => listeners.current.forEach((fn) => fn(msg)),
+    sender,
+  );
 
-  return { current, recent, loaded, reload, apply, setCurrent, dismiss };
+  /** Relay a WebRTC signal to another participant of the meeting we are showing. */
+  const sendSignal = useCallback((to: string, signal: RtcSignal) => {
+    if (currentId.current) sender.current?.({ type: 'rtc', meetingId: currentId.current, to, signal });
+  }, []);
+  /** Subscribe to incoming signals; returns the unsubscribe function. */
+  const onSignal = useCallback((fn: (msg: ServerRtc) => void) => {
+    listeners.current.add(fn);
+    return () => void listeners.current.delete(fn);
+  }, []);
+
+  return { sendSignal, onSignal, current, recent, loaded, reload, apply, setCurrent, dismiss };
 }
