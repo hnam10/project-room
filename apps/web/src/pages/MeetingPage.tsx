@@ -16,7 +16,7 @@ export function MeetingPage() {
   const { projectId } = useWorkspace();
   const { memberId } = useSession();
   const { toastError, confirm } = useFeedback();
-  const { current, loaded, reload, setCurrent } = useMeeting(projectId);
+  const { current, loaded, reload, setCurrent, dismiss } = useMeeting(projectId);
   const [consent, setConsent] = useState<'start' | 'join' | null>(null);
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('ko-KR');
@@ -48,7 +48,7 @@ export function MeetingPage() {
     },
     [projectId, meetingId, toastError],
   );
-  const { supported, interim, listening } = useTranscriber({
+  const { supported, interim, listening, error } = useTranscriber({
     language: meeting?.language ?? language,
     enabled: joined && !stopped,
     onFinal: post,
@@ -133,7 +133,10 @@ export function MeetingPage() {
                 meetingId={meeting.id}
                 startedAt={meeting.startedAt}
                 endsAt={meeting.endsAt}
-                onExpire={() => void reload().catch(() => {})}
+                onExpire={() => {
+                  setStoppedId(meeting.id);
+                  void reload().catch(() => {});
+                }}
               />
             ) : (
               <span className="meeting-timer">Ended</span>
@@ -155,7 +158,7 @@ export function MeetingPage() {
               </>
             )}
             {!live && (
-              <button className="btn" onClick={() => setCurrent(null)}>
+              <button className="btn" onClick={dismiss}>
                 Back
               </button>
             )}
@@ -167,6 +170,7 @@ export function MeetingPage() {
             </section>
             <section>
               <h2>Transcript{listening ? ' · listening' : ''}</h2>
+              {joined && error && <p className="meeting-notice">{error}</p>}
               {joined && !supported && (
                 <p className="meeting-notice">
                   Your speech isn’t transcribed in this browser. Use Chrome to be heard; you can still read along.

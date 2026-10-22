@@ -29,6 +29,7 @@ const Recognizer: RecognitionCtor | undefined = Ctor.SpeechRecognition ?? Ctor.w
 export function useTranscriber(opts: { language: string; enabled: boolean; onFinal: (text: string) => void }) {
   const [interim, setInterim] = useState('');
   const [listening, setListening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const onFinal = useRef(opts.onFinal);
   useEffect(() => {
     onFinal.current = opts.onFinal;
@@ -47,24 +48,39 @@ export function useTranscriber(opts: { language: string; enabled: boolean; onFin
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
         if (!r) continue;
+        failures = 0;
         if (r.isFinal) onFinal.current(r[0].transcript.trim());
         else live += r[0].transcript;
       }
       setInterim(live);
     };
     rec.onstart = () => setListening(true);
+    let failures = 0; // consecutive failed sessions; reset by any result
+    let timer: number | undefined;
+    const fail = (message: string) => {
+      stopped = true;
+      setError(message);
+    };
     rec.onerror = (e) => {
-      // Permission denied / no mic: don't loop forever.
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') stopped = true;
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') {
+        fail('Microphone access was blocked, so your speech isn’t transcribed. Allow the microphone and rejoin.');
+      } else if (e.error !== 'no-speech' && e.error !== 'aborted') failures++;
     };
     rec.onend = () => {
       setInterim('');
-      if (stopped) return setListening(false);
-      try {
-        rec.start();
-      } catch {
-        setListening(false);
-      }
+      setListening(false);
+      if (stopped) return;
+      if (failures >= 5)
+        return fail('Speech recognition keeps failing, so your speech isn’t transcribed. Check your connection and rejoin.');
+      // Back off after errors: 0.5s, 1s, 2s ... capped at 8s.
+      const delay = failures ? Math.min(500 * 2 ** (failures - 1), 8000) : 0;
+      timer = window.setTimeout(() => {
+        try {
+          rec.start();
+        } catch {
+          // already started
+        }
+      }, delay);
     };
     try {
       rec.start();
@@ -73,13 +89,15 @@ export function useTranscriber(opts: { language: string; enabled: boolean; onFin
     }
     return () => {
       stopped = true;
+      window.clearTimeout(timer);
       rec.onend = null;
       rec.onresult = null;
       rec.stop();
       setListening(false);
       setInterim('');
+      setError(null);
     };
   }, [language, enabled]);
 
-  return { supported: !!Recognizer, interim, listening };
+  return { supported: !!Recognizer, interim, listening, error };
 }

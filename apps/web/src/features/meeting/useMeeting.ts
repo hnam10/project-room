@@ -45,7 +45,7 @@ export function useMeeting(projectId: string) {
       setCurrent((prev) => {
         if (prev?.meeting.id === meeting.id) return { ...prev, meeting };
         // A new live meeting started by someone else: show it (lines/polls arrive via reload).
-        if (meeting.status === 'live' && !prev) {
+        if (meeting.status === 'live' && prev?.meeting.status !== 'live') {
           void meetingsApi.get(meeting.projectId, meeting.id).then(setCurrent);
         }
         return prev;
@@ -59,7 +59,14 @@ export function useMeeting(projectId: string) {
     }
   }, []);
 
+  /** Leave the ended meeting view and show whatever is live now (or the start form). */
+  const dismiss = useCallback(() => {
+    currentId.current = null;
+    setCurrent(null);
+    void reload().catch(() => {});
+  }, [reload]);
+
   useRealtime(projectId, memberId, apply, () => void reload().catch(() => {}));
 
-  return { current, recent, loaded, reload, apply, setCurrent };
+  return { current, recent, loaded, reload, apply, setCurrent, dismiss };
 }
