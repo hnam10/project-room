@@ -22,12 +22,65 @@
   flex: 1;
 }
 .meeting-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--mono);
   font-size: 13px;
   color: var(--muted);
+  --timer: var(--accent);
+}
+.meeting-timer.soon {
+  color: var(--amber);
+  --timer: var(--amber);
 }
 .meeting-timer.warn {
   color: var(--red);
+  --timer: var(--red);
+}
+.timer-bar {
+  width: 96px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.timer-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--timer);
+  transition: width 1s linear;
+}
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fdecec;
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.live-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-badge::before {
+    animation: none;
+  }
 }
 .meeting-cols {
   flex: 1;

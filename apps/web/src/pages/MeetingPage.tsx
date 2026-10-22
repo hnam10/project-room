@@ -201,6 +201,7 @@ export function MeetingPage() {
         <>
           <div className="meeting-head">
             <h1>{meeting.title}</h1>
+            {live && <span className="live-badge">Live</span>}
             {live ? (
               <MeetingTimer
                 meetingId={meeting.id}

@@ -36,8 +36,13 @@ export function MeetingTimer(props: { meetingId: string; startedAt: string; ends
 
   const s = Math.ceil(left / 1000);
   const text = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const total = end - new Date(props.startedAt).getTime();
+  const level = left <= 5 * MIN ? ' warn' : left <= 10 * MIN ? ' soon' : '';
   return (
-    <span className={`meeting-timer${left <= 5 * MIN ? ' warn' : ''}`} title="Meetings last at most 60 minutes">
+    <span className={`meeting-timer${level}`} title="Meetings last at most 60 minutes">
+      <span className="timer-bar" aria-hidden="true">
+        <span style={{ width: `${total > 0 ? (left / total) * 100 : 0}%` }} />
+      </span>
       {text} left
     </span>
   );
