@@ -39,6 +39,8 @@ export const config = {
   /** Claude is used whenever ANTHROPIC_API_KEY is set; without it the labelled mock runs. AI_PROVIDER=mock forces the mock. */
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
   anthropicModel: env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
+  /** Cheaper, faster model for the live meeting AI that runs every few seconds. */
+  anthropicFastModel: env('ANTHROPIC_FAST_MODEL', 'claude-haiku-5-5'),
   /** WebRTC ICE servers handed to meeting clients (STUN/TURN). */
   rtcIceServers: iceServers(),
   forceMockAi: process.env.AI_PROVIDER === 'mock',
