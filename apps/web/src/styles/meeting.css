@@ -109,16 +109,65 @@
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   gap: 8px;
+  overflow-y: auto;
 }
-.meeting-people li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
+.meeting-tile {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  min-height: 104px;
+  padding: 12px 6px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  text-align: center;
+  font-size: 12px;
 }
-.meeting-people li.ai {
+.meeting-tile .avatar {
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+  box-shadow: 0 0 0 3px transparent;
+  transition: box-shadow 0.15s;
+}
+.meeting-tile.speaking .avatar {
+  box-shadow: 0 0 0 3px var(--green);
+}
+.tile-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.tile-sub {
   color: var(--muted);
+  font-size: 11px;
+}
+.tile-state {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--red);
+}
+.tile-state .icon {
+  width: 13px;
+  height: 13px;
+}
+.meeting-tile.ai {
+  background: var(--accent-weak);
+}
+.meeting-tile.ai.off {
+  opacity: 0.6;
 }
 .transcript-wrap {
   position: relative;
@@ -206,19 +255,6 @@
   .meeting-cols > section:nth-child(2) {
     min-height: 320px;
   }
-}
-.speaking-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--border);
-}
-.speaking-dot.on {
-  background: #22a559;
-}
-.muted-tag {
-  font-size: 11px;
-  color: var(--muted);
 }
 .ai-panel {
   display: grid;
