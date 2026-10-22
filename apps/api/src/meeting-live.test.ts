@@ -9,7 +9,8 @@ import { seedDemoData } from './db/seed.js';
 import { getMeeting } from './repositories/meetings.js';
 import { listSuggestions } from './repositories/suggestions.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
-import { checkMeeting, noteLine, runLiveTick } from './services/meeting-live.js';
+import { shouldRun } from './services/meeting-trigger.js';
+import { checkMeeting, noteLine, runLiveTick, triggerState } from './services/meeting-live.js';
 
 let server: Server;
 let hub: RealtimeHub;
@@ -129,6 +130,23 @@ describe('live meeting pipeline', () => {
     expect(inputs).toHaveLength(1);
     await checkMeeting(meetingId, 2_000, ai); // newWords reset, nothing new
     expect(inputs).toHaveLength(1);
+  });
+
+  it('keeps words noted while a tick is in flight', async () => {
+    const meeting = await getMeeting('hackathon', meetingId);
+    noteLine(meeting, Array(80).fill('word').join(' '), 1_000);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { ai } = fakeAi(() => ({}));
+    const slow: MeetingAi = { ...ai, meetingTick: async (input) => (await gate, ai.meetingTick(input)) };
+    await speak('Line for the slow tick');
+    const running = checkMeeting(meetingId, 50_000, slow);
+    noteLine(meeting, Array(40).fill('word').join(' '), 5_000);
+    release();
+    await running;
+    const state = triggerState(meetingId)!;
+    expect(state.newWords).toBe(40);
+    expect(shouldRun(state, 25_000)).toBe(true);
   });
 
   it('POST /ai {enabled:false} stops ticks; only participants may toggle', async () => {

@@ -137,13 +137,17 @@ export async function checkMeeting(meetingId: string, now = Date.now(), ai?: Mee
   }
   if (!shouldRun(state, now)) return;
   state.inFlight = true;
+  const taken = state.newWords; // words noted while the tick runs must still count
   try {
     await runLiveTick(state.projectId, meetingId, ai);
   } finally {
     // Failures count as calls too, so the cap bounds retries.
-    Object.assign(state, { inFlight: false, lastRunAt: now, newWords: 0, calls: state.calls + 1 });
+    Object.assign(state, { inFlight: false, lastRunAt: now, newWords: Math.max(0, state.newWords - taken), calls: state.calls + 1 });
   }
 }
+
+/** Test hook: the current trigger state. */
+export const triggerState = (meetingId: string) => states.get(meetingId);
 
 /** Test hook: feed a line into the trigger state as the onLine listener does. */
 export function noteLine(meeting: Meeting, text: string, now = Date.now()): void {
