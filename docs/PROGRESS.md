@@ -48,6 +48,10 @@ Pick from the top unless the team agrees otherwise. Put your name next to an ite
 
 Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKATHON.md).
 
+- [ ] **AI Meeting Room** (Hansol) — in-app voice meetings with a live transcript; Claude joins read-only and
+      suggests tickets, ideas and polls live; 60-minute cap; member-confirmed notes carry over to the next
+      meeting. Spec: [superpowers/specs/2026-10-21-ai-meeting-room-design.md](superpowers/specs/2026-10-21-ai-meeting-room-design.md)
+      (§15 lists the shared files it touches).
 - [ ] **Clerk roles** (Clerk prize, follow-up) — use org roles for product rules, e.g. only `org:admin`
       can make a suggestion an official decision; Clerk webhooks to drop members who leave a team.
 - [ ] **Live URL** (needs a host account) — build and deploy the Dockerfile with a persistent volume at
