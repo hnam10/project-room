@@ -43,7 +43,8 @@ export function useRealtime(
           if (wasOnline) handlers.current.onReconnect?.();
           wasOnline = true;
           retry = 0;
-        } else {
+        } else if (msg.type === 'change') {
+          // 'rtc' signals are handled in the meeting voice hook (later task)
           handlers.current.onEvent(msg);
         }
       };

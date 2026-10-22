@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { meetingCreateSchema, transcriptLineCreateSchema, type MeetingDetail } from '@project-room/shared';
+import { config } from '../../config.js';
 import { getMeeting, listMeetings } from '../../repositories/meetings.js';
 import { listPolls } from '../../repositories/polls.js';
 import { listLines } from '../../repositories/transcripts.js';
@@ -15,6 +16,11 @@ meetingsRouter.post('/', async (req, res) => {
 
 meetingsRouter.get('/', async (_req, res) => {
   res.json(await listMeetings(ctx(res).project.id));
+});
+
+// Declared before /:id so it isn't read as a meeting id.
+meetingsRouter.get('/rtc-config', (_req, res) => {
+  res.json({ iceServers: config.rtcIceServers });
 });
 
 meetingsRouter.get('/:id', async (req, res) => {

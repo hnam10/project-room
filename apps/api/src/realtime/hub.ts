@@ -1,10 +1,11 @@
 import type { Server } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { Table, type LiveSubscription, type Surreal } from 'surrealdb';
-import type { ClientSubscribe, RealtimeAction, RealtimeTable, ServerMessage } from '@project-room/shared';
+import type { ClientMessage, RealtimeAction, RealtimeTable, ServerMessage } from '@project-room/shared';
 import { toPlain } from '../db/records.js';
 import { ensureClerkMember, verifySessionToken } from '../auth/clerk.js';
 import { authMode } from '../config.js';
+import { relayRtc } from './rtc-relay.js';
 import { devMemberId, projectForCaller, type Caller } from '../http/context.js';
 
 // Pushes database changes to browsers. SurrealDB LIVE SELECT queries report every change to the
@@ -21,6 +22,7 @@ export interface RealtimeHub {
 export async function startRealtime(server: Server, db: Surreal): Promise<RealtimeHub> {
   const wss = new WebSocketServer({ server, path: '/ws' });
   const socketsByProject = new Map<string, Set<WebSocket>>();
+  const memberIds = new WeakMap<WebSocket, string>();
 
   wss.on('connection', (socket, request) => {
     // Browsers can't set headers on a WebSocket, so the identity comes from the query string:
@@ -30,10 +32,22 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
     let projectId: string | null = null;
 
     socket.on('message', async (raw) => {
-      let msg: ClientSubscribe;
+      let msg: ClientMessage;
       try {
         msg = JSON.parse(String(raw));
       } catch {
+        return;
+      }
+      if (msg.type === 'rtc') {
+        const who = await caller;
+        if (!who || !projectId) return; // not subscribed yet
+        const pid = projectId;
+        void relayRtc({
+          projectId: pid,
+          from: who.memberId,
+          msg,
+          socketsFor: (memberId) => [...(socketsByProject.get(pid) ?? [])].filter((s) => memberIds.get(s) === memberId),
+        }).catch(() => undefined);
         return;
       }
       if (msg.type !== 'subscribe' || typeof msg.projectId !== 'string') return;
@@ -45,6 +59,7 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
       }
       if (projectId) socketsByProject.get(projectId)?.delete(socket);
       projectId = project.id;
+      memberIds.set(socket, who.memberId);
       if (!socketsByProject.has(projectId)) socketsByProject.set(projectId, new Set());
       socketsByProject.get(projectId)!.add(socket);
       send(socket, { type: 'ready', projectId });

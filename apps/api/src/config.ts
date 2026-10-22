@@ -5,6 +5,20 @@ function env(name: string, fallback: string): string {
   return value === undefined || value === '' ? fallback : value;
 }
 
+function iceServers(): RTCIceServer[] {
+  const fallback = [{ urls: 'stun:stun.l.google.com:19302' }];
+  const raw = process.env.RTC_ICE_SERVERS;
+  if (!raw) return fallback;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as RTCIceServer[];
+  } catch {
+    // fall through to the warning
+  }
+  console.warn('RTC_ICE_SERVERS is not a JSON array; using the default STUN server');
+  return fallback;
+}
+
 export const config = {
   port: Number(env('PORT', '4000')),
   /**
@@ -25,6 +39,8 @@ export const config = {
   /** Claude is used whenever ANTHROPIC_API_KEY is set; without it the labelled mock runs. AI_PROVIDER=mock forces the mock. */
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
   anthropicModel: env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
+  /** WebRTC ICE servers handed to meeting clients (STUN/TURN). */
+  rtcIceServers: iceServers(),
   forceMockAi: process.env.AI_PROVIDER === 'mock',
   /**
    * Clerk keys. Callers sign in with Clerk and a Clerk Organization is a project. The server refuses to
