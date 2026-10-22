@@ -14,19 +14,16 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 
 ## Data model (SurrealDB, `apps/api/src/db/schema.surql`)
 
-| Table             | Purpose                                                                                                                                                                                                                                                                                             | Key links                                     |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `member`          | A person                                                                                                                                                                                                                                                                                            | —                                             |
-| `project`         | Workspace; holds `memberIds` and the `taskCounter` for #numbers                                                                                                                                                                                                                                     | `memberIds → member`                          |
-| `channel`         | Chat channel                                                                                                                                                                                                                                                                                        | `projectId`                                   |
-| `message`         | Chat message; `authorId` is a member id or `'ai'`                                                                                                                                                                                                                                                   | `channelId`, `suggestionId`                   |
-| `task`            | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from                                                                                                                                                                                                                   | `assigneeId → member`                         |
-| `idea`            | Brainstorm card; votes are `voterIds`                                                                                                                                                                                                                                                               | `taskId` once converted                       |
-| `decision`        | Open question or recorded decision                                                                                                                                                                                                                                                                  | `raisedById`, `decidedById`                   |
-| `suggestion`      | **Structured AI output** awaiting review: `kind` = `action_items` / `decision` / `risk`, `status` = `pending` / `approved` / `dismissed`, with `reason`, `quote`, `items[]`. Meeting kinds: `idea`, `poll`, `meeting_notes`; fields `meetingId`, `sourceLineId`, `ideaId`, `ideaDraft`, `pollDraft` | `sourceMessageId`, `taskId`, `createdTaskIds` |
-| `meeting`         | AI Meeting Room session: `status` = `live` / `summarizing` / `ended`, 60-minute `endsAt`, `participantIds`, `summary`, `carryOver` (confirmed notes), `usage`, `summaryError`                                                                                                                       | `previousMeetingId`                           |
-| `transcript_line` | One final speech result (<= 1000 chars) from a participant's browser                                                                                                                                                                                                                                | `meetingId`, `speakerId`                      |
-| `poll`            | Meeting poll with 2-5 options; one movable vote per member                                                                                                                                                                                                                                          | `meetingId`, `sourceSuggestionId`             |
+| Table        | Purpose                                                                                                                                                                     | Key links                                     |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `member`     | A person                                                                                                                                                                    | —                                             |
+| `project`    | Workspace; holds `memberIds` and the `taskCounter` for #numbers                                                                                                             | `memberIds → member`                          |
+| `channel`    | Chat channel                                                                                                                                                                | `projectId`                                   |
+| `message`    | Chat message; `authorId` is a member id or `'ai'`                                                                                                                           | `channelId`, `suggestionId`                   |
+| `task`       | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from                                                                                           | `assigneeId → member`                         |
+| `idea`       | Brainstorm card; votes are `voterIds`                                                                                                                                       | `taskId` once converted                       |
+| `decision`   | Open question or recorded decision                                                                                                                                          | `raisedById`, `decidedById`                   |
+| `suggestion` | **Structured AI output** awaiting review: `kind` = `action_items` / `decision` / `risk`, `status` = `pending` / `approved` / `dismissed`, with `reason`, `quote`, `items[]` | `sourceMessageId`, `taskId`, `createdTaskIds` |
 
 All records carry `projectId`; repositories always filter by it.
 
@@ -60,13 +57,24 @@ is never read. A decision becomes "decided" only through a member: approving a `
 
 ## Meetings
 
+Tables live in `schema.meeting.surql` (applied with `schema.surql`):
+
+| Table             | Purpose                                                                                                                                                     | Key links                         |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `meeting`         | AI Meeting Room session: `status` = `live` / `summarizing` / `ended`, 60-minute `endsAt`, `participantIds`, `summary`, `carryOver`, `usage`, `summaryError` | `previousMeetingId`               |
+| `transcript_line` | One final speech result (<= 1000 chars) from a participant's browser                                                                                        | `meetingId`, `speakerId`          |
+| `poll`            | Meeting poll with 2-5 options; one movable vote per member                                                                                                  | `meetingId`, `sourceSuggestionId` |
+
+`suggestion` also carries the meeting kinds `idea`, `poll`, `meeting_notes` and the fields `meetingId`,
+`sourceLineId`, `ideaId`, `ideaDraft`, `pollDraft`.
+
 - **Lifecycle:** `live` (max 60 minutes, then expired) -> `summarizing` -> `ended`. One live meeting per project.
 - **Transcript:** each browser runs the Web Speech API on its own mic and posts final results to
   `POST /meetings/:id/lines`; the speaker is always the caller.
-- **Voice:** WebRTC mesh. `rtc` offer/answer/ICE signals are relayed between participants over `/ws`; STUN/TURN
+- **Voice:** WebRTC mesh. `rtc` offer/answer/ICE signals are relayed between participants over `/ws` (`realtime/rtc-relay.ts`); STUN/TURN
   come from `RTC_ICE_SERVERS`.
-- **Live AI:** new lines trigger `MeetingAi` (fast model, running summary + new lines) which stores
-  `action_items` / `idea` / `poll` suggestions. Members approve them; AI never writes tasks, ideas or polls.
+- **Live AI:** new lines trigger `MeetingAi` (separate from `AiProvider`; fast model, running summary + new lines) which stores
+  `action_items` / `idea` / `poll` suggestions. A meeting is capped at 60 AI calls. Members approve them; AI never writes tasks, ideas or polls.
 - **End:** `POST /meetings/:id/end` summarizes on the main model into `meeting.summary` plus a `meeting_notes`
   suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
   shows a "Last time" card.
