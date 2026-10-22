@@ -13,7 +13,7 @@ export const meetingsApi = {
   end: (projectId: string, id: string) => request<Meeting>('POST', `${m(projectId)}/${id}/end`),
   setAi: (projectId: string, id: string, enabled: boolean) => request<Meeting>('POST', `${m(projectId)}/${id}/ai`, { enabled }),
   vote: (projectId: string, pollId: string, optionId: string) =>
-    request<Poll>('POST', `${m(projectId)}/polls/${pollId}/vote`, { optionId }),
-  closePoll: (projectId: string, pollId: string) => request<Poll>('POST', `${m(projectId)}/polls/${pollId}/close`),
+    request<Poll>('POST', `${p(projectId)}/polls/${pollId}/vote`, { optionId }),
+  closePoll: (projectId: string, pollId: string) => request<Poll>('POST', `${p(projectId)}/polls/${pollId}/close`),
   rtcConfig: (projectId: string) => request<{ iceServers: unknown[] }>('GET', `${m(projectId)}/rtc-config`),
 };
