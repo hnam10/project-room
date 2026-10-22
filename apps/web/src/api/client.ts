@@ -26,7 +26,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const projectId = /^\/projects\/([^/]+)/.exec(path)?.[1];
   let res: Response;
   try {
@@ -44,7 +44,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
-const p = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
+export const p = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
 
 export interface Me {
   member: Member;

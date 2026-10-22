@@ -4,6 +4,7 @@ import { BoardPage } from './pages/BoardPage';
 import { ChatPopoutPage } from './pages/ChatPopoutPage';
 import { BrainstormPage, ChatPage, DecisionsPage, PlaceholderPage } from './pages/FeaturePages';
 import { ChooseTeam } from './features/account/ClerkAccount';
+import { MeetingPage } from './pages/MeetingPage';
 import { useSession } from './state/session';
 
 export function App() {
@@ -17,6 +18,7 @@ export function App() {
         <Route path="chat" element={<ChatPage />} />
         <Route path="brainstorm" element={<BrainstormPage />} />
         <Route path="decisions" element={<DecisionsPage />} />
+        <Route path="meeting" element={<MeetingPage />} />
         <Route
           path="calendar"
           element={<PlaceholderPage icon="calendar" title="Calendar" text="Deadlines and meetings will live here. Not built yet." />}
