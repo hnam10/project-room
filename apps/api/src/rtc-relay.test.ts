@@ -129,3 +129,18 @@ describe('dropped members', () => {
     await api(`${M}/${meeting.id}/end`, 'alex', 'POST');
   });
 });
+
+describe('malformed frames', () => {
+  it('ignores null and non-JSON frames and closes on oversized ones, and the server stays up', async () => {
+    const { ws } = await client('alex');
+    ws.send('null');
+    ws.send('not json');
+    ws.send('"text"');
+    await pause();
+    expect(ws.readyState).toBe(WebSocket.OPEN);
+    const closed = new Promise<number>((resolve) => ws.on('close', resolve));
+    ws.send('x'.repeat(70 * 1024));
+    expect(await closed).toBe(1009);
+    expect((await api('/projects/hackathon/meetings')).status).toBe(200);
+  });
+});

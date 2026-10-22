@@ -21,7 +21,7 @@ export interface RealtimeHub {
 }
 
 export async function startRealtime(server: Server, db: Surreal): Promise<RealtimeHub> {
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 64 * 1024 });
   const socketsByProject = new Map<string, Set<WebSocket>>();
   const memberIds = new WeakMap<WebSocket, string>();
 
@@ -32,13 +32,19 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
     const caller = authenticateSocket(url).catch(() => null);
     let projectId: string | null = null;
 
-    socket.on('message', async (raw) => {
+    socket.on('error', () => undefined); // e.g. a frame over maxPayload; ws closes the socket itself
+
+    // A client frame must never reject: an unhandled rejection would take the whole API down.
+    socket.on('message', (raw) => void onMessage(raw).catch(() => undefined));
+
+    const onMessage = async (raw: unknown) => {
       let msg: ClientMessage;
       try {
         msg = JSON.parse(String(raw));
       } catch {
         return;
       }
+      if (!msg || typeof msg !== 'object') return;
       if (msg.type === 'rtc') {
         const who = await caller;
         if (!who || !projectId) return; // not subscribed yet
@@ -64,7 +70,7 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
       if (!socketsByProject.has(projectId)) socketsByProject.set(projectId, new Set());
       socketsByProject.get(projectId)!.add(socket);
       send(socket, { type: 'ready', projectId });
-    });
+    };
 
     socket.on('close', () => {
       if (!projectId) return;
