@@ -98,7 +98,7 @@ export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTick
   const cite = (quote: string | null) => {
     const wanted = quote ? norm(quote.replace(/^["“]|["”]$/g, '')) : '';
     const line = wanted ? input.lines.find((l) => norm(l.text).includes(wanted)) : undefined;
-    return line ? { quote: quote!.trim(), sourceLineId: line.id } : { quote: null, sourceLineId: null };
+    return line ? { quote: quote!.trim().slice(0, 600), sourceLineId: line.id } : { quote: null, sourceLineId: null };
   };
 
   return {
@@ -109,7 +109,7 @@ export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTick
         assigneeId: i.assigneeId && memberIds.has(i.assigneeId) ? i.assigneeId : null,
         priority: toPriority(i.priority),
         include: true,
-        reason: i.reason,
+        reason: i.reason.slice(0, 400),
         ...cite(i.quote),
       })),
     ideas: raw.ideas
@@ -117,13 +117,17 @@ export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTick
       .map((i) => ({
         ideaId: i.ideaId,
         draft: { title: i.title.trim().slice(0, 80), description: i.description.slice(0, 2000), theme: toTheme(i.theme) },
-        reason: i.reason,
+        reason: i.reason.slice(0, 400),
         ...cite(i.quote),
       })),
     polls: raw.polls
       .map((p) => ({ ...p, options: p.options.map((o) => o.trim().slice(0, 80)) }))
       .filter((p) => p.options.length >= 2 && p.options.length <= 5 && p.options.every(Boolean) && fresh(p.question))
-      .map((p) => ({ draft: { question: p.question.trim().slice(0, 160), options: p.options }, reason: p.reason, ...cite(p.quote) })),
+      .map((p) => ({
+        draft: { question: p.question.trim().slice(0, 160), options: p.options },
+        reason: p.reason.slice(0, 400),
+        ...cite(p.quote),
+      })),
     runningSummary: raw.runningSummary.trim().split(/\s+/).slice(0, MAX_SUMMARY_WORDS).join(' '),
     usage: raw.usage ?? { inputTokens: 0, outputTokens: 0 },
   };
@@ -141,7 +145,7 @@ export function validateSummary(raw: RawSummary, input: SummarizeInput): Summari
   const seen = new Set(input.suggestions.map((s) => norm(s.title.replace(PREFIXES, ''))));
   const cite = (quote: string | null) => {
     const wanted = quote ? norm(quote.replace(/^["“]|["”]$/g, '')) : '';
-    return wanted && input.lines.some((l) => norm(l.text).includes(wanted)) ? quote!.trim() : null;
+    return wanted && input.lines.some((l) => norm(l.text).includes(wanted)) ? quote!.trim().slice(0, 600) : null;
   };
   const { summary } = raw;
   return {
@@ -163,7 +167,7 @@ export function validateSummary(raw: RawSummary, input: SummarizeInput): Summari
         assigneeId: i.assigneeId && memberIds.has(i.assigneeId) ? i.assigneeId : null,
         priority: toPriority(i.priority),
         include: true,
-        reason: i.reason,
+        reason: i.reason.slice(0, 400),
         quote: cite(i.quote),
       })),
     carryOverItems: capList(raw.carryOverItems, 10, 120),

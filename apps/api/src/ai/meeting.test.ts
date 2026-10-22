@@ -75,6 +75,25 @@ describe('validateTick', () => {
   });
 });
 
+describe('reason and quote caps', () => {
+  it('caps reason at 400 and quote at 600 characters', () => {
+    const long = 'word '.repeat(200).trim();
+    const lines = [{ id: 'l1', speakerId: 'alex', speakerName: 'Alex', text: long }];
+    const item = { title: 'T', assigneeId: null, priority: 'low', reason: 'r'.repeat(900), quote: long };
+    const tick = validateTick(raw({ actionItems: [item] }), { ...input, lines });
+    expect(tick.actionItems[0].reason).toHaveLength(400);
+    expect(tick.actionItems[0].quote).toHaveLength(600);
+    const sum = { overview: '', decisions: [], openQuestions: [], nextSteps: [] };
+    const out = validateSummary({ summary: sum, actionItems: [item], carryOverItems: [] }, {
+      ...input,
+      lines,
+      suggestions: [],
+    } as unknown as SummarizeInput);
+    expect(out.actionItems[0].reason).toHaveLength(400);
+    expect(out.actionItems[0].quote).toHaveLength(600);
+  });
+});
+
 describe('mock meeting AI', () => {
   it('proposes a ticket, an idea and a poll from cue phrases', async () => {
     const out = await mockMeetingAi.meetingTick(input);
