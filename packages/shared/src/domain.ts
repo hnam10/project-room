@@ -17,6 +17,9 @@ export type IdeaTheme = (typeof IDEA_THEMES)[number];
 /** The AI assistant's author id in chat. */
 export const AI_AUTHOR = 'ai';
 
+/** Largest file a member can upload. */
+export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
 export interface Member {
   id: string;
   name: string;
@@ -178,6 +181,17 @@ export interface Suggestion {
   resolvedById: string | null;
 }
 
+/** A file shared with the project. The bytes live on disk; this is only the metadata. */
+export interface ProjectFile {
+  id: string;
+  projectId: string;
+  name: string;
+  size: number;
+  contentType: string;
+  uploadedById: string;
+  createdAt: string;
+}
+
 /** Everything the workspace UI needs for one project, in one request. */
 export interface WorkspaceSnapshot {
   project: Project;
@@ -187,6 +201,7 @@ export interface WorkspaceSnapshot {
   ideas: Idea[];
   decisions: Decision[];
   suggestions: Suggestion[];
+  files: ProjectFile[];
 }
 
 /** The answer to a question about the project, written only from approved decisions. */
