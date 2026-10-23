@@ -1,4 +1,4 @@
-import type { Decision, Idea, Message, Suggestion, Task } from './domain.js';
+import type { Decision, Idea, Message, ProjectFile, Suggestion, Task } from './domain.js';
 
 // Messages pushed from the API to browsers over the /ws socket.
 
@@ -8,6 +8,7 @@ export interface RealtimeRecords {
   idea: Idea;
   decision: Decision;
   suggestion: Suggestion;
+  file: ProjectFile;
 }
 
 export type RealtimeTable = keyof RealtimeRecords;
