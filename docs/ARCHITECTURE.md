@@ -24,6 +24,7 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 | `idea`       | Brainstorm card; votes are `voterIds`                                                                                                                                       | `taskId` once converted                       |
 | `decision`   | Open question or recorded decision                                                                                                                                          | `raisedById`, `decidedById`                   |
 | `suggestion` | **Structured AI output** awaiting review: `kind` = `action_items` / `decision` / `risk`, `status` = `pending` / `approved` / `dismissed`, with `reason`, `quote`, `items[]` | `sourceMessageId`, `taskId`, `createdTaskIds` |
+| `file`       | Metadata for a shared project file (name, size, type, uploader). The bytes are not in the database.                                                                         | `uploadedById → member`                       |
 
 All records carry `projectId`; repositories always filter by it.
 
@@ -61,6 +62,13 @@ is never read. A decision becomes "decided" only through a member: approving a `
 `toPlain()` and sent to the WebSocket clients subscribed to that record's `projectId`. Because changes
 come from the database, writes from any API instance (or a DB console) reach clients. The web
 `WorkspaceProvider` merges events into its snapshot with idempotent upserts and refetches after a reconnect.
+
+## Files
+
+`file` records are metadata only. `POST /projects/:id/files` takes the raw bytes (`Content-Type: application/octet-stream`),
+the display name in `x-file-name`, and the media type in `x-file-type`. `services/files.ts` writes the bytes under
+`FILES_DIR/<projectId>/<fileId>` and stores the record; downloads are always sent as attachments. A name is reduced to
+its last path segment before it is stored, and anything over 10 MB is rejected. Delete removes the record and the bytes.
 
 ## Auth (`apps/api/src/http/context.ts`, `apps/api/src/auth/clerk.ts`)
 
@@ -102,6 +110,7 @@ come from the database, writes from any API instance (or a DB console) reach cli
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`      | — / `claude-opus-5-5`       | key set = Claude, otherwise the labelled mock               |
 | `AI_PROVIDER`                                | —                           | `mock` forces the mock even when a key is set               |
 | `WEB_DIST`                                   | `apps/web/dist`             | built web app served by the API when it exists              |
+| `FILES_DIR`                                  | `./data/files`              | uploaded bytes; `/data/files` in the Docker image           |
 | `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`            |
 
 To use a SurrealDB server instead of the embedded engine:

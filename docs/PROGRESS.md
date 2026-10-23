@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-21 — **Files page.** Members can upload, download, and delete project files from the Files nav item.
+  Metadata is a `file` record (in the snapshot and over realtime); the bytes live on disk under `FILES_DIR`
+  (default `./data/files`, `/data/files` in the image). Uploads are capped at 10 MB and always download as
+  attachments. A file name is stored as its last path segment.
 - 2026-10-20 — **Claude provider, structured suggestions and project memory.** `ANTHROPIC_API_KEY` switches
   the AI from the mock to Claude (`src/ai/anthropic.ts`, `messages.parse` + zod). One `@AI` call returns
   action items, decisions and risks, each with a `reason` and a `quote`. Output is validated before use
@@ -64,7 +68,6 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - [ ] **Calendar page** — tasks with due dates by week; project deadline.
 - [ ] **Brainstorm grouping** — themes as columns, compare proposals, "start a vote" (needs confirmation).
 - [ ] **Web tests** — Playwright for: approve AI action items → task appears; drag task; detach chat.
-- [ ] Files page (needs storage decision: SurrealDB files vs. S3-compatible bucket).
 
 ## Known gaps
 
@@ -88,9 +91,13 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - AI only reacts to new messages; it doesn't yet watch deadlines/workload on a schedule (the seeded
   "risk" suggestion shows the intended UX).
 - Mind Map and Notes tabs are placeholders.
+- Files have no in-browser preview or version history. Delete removes the record and the bytes.
 
 ## Decision log
 
+- 2026-10-21 — **File bytes on disk, metadata in SurrealDB** (no S3): team uploads are small, and the same
+  `/data` volume that keeps the embedded database keeps `FILES_DIR`. The snapshot and realtime carry only
+  the `file` record, so a download is a separate authenticated request.
 - 2026-10-20 — **Memory = approved decisions** (not a vector store over chat): answers must be traceable to
   something a member confirmed, which fits "AI suggests, people decide" and avoids answering from
   half-remembered chat. Decisions gained `outcome`/`reason`/`quote` so there is something to answer from.

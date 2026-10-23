@@ -44,8 +44,8 @@ Configuration lives in `apps/api/.env` (copy `apps/api/.env.example`) and `apps/
 - **Demo data:** `npm run db:seed -- --org org_xxx` (or `SEED_ORG_ID` on the server) loads the demo project
   into one of your Clerk organizations.
 - **Deploy:** the [Dockerfile](Dockerfile) builds one image that serves the API and the web app; mount a
-  volume at `/data` for the embedded database.
-- **Placeholders:** Calendar, Files, Overview, Team and Settings are labelled placeholders.
+  volume at `/data` for the embedded database and uploaded files.
+- **Placeholders:** Calendar, Overview, Team and Settings are labelled placeholders.
 
 ## Docs
 
