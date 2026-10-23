@@ -28,14 +28,15 @@ export async function listLinesAfter(
     ? await queryOne<TranscriptLine>('SELECT * FROM ONLY $id', { id: rid('transcript_line', cursorLineId) })
     : null;
   const lines = await queryMany<TranscriptLine>(
-    `SELECT * FROM transcript_line WHERE projectId = $project AND meetingId = $meeting ${cursor ? 'AND spokenAt > $after' : ''}
-     ORDER BY spokenAt DESC LIMIT $limit`,
+    `SELECT * FROM transcript_line WHERE projectId = $project AND meetingId = $meeting ${cursor ? 'AND (spokenAt > $after OR (spokenAt = $after AND id > $afterId))' : ''}
+     ORDER BY spokenAt ASC, id ASC LIMIT $limit`,
     {
       project: rid('project', projectId),
       meeting: rid('meeting', meetingId),
       after: cursor ? new Date(cursor.spokenAt) : undefined,
+      afterId: cursor ? rid('transcript_line', cursor.id) : undefined,
       limit,
     },
   );
-  return lines.reverse();
+  return lines;
 }
