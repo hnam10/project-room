@@ -1,6 +1,18 @@
 import { DateTime, RecordId } from 'surrealdb';
 
-export type TableName = 'member' | 'project' | 'channel' | 'message' | 'task' | 'idea' | 'decision' | 'suggestion';
+export type TableName =
+  | 'member'
+  | 'project'
+  | 'channel'
+  | 'message'
+  | 'task'
+  | 'idea'
+  | 'decision'
+  | 'suggestion'
+  | 'meeting'
+  | 'live_meeting'
+  | 'transcript_line'
+  | 'poll';
 
 /** Builds a record id from the plain id used by the API ("t19" -> task:t19). */
 export function rid(table: TableName, id: string): RecordId {
@@ -40,5 +52,13 @@ export class ConflictError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ConflictError';
+  }
+}
+
+/** Thrown when the caller is a project member but may not do this; mapped to 403. */
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ForbiddenError';
   }
 }

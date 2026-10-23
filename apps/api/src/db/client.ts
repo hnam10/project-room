@@ -38,6 +38,7 @@ export async function closeDb(): Promise<void> {
 
 async function applySchema(instance: Surreal): Promise<void> {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  const schema = await readFile(path.join(here, 'schema.surql'), 'utf8');
-  await instance.query(schema).collect();
+  for (const file of ['schema.surql', 'schema.meeting.surql']) {
+    await instance.query(await readFile(path.join(here, file), 'utf8')).collect();
+  }
 }

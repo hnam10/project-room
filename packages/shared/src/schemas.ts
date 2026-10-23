@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ideaDraftSchema, pollDraftSchema } from './meeting.js';
 import { IDEA_THEMES, PRIORITIES, TASK_LABELS, TASK_STATUSES } from './domain.js';
 
 // Request bodies accepted by the API. The web app uses the inferred types when calling it.
@@ -58,6 +59,8 @@ export const actionItemSchema = z.object({
 });
 
 export const suggestionUpdateSchema = z.object({
-  items: z.array(actionItemSchema).max(20),
+  items: z.array(actionItemSchema).max(20).optional(),
+  ideaDraft: ideaDraftSchema.optional(),
+  pollDraft: pollDraftSchema.optional(),
 });
 export type SuggestionUpdateInput = z.input<typeof suggestionUpdateSchema>;

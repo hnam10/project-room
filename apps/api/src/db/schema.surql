@@ -70,7 +70,7 @@ DEFINE FIELD OVERWRITE decidedAt   ON decision TYPE null | datetime DEFAULT null
 -- AI suggestions are structured data. They only change other tables when a member approves them.
 DEFINE TABLE OVERWRITE suggestion SCHEMAFULL;
 DEFINE FIELD OVERWRITE projectId        ON suggestion TYPE record<project>;
-DEFINE FIELD OVERWRITE kind             ON suggestion TYPE string ASSERT $value IN ['action_items', 'decision', 'risk'];
+DEFINE FIELD OVERWRITE kind             ON suggestion TYPE string ASSERT $value IN ['action_items', 'decision', 'risk', 'idea', 'poll', 'meeting_notes'];
 DEFINE FIELD OVERWRITE status           ON suggestion TYPE string ASSERT $value IN ['pending', 'approved', 'dismissed'];
 DEFINE FIELD OVERWRITE title            ON suggestion TYPE string;
 DEFINE FIELD OVERWRITE proposal         ON suggestion TYPE null | string DEFAULT null;
@@ -87,6 +87,11 @@ DEFINE FIELD OVERWRITE items.*.include    ON suggestion TYPE bool;
 DEFINE FIELD OVERWRITE items.*.reason     ON suggestion TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE items.*.quote      ON suggestion TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE taskId           ON suggestion TYPE null | record<task> DEFAULT null;
+DEFINE FIELD OVERWRITE meetingId        ON suggestion TYPE null | record<meeting> DEFAULT null;
+DEFINE FIELD OVERWRITE sourceLineId     ON suggestion TYPE null | record<transcript_line> DEFAULT null;
+DEFINE FIELD OVERWRITE ideaId           ON suggestion TYPE null | record<idea> DEFAULT null;
+DEFINE FIELD OVERWRITE ideaDraft        ON suggestion TYPE null | object FLEXIBLE DEFAULT null;
+DEFINE FIELD OVERWRITE pollDraft        ON suggestion TYPE null | object FLEXIBLE DEFAULT null;
 DEFINE FIELD OVERWRITE createdTaskIds   ON suggestion TYPE array<record<task>> DEFAULT [];
 DEFINE FIELD OVERWRITE resolvedById     ON suggestion TYPE null | record<member> DEFAULT null;
 DEFINE FIELD OVERWRITE createdAt        ON suggestion TYPE datetime DEFAULT time::now() READONLY;

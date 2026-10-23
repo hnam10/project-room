@@ -1,4 +1,4 @@
-import type { ActionItem, Suggestion, SuggestionKind, SuggestionStatus } from '@project-room/shared';
+import type { ActionItem, IdeaDraft, PollDraft, Suggestion, SuggestionKind, SuggestionStatus } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
 import { NotFoundError, rid, ridOrNull } from '../db/records.js';
 
@@ -13,6 +13,11 @@ export interface SuggestionDraft {
   sourceMessageId?: string | null;
   items?: ActionItem[];
   taskId?: string | null;
+  meetingId?: string | null;
+  sourceLineId?: string | null;
+  ideaId?: string | null;
+  ideaDraft?: IdeaDraft | null;
+  pollDraft?: PollDraft | null;
 }
 
 const toDbItems = (items: ActionItem[]) => items.map((i) => ({ ...i, assigneeId: ridOrNull('member', i.assigneeId) }));
@@ -32,8 +37,15 @@ export async function getSuggestion(projectId: string, suggestionId: string): Pr
   return suggestion;
 }
 
-export async function createSuggestion(projectId: string, draft: SuggestionDraft): Promise<Suggestion> {
-  const suggestion = await queryOne<Suggestion>('CREATE ONLY suggestion CONTENT $content', {
+/** With a fixed `id`, a retry returns the suggestion already stored under it instead of creating a second one. */
+export async function createSuggestion(projectId: string, draft: SuggestionDraft, id?: string): Promise<Suggestion> {
+  const target = id ? rid('suggestion', id) : null;
+  if (target) {
+    const existing = await queryOne<Suggestion>('SELECT * FROM ONLY $id', { id: target });
+    if (existing) return existing;
+  }
+  const suggestion = await queryOne<Suggestion>(`CREATE ONLY ${target ? '$id' : 'suggestion'} CONTENT $content`, {
+    id: target,
     content: {
       projectId: rid('project', projectId),
       kind: draft.kind,
@@ -47,6 +59,11 @@ export async function createSuggestion(projectId: string, draft: SuggestionDraft
       sourceMessageId: ridOrNull('message', draft.sourceMessageId),
       items: toDbItems(draft.items ?? []),
       taskId: ridOrNull('task', draft.taskId),
+      meetingId: ridOrNull('meeting', draft.meetingId),
+      sourceLineId: ridOrNull('transcript_line', draft.sourceLineId),
+      ideaId: ridOrNull('idea', draft.ideaId),
+      ideaDraft: draft.ideaDraft ?? null,
+      pollDraft: draft.pollDraft ?? null,
     },
   });
   if (!suggestion) throw new Error('Suggestion creation returned nothing');
@@ -57,6 +74,19 @@ export async function updateSuggestionItems(suggestionId: string, items: ActionI
   const suggestion = await queryOne<Suggestion>('UPDATE ONLY $id SET items = $items RETURN AFTER', {
     id: rid('suggestion', suggestionId),
     items: toDbItems(items),
+  });
+  if (!suggestion) throw new NotFoundError('Suggestion');
+  return suggestion;
+}
+
+export async function updateSuggestionDrafts(
+  suggestionId: string,
+  patch: { ideaDraft?: IdeaDraft; pollDraft?: PollDraft },
+): Promise<Suggestion> {
+  const suggestion = await queryOne<Suggestion>('UPDATE ONLY $id MERGE $patch RETURN AFTER', {
+    id: rid('suggestion', suggestionId),
+    // Only defined keys: a MERGE with an undefined key could unset the other draft.
+    patch: Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
   });
   if (!suggestion) throw new NotFoundError('Suggestion');
   return suggestion;

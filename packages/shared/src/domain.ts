@@ -1,5 +1,6 @@
 // Domain model shared by the API and the web app. IDs are plain strings on the wire;
 // the API maps them to SurrealDB record IDs (e.g. "t19" <-> task:t19).
+import type { IdeaDraft, PollDraft } from './meeting.js';
 
 export const TASK_STATUSES = ['todo', 'progress', 'review', 'done'] as const;
 export const PRIORITIES = ['high', 'medium', 'low'] as const;
@@ -97,7 +98,7 @@ export interface Decision {
   decidedAt: string | null;
 }
 
-export type SuggestionKind = 'action_items' | 'decision' | 'risk';
+export type SuggestionKind = 'action_items' | 'decision' | 'risk' | 'idea' | 'poll' | 'meeting_notes';
 export type SuggestionStatus = 'pending' | 'approved' | 'dismissed';
 
 export interface ActionItem {
@@ -133,6 +134,11 @@ export interface Suggestion {
   taskId: string | null;
   /** Tasks created when the suggestion was approved. */
   createdTaskIds: string[];
+  meetingId: string | null;
+  sourceLineId: string | null;
+  ideaId: string | null;
+  ideaDraft: IdeaDraft | null;
+  pollDraft: PollDraft | null;
   createdAt: string;
   resolvedById: string | null;
 }

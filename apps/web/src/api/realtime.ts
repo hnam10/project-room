@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { RealtimeEvent, ServerMessage } from '@project-room/shared';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import type { ClientRtc, RealtimeEvent, ServerMessage, ServerRtc } from '@project-room/shared';
 import { socketAuthQuery } from './auth';
 
 export type ConnectionState = 'connecting' | 'online' | 'offline';
@@ -14,11 +14,14 @@ export function useRealtime(
   memberId: string,
   onEvent: (event: RealtimeEvent) => void,
   onReconnect?: () => void,
+  onSignal?: (msg: ServerRtc) => void,
+  /** Filled with a function that sends a WebRTC signal on the open socket (false if it isn't open). */
+  sendRef?: RefObject<((msg: ClientRtc) => boolean) | null>,
 ): ConnectionState {
   const [state, setState] = useState<ConnectionState>('connecting');
-  const handlers = useRef({ onEvent, onReconnect });
+  const handlers = useRef({ onEvent, onReconnect, onSignal });
   useLayoutEffect(() => {
-    handlers.current = { onEvent, onReconnect };
+    handlers.current = { onEvent, onReconnect, onSignal };
   });
 
   useEffect(() => {
@@ -43,8 +46,10 @@ export function useRealtime(
           if (wasOnline) handlers.current.onReconnect?.();
           wasOnline = true;
           retry = 0;
-        } else {
+        } else if (msg.type === 'change') {
           handlers.current.onEvent(msg);
+        } else if (msg.type === 'rtc') {
+          handlers.current.onSignal?.(msg);
         }
       };
       socket.onclose = () => {
@@ -54,13 +59,20 @@ export function useRealtime(
       };
     };
 
+    if (sendRef)
+      sendRef.current = (msg) => {
+        if (socket?.readyState !== WebSocket.OPEN) return false;
+        socket.send(JSON.stringify(msg));
+        return true;
+      };
     void connect();
     return () => {
       closed = true;
+      if (sendRef) sendRef.current = null;
       window.clearTimeout(timer);
       socket?.close();
     };
-  }, [projectId, memberId]);
+  }, [projectId, memberId, sendRef]);
 
   return state;
 }
