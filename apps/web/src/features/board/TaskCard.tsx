@@ -1,11 +1,10 @@
 import type { Member, Task } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
-
-const shortDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+import { formatShort, todayIso } from '../../lib/dates';
 
 export function TaskCard({ task, assignee, onOpen }: { task: Task; assignee: Member | undefined; onOpen: () => void }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const overdue = !!task.dueDate && task.dueDate < today && task.status !== 'done';
   const done = task.status === 'done';
 
@@ -46,7 +45,7 @@ export function TaskCard({ task, assignee, onOpen }: { task: Task; assignee: Mem
         {task.dueDate && (
           <span className={`task-due${overdue ? ' overdue' : ''}`}>
             {overdue ? 'Overdue · ' : ''}
-            {shortDate(task.dueDate)}
+            {formatShort(task.dueDate)}
           </span>
         )}
       </div>

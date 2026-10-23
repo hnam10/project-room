@@ -1,9 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { ChooseTeam } from './features/account/ClerkAccount';
+import { CalendarPage } from './features/calendar/CalendarPage';
 import { WorkspaceLayout } from './layouts/WorkspaceLayout';
 import { BoardPage } from './pages/BoardPage';
 import { ChatPopoutPage } from './pages/ChatPopoutPage';
 import { BrainstormPage, ChatPage, DecisionsPage, PlaceholderPage } from './pages/FeaturePages';
-import { ChooseTeam } from './features/account/ClerkAccount';
 import { MeetingPage } from './pages/MeetingPage';
 import { useSession } from './state/session';
 
@@ -19,10 +20,7 @@ export function App() {
         <Route path="brainstorm" element={<BrainstormPage />} />
         <Route path="decisions" element={<DecisionsPage />} />
         <Route path="meeting" element={<MeetingPage />} />
-        <Route
-          path="calendar"
-          element={<PlaceholderPage icon="calendar" title="Calendar" text="Deadlines and meetings will live here. Not built yet." />}
-        />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route
           path="files"
           element={<PlaceholderPage icon="file" title="Files" text="Shared project files will live here. Uploads aren’t built yet." />}
