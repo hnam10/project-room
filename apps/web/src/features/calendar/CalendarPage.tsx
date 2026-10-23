@@ -59,6 +59,8 @@ export function CalendarPage() {
   const today = todayIso();
   const [cursor, setCursor] = useState(today);
   const deadline = project.dueDate;
+  const deadlineSaving = useRef(false);
+  const [savingDeadline, setSavingDeadline] = useState(false);
 
   useEffect(() => {
     document.title = 'Calendar · Project Room';
@@ -76,10 +78,13 @@ export function CalendarPage() {
   }
 
   async function saveDeadline(dueDate: string | null) {
+    if (deadlineSaving.current) return;
     if (dueDate === deadline) {
       if (dueDate) focusDate(dueDate);
       return;
     }
+    deadlineSaving.current = true;
+    setSavingDeadline(true);
     const previous = deadline;
     applyProject({ ...project, dueDate });
     if (dueDate) focusDate(dueDate);
@@ -88,6 +93,9 @@ export function CalendarPage() {
     } catch (error) {
       applyProject({ ...project, dueDate: previous });
       toastError(error);
+    } finally {
+      deadlineSaving.current = false;
+      setSavingDeadline(false);
     }
   }
 
@@ -124,7 +132,7 @@ export function CalendarPage() {
         <div className="page-title">
           <h1>Calendar</h1>
         </div>
-        <DeadlineCard deadline={deadline} today={today} onChange={(dueDate) => void saveDeadline(dueDate)} />
+        <DeadlineCard deadline={deadline} today={today} disabled={savingDeadline} onChange={(dueDate) => void saveDeadline(dueDate)} />
       </section>
 
       {overdueDate && (
@@ -205,10 +213,12 @@ function formatDeadline(iso: string): string {
 function DeadlineCard({
   deadline,
   today,
+  disabled,
   onChange,
 }: {
   deadline: string | null;
   today: string;
+  disabled: boolean;
   onChange: (dueDate: string | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -216,7 +226,7 @@ function DeadlineCard({
 
   function openPicker() {
     const input = inputRef.current;
-    if (!input) return;
+    if (!input || input.disabled) return;
     try {
       input.showPicker();
     } catch {
@@ -225,7 +235,12 @@ function DeadlineCard({
   }
 
   return (
-    <section className={`deadline-card ${tone}`} aria-label="Project deadline" onClick={deadline ? undefined : openPicker}>
+    <section
+      className={`deadline-card ${tone}`}
+      aria-label="Project deadline"
+      aria-busy={disabled}
+      onClick={deadline ? undefined : openPicker}
+    >
       <div className="deadline-main">
         <span className="deadline-flag" aria-hidden="true">
           <Icon name="flag" />
@@ -249,6 +264,7 @@ function DeadlineCard({
         <input
           ref={inputRef}
           type="date"
+          disabled={disabled}
           value={deadline ?? ''}
           aria-label={deadline ? 'Change project deadline' : 'Set project deadline'}
           onChange={(e) => onChange(e.target.value || null)}
@@ -256,7 +272,7 @@ function DeadlineCard({
       </div>
       {deadline && (
         <div className="deadline-actions">
-          <button type="button" className="clear" aria-label="Clear project deadline" onClick={() => onChange(null)}>
+          <button type="button" className="clear" disabled={disabled} aria-label="Clear project deadline" onClick={() => onChange(null)}>
             <Icon name="x" />
           </button>
         </div>
