@@ -56,6 +56,7 @@ export function useTranscriber(opts: { language: string; enabled: boolean; onFin
     };
     rec.onstart = () => setListening(true);
     let failures = 0; // consecutive failed sessions; reset by any result
+    let lastError = '';
     let timer: number | undefined;
     const fail = (message: string) => {
       stopped = true;
@@ -64,14 +65,21 @@ export function useTranscriber(opts: { language: string; enabled: boolean; onFin
     rec.onerror = (e) => {
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') {
         fail('Microphone access was blocked, so your speech isn’t transcribed. Allow the microphone and rejoin.');
-      } else if (e.error !== 'no-speech' && e.error !== 'aborted') failures++;
+      } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
+        failures++;
+        lastError = e.error;
+      }
     };
     rec.onend = () => {
       setInterim('');
       setListening(false);
       if (stopped) return;
       if (failures >= 5)
-        return fail('Speech recognition keeps failing, so your speech isn’t transcribed. Check your connection and rejoin.');
+        return fail(
+          lastError === 'network'
+            ? 'This browser can’t reach its speech service (error: network), so your speech isn’t transcribed. Turn off VPN or try another network, or use Safari, and rejoin.'
+            : `Speech recognition keeps failing (error: ${lastError}), so your speech isn’t transcribed. Check your connection and rejoin.`,
+        );
       // Back off after errors: 0.5s, 1s, 2s ... capped at 8s.
       const delay = failures ? Math.min(500 * 2 ** (failures - 1), 8000) : 0;
       timer = window.setTimeout(() => {
