@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
-import { ConflictError, NotFoundError } from '../db/records.js';
+import { ConflictError, ForbiddenError, NotFoundError } from '../db/records.js';
 
 export function notFoundRoute(_req: Request, res: Response): void {
   res.status(404).json({ error: 'Not found' });
@@ -18,6 +18,10 @@ export function errorHandler(error: unknown, _req: Request, res: Response, _next
   }
   if (error instanceof ConflictError) {
     res.status(409).json({ error: error.message });
+    return;
+  }
+  if (error instanceof ForbiddenError) {
+    res.status(403).json({ error: error.message });
     return;
   }
   if (error instanceof SyntaxError && 'body' in error) {

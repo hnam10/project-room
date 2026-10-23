@@ -27,14 +27,18 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown, init?: RequestInit): Promise<T> {
   const projectId = /^\/projects\/([^/]+)/.exec(path)?.[1];
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
+      ...init,
       method,
-      headers: { 'content-type': 'application/json', ...(await authHeaders(projectId && decodeURIComponent(projectId))) },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: {
+        'content-type': body instanceof Blob ? body.type : 'application/json',
+        ...(await authHeaders(projectId && decodeURIComponent(projectId))),
+      },
+      body: body instanceof Blob || body === undefined ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'Can’t reach the server. Is the API running?');
@@ -45,7 +49,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
-const p = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
+export const p = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
 
 async function errorMessage(res: Response): Promise<string> {
   const data = (await res.json().catch(() => ({}))) as { error?: string };

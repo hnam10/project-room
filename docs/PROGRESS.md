@@ -11,6 +11,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   Metadata is a `file` record (in the snapshot and over realtime); the bytes live on disk under `FILES_DIR`
   (default `./data/files`, `/data/files` in the image). Uploads are capped at 10 MB and always download as
   attachments. A file name is stored as its last path segment.
+- 2026-10-21 — **AI Meeting Room** (Hansol). In-app voice meetings (WebRTC mesh, 60-minute cap) with a live
+  transcript from each browser's speech recognition. Claude (fast model) joins read-only and proposes tickets,
+  ideas and polls as suggestions; ending the meeting writes an AI summary and a "Notes for next time"
+  checklist. Confirmed notes become the next meeting's "Last time" card. Spec:
+  [superpowers/specs/2026-10-21-ai-meeting-room-design.md](superpowers/specs/2026-10-21-ai-meeting-room-design.md).
+
 - 2026-10-20 — **Claude provider, structured suggestions and project memory.** `ANTHROPIC_API_KEY` switches
   the AI from the mock to Claude (`src/ai/anthropic.ts`, `messages.parse` + zod). One `@AI` call returns
   action items, decisions and risks, each with a `reason` and a `quote`. Output is validated before use
@@ -74,6 +80,23 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 ## Known gaps
 
 - The Files picker clears its live `FileList` before starting uploads; use drag and drop until that separate issue is fixed.
+- Meeting page has no sidebar link yet (reachable at /p/<id>/meeting); add one line in WorkspaceLayout after
+  feat/task-search merges.
+- Meetings: no TURN relay, so peer connections may fail on strict networks (transcript and AI still work).
+- Meetings: live state, the AI trigger and the signaling relay are in-process (single API instance).
+- Meetings: trigger state (cooldowns, running summary, call counts) is in memory and resets on API restart.
+- Meetings: when Claude is re-invited it reads lines spoken while it was removed, and the end-of-meeting summary
+  reads the full transcript (up to the line cap).
+- Meetings: no rate limit on `POST /meetings/:id/lines`.
+- Meetings: poll votes are read-modify-write, so two simultaneous votes can overwrite each other.
+- Meetings: without `GROQ_API_KEY`, transcription is Chrome/Edge only (Web Speech API; audio goes to Google) and fails
+  with `network` behind VPNs/strict networks.
+- Meetings (Groq Whisper): fixed 6s clips can split a word at the boundary; no interim text while speaking; Groq's free
+  tier has daily request limits (about one request per speaking participant every 6s). Not yet tried in a real browser.
+- With `OPENAI_API_KEY` set, the UI and consent dialog still say "Claude" although the transcript goes to the
+  OpenAI-compatible provider.
+- Meetings: no meeting or transcript deletion; mixed-language speech is transcribed in one language.
+- The web meeting UI has no automated tests and hasn't been tried in a real browser by the agents.
 - The Claude provider is covered by tests with a fake client (validation, prompts) but has not been run
   against the live API in CI; try it once with a real key (`@AI` in #general, then "Ask the project").
 - Claude is called synchronously on `@AI` and, for messages that look like a question, on post. The model
@@ -101,6 +124,16 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-21 — **File bytes on disk, metadata in SurrealDB** (no S3): team uploads are small, and the same
   `/data` volume that keeps the embedded database keeps `FILES_DIR`. The snapshot and realtime carry only
   the `file` record, so a download is a separate authenticated request.
+- 2026-10-21 — **Voice via WebRTC mesh with WS signaling, no new dependency**: teams are <= 6, and a hosted SFU would add a vendor and key.
+- 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.
+- 2026-10-21 — **Meetings are capped at 60 minutes and live AI reads a bounded context** (running summary + new lines + project titles): cost stays bounded.
+- 2026-10-21 — **Carry-over is a member-confirmed note, not the transcript**: consistent with "memory = confirmed records".
+- 2026-10-22 — **Live meeting AI reacts faster** (40 words / 20s, or 15 words + 8s silence; cap 150 calls, silence check every 2s): the old 80 words / 45s felt like a post-meeting summary, not a participant. About 2-3x the calls.
+- 2026-10-22 — **One live meeting per project via a `live_meeting:<projectId>` reservation record** (from PR review): SurrealDB 3.1 has no conditional unique index, and a fixed record id makes concurrent starts fail atomically without one.
+- 2026-10-22 — **Summary suggestions are written before the meeting ends, under fixed ids** (from PR review): a failed write now sets `summaryError` so `/end` can retry, and retries never duplicate a suggestion.
+- 2026-10-22 — **Meeting transcription via Whisper on Groq when `GROQ_API_KEY` is set** (replaces the 2026-10-21 browser-only choice): Chrome's speech service failed with `network` for the team; Groq's free tier costs nothing, works in any browser and keeps exact speaker labels (each client sends its own mic). Web Speech stays as the fallback.
+- 2026-10-22 — **OpenAI-compatible provider via a `messages.parse` adapter (`src/ai/openai.ts`), plain `fetch`**: lets the team test without Claude credits (OpenAI, or Groq's free tier via `OPENAI_BASE_URL`) while reusing the Claude prompts and validation; no new dependency.
+- 2026-10-21 — **`ANTHROPIC_FAST_MODEL`** (default `claude-haiku-5-5`) for frequent live calls; summaries stay on `ANTHROPIC_MODEL`.
 - 2026-10-20 — **Memory = approved decisions** (not a vector store over chat): answers must be traceable to
   something a member confirmed, which fits "AI suggests, people decide" and avoids answering from
   half-remembered chat. Decisions gained `outcome`/`reason`/`quote` so there is something to answer from.

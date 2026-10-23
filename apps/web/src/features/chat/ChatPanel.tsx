@@ -26,7 +26,7 @@ export function ChatPanel(props: {
   const [tab, setTab] = useState<ChatTab>(props.initialTab ?? 'chat');
   const panel = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
-  const pendingInsights = suggestions.filter((s) => s.status === 'pending' && s.kind !== 'action_items').length;
+  const pendingInsights = suggestions.filter((s) => s.status === 'pending' && (s.kind === 'decision' || s.kind === 'risk')).length;
 
   const tabButton = (id: ChatTab, label: ReactNode) => (
     <button role="tab" aria-selected={tab === id} className={`panel-tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>

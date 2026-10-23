@@ -1,6 +1,7 @@
 import type { Suggestion } from '@project-room/shared';
 import { ConflictError } from '../db/records.js';
 import { createDecision } from '../repositories/decisions.js';
+import { approveIdea, approveMeetingNotes, approvePoll } from './meeting-approvals.js';
 import { getSuggestion, resolveSuggestion } from '../repositories/suggestions.js';
 import { createTask, getTask, updateTask } from '../repositories/tasks.js';
 
@@ -54,6 +55,12 @@ export async function approveSuggestion(
       await updateTask(projectId, suggestion.taskId, { assigneeId: options.assigneeId });
       return resolveSuggestion(suggestion.id, 'approved', memberId);
     }
+    case 'idea':
+      return approveIdea(projectId, suggestion, memberId);
+    case 'poll':
+      return approvePoll(projectId, suggestion, memberId);
+    case 'meeting_notes':
+      return approveMeetingNotes(projectId, suggestion, memberId);
   }
 }
 

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { suggestionUpdateSchema } from '@project-room/shared';
 import { ConflictError } from '../../db/records.js';
-import { getSuggestion, listSuggestions, updateSuggestionItems } from '../../repositories/suggestions.js';
+import { getSuggestion, listSuggestions, updateSuggestionDrafts, updateSuggestionItems } from '../../repositories/suggestions.js';
 import { approveSuggestion, dismissSuggestion } from '../../services/suggestions.js';
 import { ctx } from '../context.js';
 
@@ -19,12 +19,21 @@ suggestionsRouter.patch('/:suggestionId', async (req, res) => {
   const { project, members } = ctx(res);
   const suggestion = await getSuggestion(project.id, req.params.suggestionId);
   if (suggestion.status !== 'pending') throw new ConflictError(`Suggestion is already ${suggestion.status}`);
-  const { items } = suggestionUpdateSchema.parse(req.body);
-  if (items.some((i) => i.assigneeId && !members.has(i.assigneeId))) {
-    res.status(400).json({ error: 'Assignee is not a member of this project' });
+  const { items, ideaDraft, pollDraft } = suggestionUpdateSchema.parse(req.body);
+  if ((ideaDraft && suggestion.kind !== 'idea') || (pollDraft && suggestion.kind !== 'poll')) {
+    res.status(400).json({ error: 'Draft does not match the suggestion kind' });
     return;
   }
-  res.json(await updateSuggestionItems(suggestion.id, items));
+  let updated = suggestion;
+  if (items) {
+    if (items.some((i) => i.assigneeId && !members.has(i.assigneeId))) {
+      res.status(400).json({ error: 'Assignee is not a member of this project' });
+      return;
+    }
+    updated = await updateSuggestionItems(suggestion.id, items);
+  }
+  if (ideaDraft || pollDraft) updated = await updateSuggestionDrafts(suggestion.id, { ideaDraft, pollDraft });
+  res.json(updated);
 });
 
 suggestionsRouter.post('/:suggestionId/approve', async (req, res) => {

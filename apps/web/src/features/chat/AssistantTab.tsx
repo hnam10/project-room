@@ -15,7 +15,7 @@ const KINDS: Record<'decision' | 'risk', { label: string; icon: IconName; color:
 export function AssistantTab({ onOpenDecisions }: { onOpenDecisions: () => void }) {
   const { me } = useSession();
   const { suggestions } = useSnapshot();
-  const pending = suggestions.filter((s) => s.status === 'pending' && s.kind !== 'action_items');
+  const pending = suggestions.filter((s) => s.status === 'pending' && (s.kind === 'decision' || s.kind === 'risk'));
 
   return (
     <div className="list-pad">
