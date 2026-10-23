@@ -41,6 +41,13 @@ const PATHS = {
       <path d="M14 2v4a2 2 0 0 0 2 2h4" />
     </>
   ),
+  download: (
+    <>
+      <path d="M12 15V3" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    </>
+  ),
   users: (
     <>
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />

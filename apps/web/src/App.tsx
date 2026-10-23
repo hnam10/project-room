@@ -3,6 +3,7 @@ import { WorkspaceLayout } from './layouts/WorkspaceLayout';
 import { BoardPage } from './pages/BoardPage';
 import { ChatPopoutPage } from './pages/ChatPopoutPage';
 import { BrainstormPage, ChatPage, DecisionsPage, PlaceholderPage } from './pages/FeaturePages';
+import { FilesPage } from './features/files/FilesPage';
 import { ChooseTeam } from './features/account/ClerkAccount';
 import { useSession } from './state/session';
 
@@ -21,10 +22,7 @@ export function App() {
           path="calendar"
           element={<PlaceholderPage icon="calendar" title="Calendar" text="Deadlines and meetings will live here. Not built yet." />}
         />
-        <Route
-          path="files"
-          element={<PlaceholderPage icon="file" title="Files" text="Shared project files will live here. Uploads aren’t built yet." />}
-        />
+        <Route path="files" element={<FilesPage />} />
         <Route
           path="overview"
           element={<PlaceholderPage icon="tasks" title="Overview" text="A project summary dashboard is planned for a later iteration." />}

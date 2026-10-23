@@ -8,11 +8,12 @@ import { useSession } from './session';
 // by realtime events and by the records our own API calls return (both are idempotent upserts).
 
 type CollectionTable = Exclude<RealtimeTable, 'message'>;
-const COLLECTION: Record<CollectionTable, 'tasks' | 'ideas' | 'decisions' | 'suggestions'> = {
+const COLLECTION: Record<CollectionTable, 'tasks' | 'ideas' | 'decisions' | 'suggestions' | 'files'> = {
   task: 'tasks',
   idea: 'ideas',
   decision: 'decisions',
   suggestion: 'suggestions',
+  file: 'files',
 };
 
 interface State {

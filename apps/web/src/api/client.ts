@@ -6,6 +6,7 @@ import type {
   MemoryAnswer,
   Message,
   Project,
+  ProjectFile,
   Suggestion,
   SuggestionUpdateInput,
   Task,
@@ -46,6 +47,45 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 const p = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
 
+async function errorMessage(res: Response): Promise<string> {
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  return data.error ?? `Request failed (${res.status})`;
+}
+
+/** Sends the file bytes as-is. The name and media type travel in headers so JSON parsing never sees the body. */
+async function upload(projectId: string, file: File): Promise<ProjectFile> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${p(projectId)}/files`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/octet-stream',
+        'x-file-name': encodeURIComponent(file.name),
+        'x-file-type': file.type || 'application/octet-stream',
+        ...(await authHeaders(projectId)),
+      },
+      body: file,
+    });
+  } catch {
+    throw new ApiError(0, 'Can’t reach the server. Is the API running?');
+  }
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
+  return (await res.json()) as ProjectFile;
+}
+
+async function download(projectId: string, fileId: string): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${p(projectId)}/files/${encodeURIComponent(fileId)}/download`, {
+      headers: await authHeaders(projectId),
+    });
+  } catch {
+    throw new ApiError(0, 'Can’t reach the server. Is the API running?');
+  }
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
+  return res.blob();
+}
+
 export interface Me {
   member: Member;
   projects: Project[];
@@ -81,4 +121,8 @@ export const api = {
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/approve`, options),
   dismissSuggestion: (projectId: string, suggestionId: string) =>
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/dismiss`),
+
+  uploadFile: (projectId: string, file: File) => upload(projectId, file),
+  downloadFile: (projectId: string, fileId: string) => download(projectId, fileId),
+  deleteFile: (projectId: string, fileId: string) => request<void>('DELETE', `${p(projectId)}/files/${fileId}`),
 };
