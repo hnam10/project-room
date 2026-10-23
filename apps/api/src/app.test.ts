@@ -1,9 +1,20 @@
+import { rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import type { Decision, MemoryAnswer, ServerMessage, Suggestion, Task, WorkspaceSnapshot } from '@project-room/shared';
+import {
+  MAX_FILE_BYTES,
+  type Decision,
+  type MemoryAnswer,
+  type ProjectFile,
+  type ServerMessage,
+  type Suggestion,
+  type Task,
+  type WorkspaceSnapshot,
+} from '@project-room/shared';
 import { createApp } from './app.js';
+import { config } from './config.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
@@ -25,6 +36,7 @@ afterAll(async () => {
   await hub.close();
   await new Promise((resolve) => server.close(resolve));
   await closeDb();
+  await rm(config.filesDir, { recursive: true, force: true });
 });
 
 const api = async <T>(path: string, init: RequestInit & { member?: string } = {}) => {
@@ -60,6 +72,7 @@ describe('workspace API', () => {
     const { status, body } = await api<WorkspaceSnapshot>('/projects/hackathon/snapshot');
     expect(status).toBe(200);
     expect(body.tasks).toHaveLength(15);
+    expect(body.files).toEqual([]);
     expect(body.channels.map((c) => c.name)).toContain('general');
     expect(body.suggestions.find((s) => s.id === 's1')?.items[0]?.assigneeId).toBe('jamie');
   });
@@ -178,4 +191,59 @@ describe('workspace API', () => {
     expect(first.body.task.sourceKind).toBe('idea');
     expect((await api('/projects/hackathon/ideas/i5/convert', { method: 'POST' })).status).toBe(409);
   });
+
+  it('uploads a project file, shares it with members, and deletes it', async () => {
+    const live = listen('hackathon');
+    await live.ready;
+
+    const notes = Buffer.from('demo notes');
+    const created = await uploadFile('계획.txt', notes, { type: 'text/plain' });
+    expect(created.status).toBe(201);
+    const file = created.body as ProjectFile;
+    expect(file.name).toBe('계획.txt');
+    expect(file.size).toBe(notes.length);
+    expect(file.uploadedById).toBe('alex');
+    expect(file).not.toHaveProperty('bytes');
+
+    await live.waitFor((e) => e.type === 'change' && e.table === 'file' && e.action === 'create' && e.record.id === file.id);
+
+    const listed = await api<ProjectFile[]>('/projects/hackathon/files');
+    expect(listed.body.map((item) => item.id)).toContain(file.id);
+
+    const sneaky = await uploadFile('../../etc/passwd', Buffer.from('nope'));
+    expect(sneaky.status).toBe(201);
+    expect((sneaky.body as ProjectFile).name).toBe('passwd');
+
+    const download = await fetch(`${base}/api/projects/hackathon/files/${file.id}/download`, { headers: { 'x-member-id': 'jamie' } });
+    expect(download.status).toBe(200);
+    expect(download.headers.get('content-type')).toContain('text/plain');
+    expect(download.headers.get('content-disposition')).toContain('attachment');
+    expect(download.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(Buffer.from(await download.arrayBuffer()).equals(notes)).toBe(true);
+
+    expect((await uploadFile('..', Buffer.from('x'))).status).toBe(400);
+    expect((await uploadFile('empty.txt', Buffer.alloc(0))).status).toBe(400);
+    expect((await uploadFile('big.bin', Buffer.alloc(MAX_FILE_BYTES + 1))).status).toBe(413);
+    expect((await uploadFile('secret.txt', Buffer.from('no'), { member: 'stranger' })).status).toBe(403);
+
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(204);
+    await live.waitFor((e) => e.type === 'change' && e.table === 'file' && e.action === 'delete' && e.record.id === file.id);
+    const gone = await fetch(`${base}/api/projects/hackathon/files/${file.id}/download`, { headers: { 'x-member-id': 'alex' } });
+    expect(gone.status).toBe(404);
+    live.ws.close();
+  });
 });
+
+async function uploadFile(name: string, bytes: Buffer, options: { member?: string; type?: string } = {}) {
+  const res = await fetch(`${base}/api/projects/hackathon/files`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/octet-stream',
+      'x-file-name': encodeURIComponent(name),
+      'x-file-type': options.type ?? 'application/octet-stream',
+      'x-member-id': options.member ?? 'alex',
+    },
+    body: bytes,
+  });
+  return { status: res.status, body: (res.status === 204 ? null : await res.json()) as ProjectFile | { error: string } };
+}

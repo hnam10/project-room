@@ -7,6 +7,7 @@ import { authMode, config } from './config.js';
 import { authenticate, requireProjectMember } from './http/context.js';
 import { errorHandler, notFoundRoute } from './http/errors.js';
 import { decisionsRouter } from './http/routes/decisions.js';
+import { filesRouter } from './http/routes/files.js';
 import { ideasRouter } from './http/routes/ideas.js';
 import { messagesRouter } from './http/routes/messages.js';
 import { meRouter, projectRouter } from './http/routes/projects.js';
@@ -32,6 +33,7 @@ export function createApp() {
   project.use('/tasks', tasksRouter);
   project.use('/channels', messagesRouter);
   project.use('/ideas', ideasRouter);
+  project.use('/files', filesRouter);
   project.use('/decisions', decisionsRouter);
   project.use('/suggestions', suggestionsRouter);
   app.use('/api/projects/:projectId', project);

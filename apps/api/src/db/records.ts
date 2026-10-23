@@ -1,6 +1,6 @@
 import { DateTime, RecordId } from 'surrealdb';
 
-export type TableName = 'member' | 'project' | 'channel' | 'message' | 'task' | 'idea' | 'decision' | 'suggestion';
+export type TableName = 'member' | 'project' | 'channel' | 'message' | 'task' | 'idea' | 'decision' | 'suggestion' | 'file';
 
 /** Builds a record id from the plain id used by the API ("t19" -> task:t19). */
 export function rid(table: TableName, id: string): RecordId {
