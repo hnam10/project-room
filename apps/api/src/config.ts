@@ -34,6 +34,8 @@ export const config = {
   surrealPass: process.env.SURREAL_PASS || null,
   /** Built web app to serve (default: apps/web/dist, if it exists). */
   webDist: process.env.WEB_DIST || null,
+  /** Where uploaded file bytes are stored. Metadata stays in SurrealDB. */
+  filesDir: env('FILES_DIR', './data/files'),
   /** Clerk organization id to load the demo project into on startup, if that project doesn't exist yet. */
   seedOrgId: process.env.SEED_ORG_ID || null,
   /** Claude is used whenever ANTHROPIC_API_KEY is set; without it the labelled mock runs. AI_PROVIDER=mock forces the mock. */
