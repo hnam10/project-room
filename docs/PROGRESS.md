@@ -5,6 +5,8 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-23 — **File deletion and batch upload fixes.** Deletes enforce the project boundary in the write
+  and retain metadata when disk removal fails so DELETE can be retried. Batch uploads continue after each failed file.
 - 2026-10-21 — **Files page.** Members can upload, download, and delete project files from the Files nav item.
   Metadata is a `file` record (in the snapshot and over realtime); the bytes live on disk under `FILES_DIR`
   (default `./data/files`, `/data/files` in the image). Uploads are capped at 10 MB and always download as
@@ -71,6 +73,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
+- The Files picker clears its live `FileList` before starting uploads; use drag and drop until that separate issue is fixed.
 - The Claude provider is covered by tests with a fake client (validation, prompts) but has not been run
   against the live API in CI; try it once with a real key (`@AI` in #general, then "Ask the project").
 - Claude is called synchronously on `@AI` and, for messages that look like a question, on post. The model

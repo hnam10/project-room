@@ -65,8 +65,9 @@ export async function openFile(projectId: string, fileId: string): Promise<{ fil
   return { file, bytes };
 }
 
-/** Drops the record first, so a missing disk file still disappears from the project. */
+/** Removes the bytes first, keeping the record available for retry if disk removal fails. */
 export async function deleteFile(projectId: string, fileId: string): Promise<void> {
-  await deleteFileRecord(projectId, fileId);
+  await getFile(projectId, fileId);
   await removeStoredFile(projectId, fileId);
+  await deleteFileRecord(projectId, fileId);
 }
