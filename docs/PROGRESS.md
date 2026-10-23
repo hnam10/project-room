@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-23 — **Calendar review fixes.** Deadline controls wait for the pending save, including clear and error rollback.
+  Week columns switch to day rows when the agenda is too narrow for task metadata, including beside the undated rail.
+  Project and task due dates reject impossible calendar dates, with leap-year checks; clearing still uses null.
+
 - 2026-10-23 — **Project deadline reads as a deadline.** The calendar header chip always says Deadline, shows the
   weekday and how soon (soon, today, or past). A calendar icon opens the date picker, and × clears it.
   With no date, the whole chip says Set a date and opens the picker. Empty and set are both only as wide
