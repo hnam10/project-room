@@ -7,13 +7,14 @@ import { useSession } from './session';
 // One project's data, kept in sync with the server: loaded once as a snapshot, then patched
 // by realtime events and by the records our own API calls return (both are idempotent upserts).
 
-type CollectionTable = 'task' | 'channel' | 'idea' | 'decision' | 'suggestion';
-const COLLECTION: Record<CollectionTable, 'tasks' | 'channels' | 'ideas' | 'decisions' | 'suggestions'> = {
+type CollectionTable = 'task' | 'channel' | 'idea' | 'decision' | 'suggestion' | 'file';
+const COLLECTION: Record<CollectionTable, 'tasks' | 'channels' | 'ideas' | 'decisions' | 'suggestions' | 'files'> = {
   task: 'tasks',
   channel: 'channels',
   idea: 'ideas',
   decision: 'decisions',
   suggestion: 'suggestions',
+  file: 'files',
 };
 
 interface State {
