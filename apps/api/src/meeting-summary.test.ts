@@ -191,6 +191,26 @@ describe('meeting summary', () => {
     expect((await getMeeting(P, c)).summary).not.toBeNull();
   });
 
+  it('a failed suggestion write leaves summaryError, and the rerun creates each suggestion once', async () => {
+    const actual = await vi.importActual<typeof SuggestionRepo>('./repositories/suggestions.js');
+    vi.mocked(createSuggestion).mockImplementationOnce(actual.createSuggestion).mockRejectedValueOnce(new Error('db down'));
+    const { id, meeting } = await endedFlow(fakeAi(async () => result()));
+    expect(meeting).toMatchObject({ status: 'ended', summary: null });
+    expect(meeting.summaryError).toContain('db down');
+    expect((await suggestions()).filter((s) => s.meetingId === id).map((s) => s.kind)).toEqual(['action_items']);
+
+    await restartSummarizing(id);
+    const fixed = await summarize(
+      P,
+      id,
+      fakeAi(async () => result()),
+    );
+    expect(fixed).toMatchObject({ status: 'ended', summaryError: null });
+    expect(fixed.summary).not.toBeNull();
+    const kinds = (await suggestions()).filter((s) => s.meetingId === id).map((s) => s.kind);
+    expect(kinds.sort()).toEqual(['action_items', 'meeting_notes']);
+  });
+
   it('two simultaneous starts create one live meeting; ending it frees the project', async () => {
     const [a, b] = await Promise.all([post(''), post('', 'jamie')]);
     expect([a.status, b.status].sort()).toEqual([201, 409]);

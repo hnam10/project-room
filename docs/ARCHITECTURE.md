@@ -80,7 +80,9 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
   `action_items` / `idea` / `poll` suggestions. A meeting is capped at 60 AI calls. Members approve them; AI never writes tasks, ideas or polls.
 - **End:** `POST /meetings/:id/end` summarizes on the main model into `meeting.summary` plus a `meeting_notes`
   suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
-  shows a "Last time" card.
+  shows a "Last time" card. Summary suggestions use fixed ids (`<meetingId>-summary-actions` / `-summary-notes`) and are
+  stored before the meeting ends; if a write fails the meeting ends with `summaryError`, and the `/end` rerun skips the
+  ones that already exist.
 
 ## Realtime
 

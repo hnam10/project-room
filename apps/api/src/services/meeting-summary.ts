@@ -65,19 +65,23 @@ export async function summarize(
   }
   if (!result) return failSummary(meetingId, lastError);
 
-  const ended = await finishSummary(meetingId, result.summary, result.usage);
-  // The summary is already saved; a failure here must not retry the AI or set summaryError.
+  // Suggestions are stored before the meeting ends, under fixed ids, so a failure leaves summaryError for /end to
+  // rerun and the rerun skips whichever suggestion already exists.
   try {
     const base = { meetingId };
     if (result.actionItems.length) {
       const n = result.actionItems.length;
-      await createSuggestion(projectId, {
-        ...base,
-        kind: 'action_items',
-        title: `${n} action item${n === 1 ? '' : 's'} from the meeting summary`,
-        reason: 'Claude found these in the meeting summary.',
-        items: result.actionItems,
-      });
+      await createSuggestion(
+        projectId,
+        {
+          ...base,
+          kind: 'action_items',
+          title: `${n} action item${n === 1 ? '' : 's'} from the meeting summary`,
+          reason: 'Claude found these in the meeting summary.',
+          items: result.actionItems,
+        },
+        `${meetingId}-summary-actions`,
+      );
     }
     if (result.carryOverItems.length) {
       const items: ActionItem[] = result.carryOverItems.map((title) => ({
@@ -88,18 +92,23 @@ export async function summarize(
         reason: null,
         quote: null,
       }));
-      await createSuggestion(projectId, {
-        ...base,
-        kind: 'meeting_notes',
-        title: 'Notes for next meeting',
-        reason: "Claude's proposed carry-over notes; confirm the ones to keep.",
-        items,
-      });
+      await createSuggestion(
+        projectId,
+        {
+          ...base,
+          kind: 'meeting_notes',
+          title: 'Notes for next meeting',
+          reason: "Claude's proposed carry-over notes; confirm the ones to keep.",
+          items,
+        },
+        `${meetingId}-summary-notes`,
+      );
     }
   } catch (error) {
     console.error(`Creating summary suggestions failed for ${meetingId}`, error);
+    return failSummary(meetingId, `Saving the summary suggestions failed: ${error instanceof Error ? error.message : String(error)}`);
   }
-  return ended;
+  return finishSummary(meetingId, result.summary, result.usage);
 }
 
 /** On API start: end meetings left live past their cap, then finish every summary that was interrupted. */

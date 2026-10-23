@@ -37,8 +37,15 @@ export async function getSuggestion(projectId: string, suggestionId: string): Pr
   return suggestion;
 }
 
-export async function createSuggestion(projectId: string, draft: SuggestionDraft): Promise<Suggestion> {
-  const suggestion = await queryOne<Suggestion>('CREATE ONLY suggestion CONTENT $content', {
+/** With a fixed `id`, a retry returns the suggestion already stored under it instead of creating a second one. */
+export async function createSuggestion(projectId: string, draft: SuggestionDraft, id?: string): Promise<Suggestion> {
+  const target = id ? rid('suggestion', id) : null;
+  if (target) {
+    const existing = await queryOne<Suggestion>('SELECT * FROM ONLY $id', { id: target });
+    if (existing) return existing;
+  }
+  const suggestion = await queryOne<Suggestion>(`CREATE ONLY ${target ? '$id' : 'suggestion'} CONTENT $content`, {
+    id: target,
     content: {
       projectId: rid('project', projectId),
       kind: draft.kind,
