@@ -8,6 +8,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 - 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
   idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
 
+- 2026-10-23 — **File deletion and batch upload fixes.** Deletes enforce the project boundary in the write
+  and retain metadata when disk removal fails so DELETE can be retried. Batch uploads continue after each failed file.
+
 - 2026-10-23 — **Research cards summarize related ideas.** Relevant Tavily results are summarized in
   short, source grounded descriptions instead of showing raw search snippets. Results without a reliable
   summary are omitted; earlier pending cards offer a Summarize source action. Direct AI idea drafts,
@@ -167,6 +170,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
+- The Files picker clears its live `FileList` before starting uploads; use drag and drop until that separate issue is fixed.
 - Goal classification can be wrong or unclear, especially for mixed product and activity goals. Members can
   refine the problem and retry, but there is no explicit goal-type override yet.
 - Product similar-work search runs while the brainstorm board is open, uses search snippets rather than full page
