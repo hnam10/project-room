@@ -251,6 +251,7 @@
   padding: 4px 20px 16px;
 }
 .calendar-main {
+  container: calendar-agenda / inline-size;
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -532,6 +533,15 @@
   margin-left: auto;
 }
 
+@container calendar-agenda (max-width: 1260px) {
+  .agenda-days {
+    grid-template-columns: 1fr;
+  }
+  .agenda-day {
+    min-height: 0;
+  }
+}
+
 @media (max-width: 800px) {
   .calendar-body.with-rail {
     grid-template-columns: minmax(0, 1fr);
@@ -540,12 +550,6 @@
   }
   .calendar-rail {
     max-height: 200px;
-  }
-  .agenda-days {
-    grid-template-columns: 1fr;
-  }
-  .agenda-day {
-    min-height: 0;
   }
   .deadline-value {
     flex-wrap: wrap;

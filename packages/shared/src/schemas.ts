@@ -4,7 +4,7 @@ import { IDEA_THEMES, PRIORITIES, TASK_LABELS, TASK_STATUSES } from './domain.js
 
 // Request bodies accepted by the API. The web app uses the inferred types when calling it.
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD');
+const isoDate = z.iso.date('Expected a valid calendar date (YYYY-MM-DD)');
 const id = z.string().min(1).max(64);
 
 export const taskCreateSchema = z.object({
