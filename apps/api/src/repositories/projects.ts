@@ -1,6 +1,6 @@
-import type { Channel, Member, Project } from '@project-room/shared';
+import type { Channel, Member, Project, ProjectUpdateInput } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
-import { rid } from '../db/records.js';
+import { NotFoundError, rid } from '../db/records.js';
 
 const PROJECT_FIELDS = 'id, name, description, emoji, color, dueDate, memberIds';
 
@@ -12,6 +12,15 @@ export function listProjectsForMember(memberId: string): Promise<Project[]> {
 
 export function getProject(projectId: string): Promise<Project | null> {
   return queryOne<Project>(`SELECT ${PROJECT_FIELDS} FROM ONLY $id`, { id: rid('project', projectId) });
+}
+
+export async function updateProject(projectId: string, patch: ProjectUpdateInput): Promise<Project> {
+  const project = await queryOne<Project>(`UPDATE ONLY $id SET dueDate = $dueDate RETURN AFTER`, {
+    id: rid('project', projectId),
+    dueDate: patch.dueDate,
+  });
+  if (!project) throw new NotFoundError('Project');
+  return project;
 }
 
 export function listMembers(memberIds: string[]): Promise<Member[]> {
