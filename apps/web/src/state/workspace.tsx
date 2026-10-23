@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
-import type { Member, Message, RealtimeEvent, RealtimeTable, WorkspaceSnapshot } from '@project-room/shared';
+import type { Member, Message, Project, RealtimeEvent, RealtimeTable, WorkspaceSnapshot } from '@project-room/shared';
 import { api } from '../api/client';
 import { useRealtime, type ConnectionState } from '../api/realtime';
 import { useSession } from './session';
@@ -25,6 +25,7 @@ type Action =
   | { type: 'loaded'; snapshot: WorkspaceSnapshot }
   | { type: 'failed'; error: string }
   | { type: 'messagesLoaded'; channelId: string; messages: Message[] }
+  | { type: 'project'; project: Project }
   | { type: 'change'; event: Pick<RealtimeEvent, 'table' | 'action' | 'record'> };
 
 function upsert<T extends { id: string }>(list: T[], record: T, remove: boolean): T[] {
@@ -45,6 +46,9 @@ function reducer(state: State, action: Action): State {
       return { ...state, error: action.error };
     case 'messagesLoaded':
       return { ...state, messages: { ...state.messages, [action.channelId]: action.messages } };
+    case 'project':
+      if (!state.snapshot) return state;
+      return { ...state, snapshot: { ...state.snapshot, project: action.project } };
     case 'change': {
       const { table, action: kind, record } = action.event;
       if (table === 'message') {
@@ -76,6 +80,8 @@ interface Workspace {
   setActiveChannelId: (channelId: string) => void;
   /** Applies a record returned by an API call without waiting for the realtime echo. */
   applyRecord: (table: RealtimeTable, record: { id: string }, removed?: boolean) => void;
+  /** Replaces the project on the snapshot. The project table is not a realtime stream. */
+  applyProject: (project: Project) => void;
   reload: () => void;
 }
 
@@ -131,6 +137,7 @@ export function WorkspaceProvider({ projectId, children }: { projectId: string; 
       setActiveChannelId,
       applyRecord: (table, record, removed = false) =>
         dispatch({ type: 'change', event: { table, action: removed ? 'delete' : 'update', record } as RealtimeEvent }),
+      applyProject: (project) => dispatch({ type: 'project', project }),
       reload,
     }),
     [projectId, state, connection, loadMessages, activeChannelId, reload],

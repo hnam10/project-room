@@ -5,6 +5,28 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-23 — **Project deadline reads as a deadline.** The calendar header chip always says Deadline, shows the
+  weekday and how soon (soon, today, or past). A calendar icon opens the date picker, and × clears it.
+  With no date, the whole chip says Set a date and opens the picker. Empty and set are both only as wide
+  as their text. A set date colors the whole chip (later, soon, today, or past).
+- 2026-10-23 — **Project deadline is a short chip.** A flag, the short date, and how soon, only as wide as the text.
+  The date jumps to that week. A calendar icon changes it, and × clears it.
+- 2026-10-23 — **Month view removed.** The calendar is the week columns only. Tasks with no due date stay in the
+  side list. Every dated task is already on a week, so nothing is hidden by dropping the month grid.
+- 2026-10-23 — **Week view is columns, month view stays the grid.** This week is listed first. Each week is seven
+  vertical days: the weekday sits above the date, and tasks stack under it. Earlier weeks sit under "Earlier".
+  The project deadline is a card under the title: the date written out, how soon it is, Change, and clear.
+  Clicking the date jumps to that week or month. Its day keeps a flag on the agenda and on the month grid.
+- 2026-10-23 — **Month view keeps the tasks it does not draw.** Beside the grid: tasks with no due date, and tasks
+  whose date falls on another month (open one, or jump to that month). Week view is still the full agenda:
+  a week is listed when it has a task. The two views answer different questions.
+- 2026-10-23 — **Project deadline can be set from the calendar.** A compact date field in the calendar header
+  saves `project.dueDate` (`PATCH /api/projects/:id`). The old banner is gone; the day on the grid still
+  shows a flag, and the relative date ("in 4 days") jumps to that week or month.
+- 2026-10-23 — **Calendar month view.** A Week / Month switch in the header (remembered in the browser). Month
+  view shows one month at a time, with previous, next, and Today. A day still opens or creates a task.
+  The project deadline and the overdue jump land on that month. Days from the neighboring months stay
+  visible so a task on the edge of the month does not disappear.
 - 2026-10-22 — **Calendar page.** Tasks with a due date are grouped by week (Monday start), and the project
   deadline is marked on its day. A task opens in the existing dialog; a day can also start a new task
   already dated. Overdue uses the local calendar day, on the board as well as here, and done tasks are not overdue.
@@ -116,6 +138,20 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-23 — **The deadline chip is the date control.** Clicking the date used to jump to the week, while a
+  calendar icon opened the picker and × cleared it, so the chip looked like a tag. The chip now sets the
+  date. Clear is a separate label. With no date, the whole chip opens the picker. It sits in the calendar header.
+- 2026-10-23 — **No month view.** The week columns already list every week that has a task, so a second grid
+  repeated the same work. The Week / Month switch and its saved preference are gone.
+- 2026-10-23 — **Week view is seven vertical days; month view is the only month grid.** A horizontal day row was
+  hard to scan, and one week at a time copied the month's previous / next pattern. Each week is columns,
+  this week first, earlier weeks below. The deadline
+  stays a card under the title, because a date field next to Week / Month looked like a form control. It
+  still edits `project.dueDate` from the calendar.
+- 2026-10-23 — **Month view is one month plus a side list.** The side list holds tasks with no due date and tasks
+  on other months, so the grid can show empty days without hiding work.
+- 2026-10-23 — **The project deadline is edited on the calendar, not in settings.** Settings is still a placeholder.
+- 2026-10-23 — **Calendar layout is a per-browser preference, still with no new table.** Weeks start on Monday.
 - 2026-10-22 — **Calendar is a view, weeks start Monday.** Task due dates and the project deadline are already
   on the records, so the page adds no table or API. A due date is a local calendar day (`YYYY-MM-DD`). Voice
   meetings stay off this page; they are live calls, not scheduled events.

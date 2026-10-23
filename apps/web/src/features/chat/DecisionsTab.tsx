@@ -131,7 +131,7 @@ function AskProject() {
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask the project: why did we choose Vite?"
+          placeholder="Ask the project anything"
           aria-label="Ask the project"
           maxLength={300}
         />

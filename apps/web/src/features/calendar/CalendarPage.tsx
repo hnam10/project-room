@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Member, Task, TaskStatus } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
+import { useFeedback } from '../../components/Feedback';
+import { api } from '../../api/client';
 import { TaskDialog, type TaskDialogState } from '../board/TaskDialog';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 import {
+  dayNumber,
+  daysBetween,
   formatLong,
+  parseIsoDate,
   relativeDay,
   startOfWeek,
   todayIso,
@@ -13,7 +18,6 @@ import {
   weekRangeLabel,
   weekRelation,
   weekdayShort,
-  dayNumber,
 } from '../../lib/dates';
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -33,8 +37,8 @@ function compareTasks(a: Task, b: Task): number {
   return a.num - b.num;
 }
 
-function weeksToShow(tasks: Task[], deadline: string | null, today: string): string[] {
-  const starts = new Set<string>([startOfWeek(today)]);
+function weeksToShow(tasks: Task[], deadline: string | null, today: string, cursor: string): string[] {
+  const starts = new Set<string>([startOfWeek(today), startOfWeek(cursor)]);
   for (const task of tasks) {
     if (task.dueDate) starts.add(startOfWeek(task.dueDate));
   }
@@ -42,16 +46,18 @@ function weeksToShow(tasks: Task[], deadline: string | null, today: string): str
   return [...starts].sort();
 }
 
-function scrollToWeek(start: string) {
-  document.getElementById(`week-${start}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function isWeekend(iso: string): boolean {
+  const weekday = parseIsoDate(iso).getDay();
+  return weekday === 0 || weekday === 6;
 }
 
 export function CalendarPage() {
   const { project, tasks } = useSnapshot();
-  const { members } = useWorkspace();
+  const { projectId, members, applyProject } = useWorkspace();
+  const { toastError } = useFeedback();
   const [dialog, setDialog] = useState<TaskDialogState>(null);
-  const [showUndated, setShowUndated] = useState(false);
   const today = todayIso();
+  const [cursor, setCursor] = useState(today);
   const deadline = project.dueDate;
 
   useEffect(() => {
@@ -61,9 +67,29 @@ export function CalendarPage() {
     };
   }, []);
 
-  useEffect(() => {
-    document.getElementById(`week-${startOfWeek(today)}`)?.scrollIntoView({ block: 'start' });
-  }, [today]);
+  useLayoutEffect(() => {
+    document.getElementById(`week-${startOfWeek(cursor)}`)?.scrollIntoView({ block: 'start' });
+  }, [cursor]);
+
+  function focusDate(iso: string) {
+    setCursor(iso);
+  }
+
+  async function saveDeadline(dueDate: string | null) {
+    if (dueDate === deadline) {
+      if (dueDate) focusDate(dueDate);
+      return;
+    }
+    const previous = deadline;
+    applyProject({ ...project, dueDate });
+    if (dueDate) focusDate(dueDate);
+    try {
+      applyProject(await api.updateProject(projectId, { dueDate }));
+    } catch (error) {
+      applyProject({ ...project, dueDate: previous });
+      toastError(error);
+    }
+  }
 
   const byDay = new Map<string, Task[]>();
   const undated: Task[] = [];
@@ -79,12 +105,15 @@ export function CalendarPage() {
   for (const list of byDay.values()) list.sort(compareTasks);
   undated.sort((a, b) => a.num - b.num);
 
-  const weeks = weeksToShow(tasks, deadline, today);
-  const datedCount = tasks.length - undated.length;
+  const showRail = undated.length > 0;
+  const weekStarts = weeksToShow(tasks, deadline, today, cursor);
+  const thisWeek = startOfWeek(today);
+  const upcomingWeeks = weekStarts.filter((start) => start >= thisWeek);
+  const earlierWeeks = weekStarts.filter((start) => start < thisWeek).reverse();
   const overdue = tasks.filter(
     (task): task is Task & { dueDate: string } => !!task.dueDate && task.dueDate < today && task.status !== 'done',
   );
-  const overdueWeek = overdue.map((task) => startOfWeek(task.dueDate)).sort()[0];
+  const overdueDate = overdue.map((task) => task.dueDate).sort()[0];
 
   return (
     <div className="page calendar-page">
@@ -94,73 +123,37 @@ export function CalendarPage() {
         </span>
         <div className="page-title">
           <h1>Calendar</h1>
-          <p>{subtitle(datedCount, tasks.length)}</p>
         </div>
+        <DeadlineCard deadline={deadline} today={today} onChange={(dueDate) => void saveDeadline(dueDate)} />
       </section>
 
-      <DeadlineBanner deadline={deadline} today={today} onShow={deadline ? () => scrollToWeek(startOfWeek(deadline)) : undefined} />
-
-      {overdueWeek && (
+      {overdueDate && (
         <div className="calendar-note">
           <Icon name="alert" />
           <span>
             {overdue.length} overdue {overdue.length === 1 ? 'task' : 'tasks'}
           </span>
-          <button type="button" className="btn sm" onClick={() => scrollToWeek(overdueWeek)}>
+          <button type="button" className="btn sm" onClick={() => focusDate(overdueDate)}>
             Show
           </button>
         </div>
       )}
 
-      <div className="calendar-body">
-        {weeks.map((start) => (
-          <section
-            key={start}
-            className={`calendar-week${start === startOfWeek(today) ? ' current' : ''}`}
-            aria-label={weekRelation(start, today)}
-          >
-            <header className="calendar-week-head" id={`week-${start}`}>
-              <h2>
-                {weekRelation(start, today)}
-                <span>{weekRangeLabel(start)}</span>
-              </h2>
-            </header>
-            {weekDays(start).map((day) => (
-              <DayColumn
-                key={day}
-                day={day}
-                today={today}
-                deadline={deadline}
-                tasks={byDay.get(day) ?? []}
-                members={members}
-                onOpen={(task) => setDialog({ task })}
-                onAdd={(dueDate) => setDialog({ preset: { dueDate } })}
-              />
-            ))}
-          </section>
-        ))}
+      <div className={`calendar-body${showRail ? ' with-rail' : ''}`}>
+        <div className="calendar-main">
+          <WeekAgenda
+            upcoming={upcomingWeeks}
+            earlier={earlierWeeks}
+            today={today}
+            deadline={deadline}
+            byDay={byDay}
+            members={members}
+            onOpen={(task) => setDialog({ task })}
+            onAdd={(dueDate) => setDialog({ preset: { dueDate } })}
+          />
+        </div>
 
-        {undated.length > 0 && (
-          <section className="undated">
-            <button type="button" className="undated-toggle" aria-expanded={showUndated} onClick={() => setShowUndated((open) => !open)}>
-              <Icon name="chevron" />
-              {undated.length} {undated.length === 1 ? 'task has' : 'tasks have'} no due date
-            </button>
-            {showUndated && (
-              <ul className="undated-list">
-                {undated.map((task) => (
-                  <li key={task.id}>
-                    <button type="button" onClick={() => setDialog({ task })}>
-                      <span className="num">#{task.num}</span>
-                      <span className="undated-title">{task.title}</span>
-                      <Avatar member={task.assigneeId ? members.get(task.assigneeId) : undefined} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
+        {showRail && <CalendarRail undated={undated} members={members} onOpen={(task) => setDialog({ task })} />}
       </div>
 
       <TaskDialog state={dialog} onClose={() => setDialog(null)} />
@@ -168,44 +161,191 @@ export function CalendarPage() {
   );
 }
 
-function subtitle(dated: number, total: number): string {
-  if (total === 0) return 'No tasks yet. Add one on a day below.';
-  if (dated === 0) return 'No tasks have a due date yet. Open one below to set it, or add a task on a day.';
-  return `${dated} ${dated === 1 ? 'task has' : 'tasks have'} a due date, grouped by week.`;
+function CalendarRail({ undated, members, onOpen }: { undated: Task[]; members: Map<string, Member>; onOpen: (task: Task) => void }) {
+  return (
+    <aside className="calendar-rail" aria-label="Tasks with no due date">
+      <section>
+        <h2>No due date</h2>
+        <ul className="undated-list">
+          {undated.map((task) => (
+            <li key={task.id}>
+              <button type="button" onClick={() => onOpen(task)}>
+                <span className="num">#{task.num}</span>
+                <span className="undated-title">{task.title}</span>
+                <Avatar member={task.assigneeId ? members.get(task.assigneeId) : undefined} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </aside>
+  );
 }
 
-function DeadlineBanner({ deadline, today, onShow }: { deadline: string | null; today: string; onShow?: () => void }) {
-  if (!deadline) {
-    return (
-      <div className="deadline-banner">
-        <Icon name="flag" />
-        <div>
-          <strong>No project deadline</strong>
-          <p>This project doesn’t have a due date yet.</p>
-        </div>
-      </div>
-    );
+type DeadlineTone = 'empty' | 'past' | 'today' | 'soon' | 'later';
+
+function deadlineTone(deadline: string | null, today: string): DeadlineTone {
+  if (!deadline) return 'empty';
+  const days = daysBetween(today, deadline);
+  if (days < 0) return 'past';
+  if (days === 0) return 'today';
+  if (days <= 7) return 'soon';
+  return 'later';
+}
+
+function deadlineStatus(deadline: string, today: string): string {
+  const text = relativeDay(deadline, today);
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function formatDeadline(iso: string): string {
+  return parseIsoDate(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function DeadlineCard({
+  deadline,
+  today,
+  onChange,
+}: {
+  deadline: string | null;
+  today: string;
+  onChange: (dueDate: string | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const tone = deadlineTone(deadline, today);
+
+  function openPicker() {
+    const input = inputRef.current;
+    if (!input) return;
+    try {
+      input.showPicker();
+    } catch {
+      input.focus();
+    }
   }
-  const past = deadline < today;
+
   return (
-    <div className={`deadline-banner${past ? ' past' : ''}`}>
-      <Icon name="flag" />
-      <div>
-        <strong>Project deadline</strong>
-        <p>
-          {formatLong(deadline)} · {relativeDay(deadline, today)}
-        </p>
+    <section className={`deadline-card ${tone}`} aria-label="Project deadline" onClick={deadline ? undefined : openPicker}>
+      <div className="deadline-main">
+        <span className="deadline-flag" aria-hidden="true">
+          <Icon name="flag" />
+        </span>
+        <span className="deadline-copy">
+          <span className="deadline-kicker">Deadline</span>
+          {deadline ? (
+            <span className="deadline-value">
+              {formatDeadline(deadline)}
+              <span className="deadline-status">{deadlineStatus(deadline, today)}</span>
+            </span>
+          ) : (
+            <span className="deadline-value">Set a date</span>
+          )}
+        </span>
+        {deadline && (
+          <span className="deadline-change" aria-hidden="true">
+            <Icon name="calendar" />
+          </span>
+        )}
+        <input
+          ref={inputRef}
+          type="date"
+          value={deadline ?? ''}
+          aria-label={deadline ? 'Change project deadline' : 'Set project deadline'}
+          onChange={(e) => onChange(e.target.value || null)}
+        />
       </div>
-      {onShow && (
-        <button type="button" className="btn sm" onClick={onShow}>
-          Show that week
-        </button>
+      {deadline && (
+        <div className="deadline-actions">
+          <button type="button" className="clear" aria-label="Clear project deadline" onClick={() => onChange(null)}>
+            <Icon name="x" />
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function WeekAgenda({
+  upcoming,
+  earlier,
+  today,
+  deadline,
+  byDay,
+  members,
+  onOpen,
+  onAdd,
+}: {
+  upcoming: string[];
+  earlier: string[];
+  today: string;
+  deadline: string | null;
+  byDay: Map<string, Task[]>;
+  members: Map<string, Member>;
+  onOpen: (task: Task) => void;
+  onAdd: (day: string) => void;
+}) {
+  const weekProps = { today, deadline, byDay, members, onOpen, onAdd };
+  return (
+    <div className="agenda">
+      {upcoming.map((start) => (
+        <WeekSection key={start} start={start} {...weekProps} />
+      ))}
+      {earlier.length > 0 && (
+        <section className="agenda-earlier" aria-label="Earlier weeks">
+          <h2>Earlier</h2>
+          {earlier.map((start) => (
+            <WeekSection key={start} start={start} {...weekProps} />
+          ))}
+        </section>
       )}
     </div>
   );
 }
 
-function DayColumn({
+function WeekSection({
+  start,
+  today,
+  deadline,
+  byDay,
+  members,
+  onOpen,
+  onAdd,
+}: {
+  start: string;
+  today: string;
+  deadline: string | null;
+  byDay: Map<string, Task[]>;
+  members: Map<string, Member>;
+  onOpen: (task: Task) => void;
+  onAdd: (day: string) => void;
+}) {
+  return (
+    <section className={`agenda-week${start === startOfWeek(today) ? ' current' : ''}`} aria-label={weekRelation(start, today)}>
+      <header className="agenda-week-head" id={`week-${start}`}>
+        <h2>
+          {weekRelation(start, today)}
+          <span>{weekRangeLabel(start)}</span>
+        </h2>
+      </header>
+      <div className="agenda-days">
+        {weekDays(start).map((day) => (
+          <AgendaDay
+            key={day}
+            day={day}
+            today={today}
+            deadline={deadline}
+            tasks={byDay.get(day) ?? []}
+            members={members}
+            onOpen={onOpen}
+            onAdd={onAdd}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AgendaDay({
   day,
   tasks,
   today,
@@ -224,10 +364,23 @@ function DayColumn({
 }) {
   const isToday = day === today;
   const isDeadline = day === deadline;
+  const pastDeadline = isDeadline && day < today;
   return (
-    <section className={`calendar-day${isToday ? ' today' : ''}`} aria-label={formatLong(day)} aria-current={isToday ? 'date' : undefined}>
-      <header className="calendar-day-head">
-        <div>
+    <section
+      className={[
+        'agenda-day',
+        isToday ? 'today' : '',
+        isWeekend(day) ? 'weekend' : '',
+        isDeadline ? 'deadline' : '',
+        pastDeadline ? 'past' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      aria-label={formatLong(day)}
+      aria-current={isToday ? 'date' : undefined}
+    >
+      <header className="agenda-day-head">
+        <div className="agenda-date">
           <span className="dow">{weekdayShort(day)}</span>
           <span className={`dom${isToday ? ' is-today' : ''}`}>{dayNumber(day)}</span>
         </div>
@@ -236,24 +389,24 @@ function DayColumn({
         </button>
       </header>
       {isDeadline && (
-        <p className={`deadline-mark${day < today ? ' past' : ''}`}>
+        <p className={`agenda-flag${pastDeadline ? ' past' : ''}`}>
           <Icon name="flag" />
-          Project deadline
+          Deadline
         </p>
       )}
-      <div className="calendar-day-body">
+      <div className="agenda-tasks">
         {tasks.map((task) => {
           const overdue = !!task.dueDate && task.dueDate < today && task.status !== 'done';
           return (
             <button
               key={task.id}
               type="button"
-              className={`calendar-task${overdue ? ' overdue' : ''}${task.status === 'done' ? ' done' : ''}`}
+              className={`agenda-task${overdue ? ' overdue' : ''}${task.status === 'done' ? ' done' : ''}`}
               onClick={() => onOpen(task)}
             >
               <span className={`prio prio-${task.priority}`} aria-hidden="true" />
-              <span className="calendar-task-title">{task.title}</span>
-              <span className="calendar-task-meta">
+              <span className="agenda-task-title">{task.title}</span>
+              <span className="agenda-task-meta">
                 <span>#{task.num}</span>
                 <span>{STATUS_LABEL[task.status]}</span>
                 <Avatar member={task.assigneeId ? members.get(task.assigneeId) : undefined} />

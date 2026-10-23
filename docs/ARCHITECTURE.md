@@ -108,8 +108,11 @@ come from the database, writes from any API instance (or a DB console) reach cli
 
 - Routes (`App.tsx`): `/p/:projectId/{board,chat,brainstorm,decisions,calendar,files,overview,team,settings}`
   inside `WorkspaceLayout`; `/p/:projectId/popout/chat` is the standalone chat window.
-- Calendar (`features/calendar/`): tasks that have a due date, grouped into weeks that start on Monday, plus the
-  project deadline on its day. It only reads the snapshot. Changing a date goes through the existing task dialog.
+- Calendar (`features/calendar/`): tasks that have a due date, grouped into Monday-start weeks. This week
+  is listed first. Each week is seven columns: the weekday sits above the date, and that day's tasks stack
+  underneath. Tasks with no due date stay in a list beside the weeks. The project deadline is a chip in the
+  calendar header (`PATCH /api/projects/:projectId`): the chip sets the date, and the day is marked on
+  the agenda. Changing a task date goes through the existing task dialog.
 - State: `SessionProvider` (current member) → `WorkspaceProvider` (project snapshot, messages per channel,
   realtime) → `ChatWindowProvider` (where the chat panel lives).
 - Chat window modes (`state/chatWindow.tsx`), persisted per browser:
