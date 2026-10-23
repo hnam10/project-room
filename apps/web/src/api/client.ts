@@ -6,6 +6,7 @@ import type {
   MemoryAnswer,
   Message,
   Project,
+  ProjectUpdateInput,
   Suggestion,
   SuggestionUpdateInput,
   Task,
@@ -60,6 +61,7 @@ export interface Me {
 export const api = {
   me: () => request<Me>('GET', '/me'),
   snapshot: (projectId: string) => request<WorkspaceSnapshot>('GET', `${p(projectId)}/snapshot`),
+  updateProject: (projectId: string, patch: ProjectUpdateInput) => request<Project>('PATCH', p(projectId), patch),
 
   createTask: (projectId: string, input: TaskCreateInput) => request<Task>('POST', `${p(projectId)}/tasks`, input),
   updateTask: (projectId: string, taskId: string, patch: TaskUpdateInput) =>

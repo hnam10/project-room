@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import type { WorkspaceSnapshot } from '@project-room/shared';
+import { projectUpdateSchema, type WorkspaceSnapshot } from '@project-room/shared';
 import { getAiProvider } from '../../ai/index.js';
 import { listDecisions } from '../../repositories/decisions.js';
 import { listIdeas } from '../../repositories/ideas.js';
-import { getMember, listChannels, listProjectsForMember } from '../../repositories/projects.js';
+import { getMember, listChannels, listProjectsForMember, updateProject } from '../../repositories/projects.js';
 import { listSuggestions } from '../../repositories/suggestions.js';
 import { listTasks } from '../../repositories/tasks.js';
 import { authMode } from '../../config.js';
@@ -28,6 +28,10 @@ meRouter.get('/me', async (_req, res) => {
 
 /** Mounted under /api/projects/:projectId (after requireProjectMember). */
 export const projectRouter = Router({ mergeParams: true });
+
+projectRouter.patch('/', async (req, res) => {
+  res.json(await updateProject(ctx(res).project.id, projectUpdateSchema.parse(req.body)));
+});
 
 projectRouter.get('/snapshot', async (_req, res) => {
   const { project, members } = ctx(res);
