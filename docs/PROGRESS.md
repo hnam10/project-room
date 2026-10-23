@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-22 — **Calendar page.** Tasks with a due date are grouped by week (Monday start), and the project
+  deadline is marked on its day. A task opens in the existing dialog; a day can also start a new task
+  already dated. Overdue uses the local calendar day, on the board as well as here, and done tasks are not overdue.
 - 2026-10-21 — **AI Meeting Room** (Hansol). In-app voice meetings (WebRTC mesh, 60-minute cap) with a live
   transcript from each browser's speech recognition. Claude (fast model) joins read-only and proposes tickets,
   ideas and polls as suggestions; ending the meeting writes an AI summary and a "Notes for next time"
@@ -67,7 +70,6 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
       chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
 - [ ] **Create channels** (buttons currently show "isn't built yet"; projects and invites come from Clerk).
 - [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open decisions, workload per member.
-- [ ] **Calendar page** — tasks with due dates by week; project deadline.
 - [ ] **Brainstorm grouping** — themes as columns, compare proposals, "start a vote" (needs confirmation).
 - [ ] **Web tests** — Playwright for: approve AI action items → task appears; drag task; detach chat.
 - [ ] Files page (needs storage decision: SurrealDB files vs. S3-compatible bucket).
@@ -114,6 +116,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-22 — **Calendar is a view, weeks start Monday.** Task due dates and the project deadline are already
+  on the records, so the page adds no table or API. A due date is a local calendar day (`YYYY-MM-DD`). Voice
+  meetings stay off this page; they are live calls, not scheduled events.
 - 2026-10-21 — **Voice via WebRTC mesh with WS signaling, no new dependency**: teams are <= 6, and a hosted SFU would add a vendor and key.
 - 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.
 - 2026-10-21 — **Meetings are capped at 60 minutes and live AI reads a bounded context** (running summary + new lines + project titles): cost stays bounded.
