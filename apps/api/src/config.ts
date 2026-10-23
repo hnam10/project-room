@@ -41,6 +41,14 @@ export const config = {
   anthropicModel: env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
   /** Cheaper, faster model for the live meeting AI that runs every few seconds. */
   anthropicFastModel: env('ANTHROPIC_FAST_MODEL', 'claude-haiku-5-5'),
+  /**
+   * Any OpenAI-compatible API, used instead of Claude when OPENAI_API_KEY is set. Point OPENAI_BASE_URL at
+   * https://api.groq.com/openai/v1 for Groq's free tier (e.g. OPENAI_MODEL=openai/gpt-oss-20b).
+   */
+  openaiApiKey: process.env.OPENAI_API_KEY || null,
+  openaiBaseUrl: env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+  openaiModel: env('OPENAI_MODEL', 'gpt-4.1-mini'),
+  openaiFastModel: env('OPENAI_FAST_MODEL', env('OPENAI_MODEL', 'gpt-4.1-mini')),
   /** WebRTC ICE servers handed to meeting clients (STUN/TURN). */
   rtcIceServers: iceServers(),
   forceMockAi: process.env.AI_PROVIDER === 'mock',

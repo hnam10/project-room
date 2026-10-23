@@ -84,6 +84,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Meetings: no rate limit on `POST /meetings/:id/lines`.
 - Meetings: poll votes are read-modify-write, so two simultaneous votes can overwrite each other.
 - Meetings: transcription is Chrome/Edge only (Web Speech API; audio goes to Google).
+- With `OPENAI_API_KEY` set, the UI and consent dialog still say "Claude" although the transcript goes to the
+  OpenAI-compatible provider.
 - Meetings: no meeting or transcript deletion; mixed-language speech is transcribed in one language.
 - The web meeting UI has no automated tests and hasn't been tried in a real browser by the agents.
 - The Claude provider is covered by tests with a fake client (validation, prompts) but has not been run
@@ -113,6 +115,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.
 - 2026-10-21 — **Meetings are capped at 60 minutes and live AI reads a bounded context** (running summary + new lines + project titles): cost stays bounded.
 - 2026-10-21 — **Carry-over is a member-confirmed note, not the transcript**: consistent with "memory = confirmed records".
+- 2026-10-22 — **OpenAI-compatible provider via a `messages.parse` adapter (`src/ai/openai.ts`), plain `fetch`**: lets the team test without Claude credits (OpenAI, or Groq's free tier via `OPENAI_BASE_URL`) while reusing the Claude prompts and validation; no new dependency.
 - 2026-10-21 — **`ANTHROPIC_FAST_MODEL`** (default `claude-haiku-5-5`) for frequent live calls; summaries stay on `ANTHROPIC_MODEL`.
 - 2026-10-20 — **Memory = approved decisions** (not a vector store over chat): answers must be traceable to
   something a member confirmed, which fits "AI suggests, people decide" and avoids answering from

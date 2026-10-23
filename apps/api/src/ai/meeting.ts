@@ -11,6 +11,7 @@ import {
 } from '@project-room/shared';
 import { config } from '../config.js';
 import { createAnthropicMeetingAi } from './anthropic-meeting.js';
+import { createOpenAiClient } from './openai.js';
 import { mockMeetingAi } from './mock-meeting.js';
 import type { MemberBrief } from './provider.js';
 
@@ -175,13 +176,21 @@ export function validateSummary(raw: RawSummary, input: SummarizeInput): Summari
   };
 }
 
-// Claude when ANTHROPIC_API_KEY is set, otherwise the labelled mock.
+// Same order as getAiProvider: OpenAI-compatible API, then Claude, then the labelled mock.
 let meetingAi: MeetingAi | null = null;
 
+function pick(): MeetingAi {
+  if (config.forceMockAi) return mockMeetingAi;
+  if (config.openaiApiKey) {
+    const client = createOpenAiClient(config.openaiApiKey, config.openaiBaseUrl);
+    const ai = createAnthropicMeetingAi('', config.openaiFastModel, config.openaiModel, client);
+    return { ...ai, name: `openai:${config.openaiFastModel}` };
+  }
+  if (config.anthropicApiKey) return createAnthropicMeetingAi(config.anthropicApiKey, config.anthropicFastModel, config.anthropicModel);
+  return mockMeetingAi;
+}
+
 export function getMeetingAi(): MeetingAi {
-  meetingAi ??=
-    config.anthropicApiKey && !config.forceMockAi
-      ? createAnthropicMeetingAi(config.anthropicApiKey, config.anthropicFastModel, config.anthropicModel)
-      : mockMeetingAi;
+  meetingAi ??= pick();
   return meetingAi;
 }
