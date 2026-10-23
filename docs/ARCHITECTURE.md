@@ -59,11 +59,12 @@ is never read. A decision becomes "decided" only through a member: approving a `
 
 Tables live in `schema.meeting.surql` (applied with `schema.surql`):
 
-| Table             | Purpose                                                                                                                                                     | Key links                         |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| `meeting`         | AI Meeting Room session: `status` = `live` / `summarizing` / `ended`, 60-minute `endsAt`, `participantIds`, `summary`, `carryOver`, `usage`, `summaryError` | `previousMeetingId`               |
-| `transcript_line` | One final speech result (<= 1000 chars) from a participant's browser                                                                                        | `meetingId`, `speakerId`          |
-| `poll`            | Meeting poll with 2-5 options; one movable vote per member                                                                                                  | `meetingId`, `sourceSuggestionId` |
+| Table             | Purpose                                                                                                                                                        | Key links                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `meeting`         | AI Meeting Room session: `status` = `live` / `summarizing` / `ended`, 60-minute `endsAt`, `participantIds`, `summary`, `carryOver`, `usage`, `summaryError`    | `previousMeetingId`               |
+| `live_meeting`    | Reservation with id = project id while a meeting is live; created with the meeting and deleted on live -> summarizing in one transaction, so starts can't race | `meetingId`                       |
+| `transcript_line` | One final speech result (<= 1000 chars) from a participant's browser                                                                                           | `meetingId`, `speakerId`          |
+| `poll`            | Meeting poll with 2-5 options; one movable vote per member                                                                                                     | `meetingId`, `sourceSuggestionId` |
 
 `suggestion` also carries the meeting kinds `idea`, `poll`, `meeting_notes` and the fields `meetingId`,
 `sourceLineId`, `ideaId`, `ideaDraft`, `pollDraft`.

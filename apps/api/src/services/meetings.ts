@@ -26,7 +26,6 @@ export function onLine(listener: LineListener): void {
 
 export async function startMeeting(projectId: string, memberId: string, input: MeetingCreateInput): Promise<Meeting> {
   if (await findLiveMeeting(projectId)) throw new ConflictError('A meeting is already live in this project');
-  // ponytail: check-then-create can race; add a unique index on live meetings per project if it matters
   return createMeeting({
     projectId,
     startedById: memberId,

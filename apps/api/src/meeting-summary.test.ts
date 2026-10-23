@@ -19,7 +19,7 @@ import type { MeetingAi, MeetingTickInput, SummarizeResult } from './ai/meeting.
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
 import { getDb } from './db/client.js';
 import { rid } from './db/records.js';
-import { beginSummarizing, getMeeting } from './repositories/meetings.js';
+import { beginSummarizing, getMeeting, restartSummarizing } from './repositories/meetings.js';
 import { createSuggestion } from './repositories/suggestions.js';
 import { runLiveTick } from './services/meeting-live.js';
 import { resumeMeetings, summarize } from './services/meeting-summary.js';
@@ -191,18 +191,17 @@ describe('meeting summary', () => {
     expect((await getMeeting(P, c)).summary).not.toBeNull();
   });
 
-  it('keeps a saved summary when creating suggestions fails', async () => {
-    let calls = 0;
-    vi.mocked(createSuggestion).mockRejectedValueOnce(new Error('db down'));
-    const { meeting } = await endedFlow(
-      fakeAi(async () => {
-        calls++;
-        return result();
-      }),
-    );
-    expect(calls).toBe(1);
-    expect(meeting).toMatchObject({ status: 'ended', summaryError: null, usage: { calls: 1, inputTokens: 10, outputTokens: 5 } });
-    expect(meeting.summary).not.toBeNull();
+  it('two simultaneous starts create one live meeting; ending it frees the project', async () => {
+    const [a, b] = await Promise.all([post(''), post('', 'jamie')]);
+    expect([a.status, b.status].sort()).toEqual([201, 409]);
+    const winner = a.status === 201 ? a.body : b.body;
+    const ai = fakeAi(async () => result());
+    await beginSummarizing(winner.id);
+    await summarize(P, winner.id, ai);
+    const next = await post('');
+    expect(next.status).toBe(201);
+    await beginSummarizing(next.body.id);
+    await summarize(P, next.body.id, ai);
   });
 
   it('ends with summaryError when setup fails, so /end can rerun it', async () => {

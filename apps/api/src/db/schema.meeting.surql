@@ -23,6 +23,11 @@ DEFINE FIELD OVERWRITE usage.inputTokens  ON meeting TYPE int DEFAULT 0;
 DEFINE FIELD OVERWRITE usage.outputTokens ON meeting TYPE int DEFAULT 0;
 DEFINE FIELD OVERWRITE summaryError      ON meeting TYPE null | string DEFAULT null;
 
+-- One row per project while it has a live meeting. Its id is the project id (live_meeting:<projectId>), so a
+-- second live meeting can't be created: CREATE fails on an existing id.
+DEFINE TABLE OVERWRITE live_meeting SCHEMAFULL;
+DEFINE FIELD OVERWRITE meetingId ON live_meeting TYPE record<meeting>;
+
 DEFINE TABLE OVERWRITE transcript_line SCHEMAFULL;
 DEFINE FIELD OVERWRITE projectId ON transcript_line TYPE record<project>;
 DEFINE FIELD OVERWRITE meetingId ON transcript_line TYPE record<meeting>;

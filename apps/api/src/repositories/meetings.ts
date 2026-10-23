@@ -1,6 +1,6 @@
 import type { Meeting, MeetingSummary } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
-import { NotFoundError, rid } from '../db/records.js';
+import { ConflictError, NotFoundError, rid } from '../db/records.js';
 
 export async function getMeeting(projectId: string, meetingId: string): Promise<Meeting> {
   const meeting = await queryOne<Meeting>('SELECT * FROM ONLY $id WHERE projectId = $project', {
@@ -36,17 +36,31 @@ export async function createMeeting(input: {
   language: string;
   previousMeetingId: string | null;
 }): Promise<Meeting> {
-  const meeting = await queryOne<Meeting>('CREATE ONLY meeting CONTENT $content', {
-    content: {
-      projectId: rid('project', input.projectId),
-      title: input.title,
-      status: 'live',
-      language: input.language,
-      startedById: rid('member', input.startedById),
-      participantIds: [rid('member', input.startedById)],
-      attendeeIds: [rid('member', input.startedById)],
-      previousMeetingId: input.previousMeetingId ? rid('meeting', input.previousMeetingId) : null,
+  // The live_meeting reservation and the meeting are created together; the reservation's fixed id makes a
+  // concurrent second start fail.
+  const meeting = await queryOne<Meeting>(
+    `BEGIN;
+     LET $meeting = (CREATE ONLY meeting CONTENT $content);
+     CREATE $lock CONTENT { meetingId: $meeting.id };
+     COMMIT;
+     RETURN $meeting;`,
+    {
+      lock: rid('live_meeting', input.projectId),
+      content: {
+        projectId: rid('project', input.projectId),
+        title: input.title,
+        status: 'live',
+        language: input.language,
+        startedById: rid('member', input.startedById),
+        participantIds: [rid('member', input.startedById)],
+        attendeeIds: [rid('member', input.startedById)],
+        previousMeetingId: input.previousMeetingId ? rid('meeting', input.previousMeetingId) : null,
+      },
     },
+  ).catch((error: unknown) => {
+    if (error instanceof Error && /already exists/i.test(error.message))
+      throw new ConflictError('A meeting is already live in this project');
+    throw error;
   });
   if (!meeting) throw new Error('Meeting creation returned nothing');
   return meeting;
@@ -68,10 +82,17 @@ export function removeParticipant(meetingId: string, memberId: string): Promise<
   return update(meetingId, 'participantIds = array::complement(participantIds, $m)', { m: [rid('member', memberId)] });
 }
 
-/** live -> summarizing, guarded in the DB so a sweep and a manual end can't both win. Null when it lost the race. */
+/**
+ * live -> summarizing, guarded in the DB so a sweep and a manual end can't both win. Null when it lost the race.
+ * Releases the project's live_meeting reservation in the same transaction.
+ */
 export async function beginSummarizing(meetingId: string): Promise<Meeting | null> {
   const [meeting] = await queryMany<Meeting>(
-    "UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [] WHERE status = 'live' RETURN AFTER",
+    `BEGIN;
+     LET $updated = (UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [] WHERE status = 'live' RETURN AFTER);
+     DELETE live_meeting WHERE meetingId = $id;
+     COMMIT;
+     RETURN $updated;`,
     { id: rid('meeting', meetingId) },
   );
   return meeting ?? null;
