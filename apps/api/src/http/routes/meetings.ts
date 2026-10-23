@@ -1,11 +1,12 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { meetingAiSchema, meetingCreateSchema, transcriptLineCreateSchema, type MeetingDetail } from '@project-room/shared';
 import { ForbiddenError } from '../../db/records.js';
 import { config } from '../../config.js';
 import { getMeeting, listMeetings, setAiEnabled } from '../../repositories/meetings.js';
 import { listPolls } from '../../repositories/polls.js';
 import { listLines } from '../../repositories/transcripts.js';
-import { addLine, endMeeting, joinMeeting, leaveMeeting, startMeeting } from '../../services/meetings.js';
+import { serverTranscription } from '../../ai/transcribe.js';
+import { addAudio, addLine, endMeeting, joinMeeting, leaveMeeting, startMeeting } from '../../services/meetings.js';
 import { ctx } from '../context.js';
 
 export const meetingsRouter = Router({ mergeParams: true });
@@ -21,7 +22,7 @@ meetingsRouter.get('/', async (_req, res) => {
 
 // Declared before /:id so it isn't read as a meeting id.
 meetingsRouter.get('/rtc-config', (_req, res) => {
-  res.json({ iceServers: config.rtcIceServers });
+  res.json({ iceServers: config.rtcIceServers, transcription: serverTranscription() ? 'server' : 'browser' });
 });
 
 meetingsRouter.get('/:id', async (req, res) => {
@@ -48,6 +49,17 @@ meetingsRouter.post('/:id/lines', async (req, res) => {
   const { project, memberId } = ctx(res);
   const { text } = transcriptLineCreateSchema.parse(req.body);
   res.status(201).json(await addLine(project.id, req.params.id, memberId, text));
+});
+
+// A few seconds of the caller's mic (webm/ogg/mp4), transcribed on the server. 204 when it was silent.
+meetingsRouter.post('/:id/audio', express.raw({ type: 'audio/*', limit: '2mb' }), async (req, res) => {
+  const { project, memberId } = ctx(res);
+  const type = req.headers['content-type'] ?? '';
+  if (!serverTranscription()) return void res.status(501).json({ error: 'Server transcription is not configured' });
+  if (!Buffer.isBuffer(req.body) || !req.body.length) return void res.status(400).json({ error: 'Send an audio/* clip as the body' });
+  const line = await addAudio(project.id, req.params.id, memberId, req.body, type);
+  if (line) res.status(201).json(line);
+  else res.status(204).end();
 });
 
 meetingsRouter.post('/:id/end', async (req, res) => {

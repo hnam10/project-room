@@ -23,7 +23,10 @@ export function ConsentDialog(props: { open: boolean; action: 'start' | 'join'; 
     >
       <ul className="consent-list">
         <li>Your microphone is used while you are in the meeting.</li>
-        <li>Your browser sends your audio to its speech service (Google, in Chrome) to turn it into text.</li>
+        <li>
+          Your audio is sent to a speech service to turn it into text: Whisper on Groq through our server, or your browser’s own (Google, in
+          Chrome).
+        </li>
         <li>The transcript is saved to this project and visible to its members.</li>
         <li>Claude reads the transcript.</li>
       </ul>

@@ -13,6 +13,7 @@ import { splitLine } from '../features/meeting/splitLine';
 import { TranscriptView } from '../features/meeting/TranscriptView';
 import { useMeeting } from '../features/meeting/useMeeting';
 import { useMeshAudio } from '../features/meeting/useMeshAudio';
+import { useClipTranscriber } from '../features/meeting/useClipTranscriber';
 import { useTranscriber } from '../features/meeting/useTranscriber';
 import { useSession } from '../state/session';
 import { useWorkspace } from '../state/workspace';
@@ -42,7 +43,7 @@ export function MeetingPage() {
   const [language, setLanguage] = useState('ko-KR');
   const [stoppedId, setStoppedId] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
-  const [ice, setIce] = useState<{ meetingId: string; servers: RTCIceServer[] } | null>(null);
+  const [ice, setIce] = useState<{ meetingId: string; servers: RTCIceServer[]; serverStt: boolean } | null>(null);
 
   const meeting = current?.meeting;
   const live = meeting?.status === 'live';
@@ -70,9 +71,11 @@ export function MeetingPage() {
     },
     [projectId, meetingId, toastError],
   );
-  const { supported, interim, listening, error } = useTranscriber({
+  const iceReady = ice?.meetingId === meetingId;
+  const serverStt = iceReady && !!ice?.serverStt;
+  const browser = useTranscriber({
     language: meeting?.language ?? language,
-    enabled: joined && !stopped && !muted,
+    enabled: joined && !stopped && !muted && iceReady && !serverStt,
     onFinal: post,
   });
 
@@ -82,9 +85,9 @@ export function MeetingPage() {
     let cancelled = false;
     meetingsApi
       .rtcConfig(projectId)
-      .then((c) => c.iceServers as RTCIceServer[])
-      .catch(() => [] as RTCIceServer[])
-      .then((servers) => !cancelled && setIce({ meetingId, servers }));
+      .then((c) => ({ servers: c.iceServers as RTCIceServer[], serverStt: c.transcription === 'server' }))
+      .catch(() => ({ servers: [] as RTCIceServer[], serverStt: false }))
+      .then((c) => !cancelled && setIce({ meetingId, ...c }));
     return () => {
       cancelled = true;
       setIce(null);
@@ -92,7 +95,7 @@ export function MeetingPage() {
   }, [joined, projectId, meetingId]);
 
   const { peers, localStream, remoteStreams, micError } = useMeshAudio({
-    enabled: joined && !stopped && ice?.meetingId === meetingId,
+    enabled: joined && !stopped && iceReady,
     meetingId,
     me: memberId,
     participantIds: meeting?.participantIds ?? [],
@@ -101,6 +104,24 @@ export function MeetingPage() {
     onSignal,
     muted,
   });
+  const sendClip = useCallback(
+    async (clip: Blob) => {
+      if (!meetingId) return;
+      try {
+        await meetingsApi.postAudio(projectId, meetingId, clip);
+      } catch (e) {
+        // 409: the meeting ended or expired. Stop transcribing.
+        if (e instanceof ApiError && e.status === 409) setStoppedId(meetingId);
+        else throw e;
+      }
+    },
+    [projectId, meetingId],
+  );
+  const clips = useClipTranscriber({ stream: localStream, enabled: joined && !stopped && !muted && serverStt, send: sendClip });
+  const supported = serverStt || browser.supported;
+  const listening = serverStt ? clips.listening : browser.listening;
+  const error = serverStt ? clips.error : browser.error;
+  const interim = serverStt ? '' : browser.interim;
   const audioFailed = [...peers].some(([id, state]) => state === 'failed' && (meeting?.participantIds ?? []).includes(id));
   const [blocked, setBlocked] = useState(false);
   const audioBox = useRef<HTMLDivElement>(null);

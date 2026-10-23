@@ -49,6 +49,9 @@ export const config = {
   openaiBaseUrl: env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
   openaiModel: env('OPENAI_MODEL', 'gpt-4.1-mini'),
   openaiFastModel: env('OPENAI_FAST_MODEL', env('OPENAI_MODEL', 'gpt-4.1-mini')),
+  /** Whisper on Groq (free tier) transcribes meeting audio when set; otherwise browsers use the Web Speech API. */
+  groqApiKey: process.env.GROQ_API_KEY || null,
+  groqSttModel: env('GROQ_STT_MODEL', 'whisper-large-v3-turbo'),
   /** WebRTC ICE servers handed to meeting clients (STUN/TURN). */
   rtcIceServers: iceServers(),
   forceMockAi: process.env.AI_PROVIDER === 'mock',

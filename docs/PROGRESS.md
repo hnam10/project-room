@@ -83,7 +83,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   reads the full transcript (up to the line cap).
 - Meetings: no rate limit on `POST /meetings/:id/lines`.
 - Meetings: poll votes are read-modify-write, so two simultaneous votes can overwrite each other.
-- Meetings: transcription is Chrome/Edge only (Web Speech API; audio goes to Google).
+- Meetings: without `GROQ_API_KEY`, transcription is Chrome/Edge only (Web Speech API; audio goes to Google) and fails
+  with `network` behind VPNs/strict networks.
+- Meetings (Groq Whisper): fixed 6s clips can split a word at the boundary; no interim text while speaking; Groq's free
+  tier has daily request limits (about one request per speaking participant every 6s). Not yet tried in a real browser.
 - With `OPENAI_API_KEY` set, the UI and consent dialog still say "Claude" although the transcript goes to the
   OpenAI-compatible provider.
 - Meetings: no meeting or transcript deletion; mixed-language speech is transcribed in one language.
@@ -115,6 +118,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.
 - 2026-10-21 — **Meetings are capped at 60 minutes and live AI reads a bounded context** (running summary + new lines + project titles): cost stays bounded.
 - 2026-10-21 — **Carry-over is a member-confirmed note, not the transcript**: consistent with "memory = confirmed records".
+- 2026-10-22 — **Meeting transcription via Whisper on Groq when `GROQ_API_KEY` is set** (replaces the 2026-10-21 browser-only choice): Chrome's speech service failed with `network` for the team; Groq's free tier costs nothing, works in any browser and keeps exact speaker labels (each client sends its own mic). Web Speech stays as the fallback.
 - 2026-10-22 — **OpenAI-compatible provider via a `messages.parse` adapter (`src/ai/openai.ts`), plain `fetch`**: lets the team test without Claude credits (OpenAI, or Groq's free tier via `OPENAI_BASE_URL`) while reusing the Claude prompts and validation; no new dependency.
 - 2026-10-21 — **`ANTHROPIC_FAST_MODEL`** (default `claude-haiku-5-5`) for frequent live calls; summaries stay on `ANTHROPIC_MODEL`.
 - 2026-10-20 — **Memory = approved decisions** (not a vector store over chat): answers must be traceable to

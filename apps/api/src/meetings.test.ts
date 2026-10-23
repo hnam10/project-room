@@ -88,6 +88,17 @@ describe('meetings API', () => {
     await post(`/${id}/join`, 'jamie');
   });
 
+  it('reports browser transcription and refuses audio clips when GROQ_API_KEY is unset', async () => {
+    const rtc = await api<{ transcription: string }>(`${M}/rtc-config`);
+    expect(rtc.body.transcription).toBe('browser');
+    const res = await fetch(`${base}/api${M}/${id}/audio`, {
+      method: 'POST',
+      headers: { 'content-type': 'audio/webm', 'x-member-id': 'jamie' },
+      body: new Uint8Array([1, 2, 3]),
+    });
+    expect(res.status).toBe(501);
+  });
+
   it('only participants post lines; lines are capped at 1000 chars', async () => {
     expect((await post(`/${id}/lines`, 'taylor', { text: 'hi' })).status).toBe(403);
     const ok = await post(`/${id}/lines`, 'jamie', { text: 'hello', speakerId: 'alex' });

@@ -69,8 +69,10 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
 `sourceLineId`, `ideaId`, `ideaDraft`, `pollDraft`.
 
 - **Lifecycle:** `live` (max 60 minutes, then expired) -> `summarizing` -> `ended`. One live meeting per project.
-- **Transcript:** each browser runs the Web Speech API on its own mic and posts final results to
-  `POST /meetings/:id/lines`; the speaker is always the caller.
+- **Transcript:** with `GROQ_API_KEY`, each browser records its own mic in 6-second clips (silent ones skipped) and
+  posts them to `POST /meetings/:id/audio`; the server transcribes with Whisper on Groq (`src/ai/transcribe.ts`) and stores
+  the line. Without the key, each browser runs the Web Speech API and posts final results to `POST /meetings/:id/lines`.
+  `GET /meetings/rtc-config` tells clients which mode is on. The speaker is always the caller.
 - **Voice:** WebRTC mesh. `rtc` offer/answer/ICE signals are relayed between participants over `/ws` (`realtime/rtc-relay.ts`); STUN/TURN
   come from `RTC_ICE_SERVERS`.
 - **Live AI:** new lines trigger `MeetingAi` (separate from `AiProvider`; fast model, running summary + new lines) which stores

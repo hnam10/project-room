@@ -33,8 +33,11 @@ export async function request<T>(method: string, path: string, body?: unknown, i
     res = await fetch(`/api${path}`, {
       ...init,
       method,
-      headers: { 'content-type': 'application/json', ...(await authHeaders(projectId && decodeURIComponent(projectId))) },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: {
+        'content-type': body instanceof Blob ? body.type : 'application/json',
+        ...(await authHeaders(projectId && decodeURIComponent(projectId))),
+      },
+      body: body instanceof Blob || body === undefined ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'Can’t reach the server. Is the API running?');

@@ -13,6 +13,7 @@ import {
 } from '../repositories/meetings.js';
 import { createLine } from '../repositories/transcripts.js';
 import type { MeetingAi } from '../ai/meeting.js';
+import { transcribe } from '../ai/transcribe.js';
 import { summarize } from './meeting-summary.js';
 
 type LineListener = (meeting: Meeting, line: TranscriptLine) => void;
@@ -55,6 +56,14 @@ export async function leaveMeeting(projectId: string, meetingId: string, memberI
 export async function dropFromLiveMeeting(projectId: string, memberId: string): Promise<void> {
   const meeting = await findLiveMeeting(projectId);
   if (meeting?.participantIds.includes(memberId)) await removeParticipant(meeting.id, memberId);
+}
+
+/** Transcribes one clip of the caller's mic and stores it as their line; null when the clip was silent. */
+export async function addAudio(projectId: string, meetingId: string, memberId: string, audio: Buffer, type: string) {
+  const meeting = await liveMeeting(projectId, meetingId);
+  if (!meeting.participantIds.includes(memberId)) throw new ForbiddenError('Join the meeting to speak in it');
+  const text = (await transcribe(audio, type, meeting.language)).slice(0, 1000);
+  return text ? addLine(projectId, meetingId, memberId, text) : null;
 }
 
 export async function addLine(projectId: string, meetingId: string, memberId: string, text: string): Promise<TranscriptLine> {
