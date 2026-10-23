@@ -8,6 +8,7 @@ import { authenticate, requireProjectMember } from './http/context.js';
 import { errorHandler, notFoundRoute } from './http/errors.js';
 import { decisionsRouter } from './http/routes/decisions.js';
 import { channelsRouter } from './http/routes/channels.js';
+import { filesRouter } from './http/routes/files.js';
 import { ideasRouter } from './http/routes/ideas.js';
 import { messagesRouter } from './http/routes/messages.js';
 import { meetingsRouter } from './http/routes/meetings.js';
@@ -36,6 +37,7 @@ export function createApp() {
   project.use('/channels', messagesRouter);
   project.use('/channels', channelsRouter);
   project.use('/ideas', ideasRouter);
+  project.use('/files', filesRouter);
   project.use('/decisions', decisionsRouter);
   project.use('/suggestions', suggestionsRouter);
   project.use('/polls', pollsRouter);

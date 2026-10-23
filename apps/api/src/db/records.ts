@@ -9,6 +9,7 @@ export type TableName =
   | 'idea'
   | 'decision'
   | 'suggestion'
+  | 'file'
   | 'meeting'
   | 'live_meeting'
   | 'transcript_line'

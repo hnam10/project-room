@@ -120,6 +120,16 @@ DEFINE FIELD OVERWRITE createdTaskIds   ON suggestion TYPE array<record<task>> D
 DEFINE FIELD OVERWRITE resolvedById     ON suggestion TYPE null | record<member> DEFAULT ALWAYS null;
 DEFINE FIELD OVERWRITE createdAt        ON suggestion TYPE datetime DEFAULT time::now() READONLY;
 
+-- File bytes live on disk (see FILES_DIR). This table is only the metadata the UI and realtime see.
+DEFINE TABLE OVERWRITE file SCHEMAFULL;
+DEFINE FIELD OVERWRITE projectId     ON file TYPE record<project>;
+DEFINE FIELD OVERWRITE name          ON file TYPE string ASSERT string::len($value) > 0 AND string::len($value) <= 120;
+DEFINE FIELD OVERWRITE size          ON file TYPE int ASSERT $value > 0 AND $value <= 10485760;
+DEFINE FIELD OVERWRITE contentType   ON file TYPE string ASSERT string::len($value) > 0 AND string::len($value) <= 120;
+DEFINE FIELD OVERWRITE uploadedById  ON file TYPE record<member>;
+DEFINE FIELD OVERWRITE createdAt     ON file TYPE datetime DEFAULT time::now() READONLY;
+DEFINE INDEX OVERWRITE file_project_time ON file FIELDS projectId, createdAt;
+
 -- Backfill records from before the brainstorming fields existed: touching them fills every NONE field
 -- with its DEFAULT ALWAYS, so readers can trust arrays like researchSources. A no-op once done.
 -- ponytail: keyed on researchSources (added with most late fields); add a WHERE for any field added later.
