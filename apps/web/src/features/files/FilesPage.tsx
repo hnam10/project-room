@@ -46,10 +46,12 @@ export function FilesPage() {
           toast(`${file.name} is larger than 10 MB`);
           continue;
         }
-        applyRecord('file', await api.uploadFile(projectId, file));
+        try {
+          applyRecord('file', await api.uploadFile(projectId, file));
+        } catch (error) {
+          toastError(error);
+        }
       }
-    } catch (error) {
-      toastError(error);
     } finally {
       setBusy(false);
     }

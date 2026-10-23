@@ -41,6 +41,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   selection. Checked round-trip switching and a direct project link in Edge; the selected team and
   project agree. Lint, typecheck, all 177 tests, and the web production build passed.
 
+- 2026-10-23 — **File deletion and batch upload fixes.** Deletes enforce the project boundary in the write
+  and retain metadata when disk removal fails so DELETE can be retried. Batch uploads continue after each failed file.
+
 - 2026-10-23 — **Research cards summarize related ideas.** Relevant Tavily results are summarized in
   short, source grounded descriptions instead of showing raw search snippets. Results without a reliable
   summary are omitted; earlier pending cards offer a Summarize source action. Direct AI idea drafts,
@@ -200,6 +203,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
+- The Files picker clears its live `FileList` before starting uploads; use drag and drop until that separate issue is fixed.
 - Brainstorm topic selection is a browser preference; each browser may work on a different topic.
   Topic resets intentionally discard that board's drafts and cards; there is no board undo/history yet.
 - Current local validation: `npm run check` stops at existing formatting drift in 140 unrelated files.

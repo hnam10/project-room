@@ -1,4 +1,4 @@
-import { rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -20,6 +20,8 @@ import { config } from './config.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
+import { createFile } from './repositories/files.js';
+import { readStoredFile, removeStoredFile, storedFilePath, writeStoredFile } from './services/file-store.js';
 
 let server: Server;
 let hub: RealtimeHub;
@@ -347,6 +349,44 @@ describe('workspace API', () => {
     const gone = await fetch(`${base}/api/projects/hackathon/files/${file.id}/download`, { headers: { 'x-member-id': 'alex' } });
     expect(gone.status).toBe(404);
     live.ws.close();
+  });
+  it('keeps the file listed after disk removal fails and allows a DELETE retry', async () => {
+    const bytes = Buffer.from('retry me');
+    const created = await uploadFile('retry.txt', bytes);
+    expect(created.status).toBe(201);
+    const file = created.body as ProjectFile;
+    const stored = storedFilePath('hackathon', file.id);
+    // A directory at the file path makes removal fail without depending on OS permissions.
+    await removeStoredFile('hackathon', file.id);
+    await mkdir(stored);
+
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(500);
+    expect((await api<ProjectFile[]>('/projects/hackathon/files')).body).toContainEqual(file);
+
+    await rm(stored, { recursive: true });
+    await writeStoredFile('hackathon', file.id, bytes);
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(204);
+    expect((await api<ProjectFile[]>('/projects/hackathon/files')).body).not.toContainEqual(file);
+    expect(await readStoredFile('hackathon', file.id)).toBeNull();
+  });
+
+  it('deletes metadata even when the stored bytes are already missing', async () => {
+    const created = await uploadFile('missing.txt', Buffer.from('gone'));
+    expect(created.status).toBe(201);
+    const file = created.body as ProjectFile;
+    await removeStoredFile('hackathon', file.id);
+
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(204);
+    expect((await api<ProjectFile[]>('/projects/hackathon/files')).body).not.toContainEqual(file);
+  });
+
+  it('checks file ownership before touching stored bytes', async () => {
+    const file = await createFile('other', 'alex', { id: 'other-file', name: 'private.txt', size: 1, contentType: 'text/plain' });
+    const bytes = Buffer.from('keep');
+    await writeStoredFile('hackathon', file.id, bytes);
+
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(404);
+    expect(await readStoredFile('hackathon', file.id)).toEqual(bytes);
   });
 });
 

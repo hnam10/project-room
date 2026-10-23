@@ -38,5 +38,8 @@ export async function createFile(
 
 export async function deleteFileRecord(projectId: string, fileId: string): Promise<void> {
   await getFile(projectId, fileId);
-  await queryOne('DELETE $id', { id: rid('file', fileId) });
+  await queryOne('DELETE $id WHERE projectId = $project', {
+    id: rid('file', fileId),
+    project: rid('project', projectId),
+  });
 }
