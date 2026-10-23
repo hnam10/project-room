@@ -17,26 +17,25 @@ export function listLines(projectId: string, meetingId: string): Promise<Transcr
   });
 }
 
-/** Lines spoken after the cursor line (all lines when null), oldest first, capped to the newest `limit`. */
-export async function listLinesAfter(
+/**
+ * Lines spoken after the cursor line (all lines when null), oldest first, at most `limit`. The cursor is compared
+ * inside the DB: a JS Date would cut spokenAt to milliseconds and re-read the cursor line itself.
+ */
+export function listLinesAfter(
   projectId: string,
   meetingId: string,
   cursorLineId: string | null,
   limit: number,
 ): Promise<TranscriptLine[]> {
-  const cursor = cursorLineId
-    ? await queryOne<TranscriptLine>('SELECT * FROM ONLY $id', { id: rid('transcript_line', cursorLineId) })
-    : null;
-  const lines = await queryMany<TranscriptLine>(
-    `SELECT * FROM transcript_line WHERE projectId = $project AND meetingId = $meeting ${cursor ? 'AND (spokenAt > $after OR (spokenAt = $after AND id > $afterId))' : ''}
+  return queryMany<TranscriptLine>(
+    `SELECT * FROM transcript_line WHERE projectId = $project AND meetingId = $meeting
+     ${cursorLineId ? 'AND (spokenAt > $cursor.spokenAt OR (spokenAt = $cursor.spokenAt AND id > $cursor))' : ''}
      ORDER BY spokenAt ASC, id ASC LIMIT $limit`,
     {
       project: rid('project', projectId),
       meeting: rid('meeting', meetingId),
-      after: cursor ? new Date(cursor.spokenAt) : undefined,
-      afterId: cursor ? rid('transcript_line', cursor.id) : undefined,
+      cursor: cursorLineId ? rid('transcript_line', cursorLineId) : undefined,
       limit,
     },
   );
-  return lines;
 }
