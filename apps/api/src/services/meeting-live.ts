@@ -168,6 +168,6 @@ export function startMeetingLive(): () => void {
   });
   const timer = setInterval(() => {
     for (const id of [...states.keys()]) void checkMeeting(id).catch((e) => console.error('Meeting live check failed', e));
-  }, 5_000);
+  }, 2_000);
   return () => clearInterval(timer);
 }

@@ -118,6 +118,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.
 - 2026-10-21 — **Meetings are capped at 60 minutes and live AI reads a bounded context** (running summary + new lines + project titles): cost stays bounded.
 - 2026-10-21 — **Carry-over is a member-confirmed note, not the transcript**: consistent with "memory = confirmed records".
+- 2026-10-22 — **Live meeting AI reacts faster** (40 words / 20s, or 15 words + 8s silence; cap 150 calls, silence check every 2s): the old 80 words / 45s felt like a post-meeting summary, not a participant. About 2-3x the calls.
 - 2026-10-22 — **One live meeting per project via a `live_meeting:<projectId>` reservation record** (from PR review): SurrealDB 3.1 has no conditional unique index, and a fixed record id makes concurrent starts fail atomically without one.
 - 2026-10-22 — **Summary suggestions are written before the meeting ends, under fixed ids** (from PR review): a failed write now sets `summaryError` so `/end` can retry, and retries never duplicate a suggestion.
 - 2026-10-22 — **Meeting transcription via Whisper on Groq when `GROQ_API_KEY` is set** (replaces the 2026-10-21 browser-only choice): Chrome's speech service failed with `network` for the team; Groq's free tier costs nothing, works in any browser and keeps exact speaker labels (each client sends its own mic). Web Speech stays as the fallback.

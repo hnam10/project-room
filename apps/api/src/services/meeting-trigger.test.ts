@@ -5,13 +5,13 @@ const base: TriggerState = { newWords: 0, lastRunAt: null, lastLineAt: 99_999, c
 
 describe('shouldRun', () => {
   it.each([
-    ['80 words, 45s since last run', { newWords: 80, lastRunAt: 0 }, 45_000, true],
-    ['80 words, 30s since last run', { newWords: 80, lastRunAt: 0 }, 30_000, false],
-    ['80 words, never run', { newWords: 80 }, 1_000, true],
-    ['30 words then 20s silence', { newWords: 30, lastLineAt: 0, lastRunAt: null }, 20_000, true],
-    ['30 words, only 10s silence', { newWords: 30, lastLineAt: 0 }, 10_000, false],
-    ['29 words then silence', { newWords: 29, lastLineAt: 0 }, 60_000, false],
-    ['call cap reached', { newWords: 500, calls: 60 }, 99_999, false],
+    ['40 words, 20s since last run', { newWords: 40, lastRunAt: 0 }, 20_000, true],
+    ['40 words, 10s since last run', { newWords: 40, lastRunAt: 0 }, 10_000, false],
+    ['40 words, never run', { newWords: 40 }, 1_000, true],
+    ['15 words then 8s silence', { newWords: 15, lastLineAt: 0, lastRunAt: null }, 8_000, true],
+    ['15 words, only 5s silence', { newWords: 15, lastLineAt: 0 }, 5_000, false],
+    ['14 words then silence', { newWords: 14, lastLineAt: 0 }, 60_000, false],
+    ['call cap reached', { newWords: 500, calls: 150 }, 99_999, false],
     ['AI removed', { newWords: 500, aiEnabled: false }, 99_999, false],
     ['call in flight', { newWords: 500, inFlight: true }, 99_999, false],
     ['meeting ended', { newWords: 500, live: false }, 99_999, false],

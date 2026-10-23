@@ -10,11 +10,12 @@ export interface TriggerState {
   live: boolean;
 }
 
-export const MAX_CALLS = 60;
-const BUSY_WORDS = 80;
-const BUSY_GAP_MS = 45_000;
-const QUIET_WORDS = 30;
-const QUIET_MS = 20_000;
+// Tuned so the AI reacts within ~10s of a pause, like a participant; the cap still bounds a 60-minute meeting.
+export const MAX_CALLS = 150;
+const BUSY_WORDS = 40;
+const BUSY_GAP_MS = 20_000;
+const QUIET_WORDS = 15;
+const QUIET_MS = 8_000;
 
 export function shouldRun(state: TriggerState, now: number): boolean {
   if (!state.live || !state.aiEnabled || state.inFlight || state.calls >= MAX_CALLS || state.newWords <= 0) return false;

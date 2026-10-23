@@ -77,7 +77,7 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
 - **Voice:** WebRTC mesh. `rtc` offer/answer/ICE signals are relayed between participants over `/ws` (`realtime/rtc-relay.ts`); STUN/TURN
   come from `RTC_ICE_SERVERS`.
 - **Live AI:** new lines trigger `MeetingAi` (separate from `AiProvider`; fast model, running summary + new lines) which stores
-  `action_items` / `idea` / `poll` suggestions. A meeting is capped at 60 AI calls. Members approve them; AI never writes tasks, ideas or polls.
+  `action_items` / `idea` / `poll` suggestions. A tick runs after 40 new words (at most every 20s) or 15 words then 8s of silence; a meeting is capped at 150 AI calls. Members approve them; AI never writes tasks, ideas or polls.
 - **End:** `POST /meetings/:id/end` summarizes on the main model into `meeting.summary` plus a `meeting_notes`
   suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
   shows a "Last time" card. Summary suggestions use fixed ids (`<meetingId>-summary-actions` / `-summary-notes`) and are
