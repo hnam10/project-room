@@ -48,7 +48,9 @@ export async function joinMeeting(projectId: string, meetingId: string, memberId
 
 /** Leaving as the last participant ends the meeting, so an empty room never stays live. */
 export async function leaveMeeting(projectId: string, meetingId: string, memberId: string): Promise<Meeting> {
-  await getMeeting(projectId, meetingId);
+  const before = await getMeeting(projectId, meetingId);
+  // Only a real departure may end it: a repeat or stray leave during a drop's grace period must not.
+  if (!before.participantIds.includes(memberId)) return before;
   const meeting = await removeParticipant(meetingId, memberId);
   return (await endIfEmpty(meeting)) ?? meeting;
 }
@@ -71,7 +73,7 @@ const DROP_GRACE_MS = 30_000;
 /** Ends a live meeting nobody is in and starts its summary; null when it wasn't ended here. */
 async function endIfEmpty(meeting: Meeting): Promise<Meeting | null> {
   if (meeting.status !== 'live' || meeting.participantIds.length) return null;
-  const summarizing = await beginSummarizing(meeting.id); // null: another end already won
+  const summarizing = await beginSummarizing(meeting.id, true); // null: someone joined, or another end won
   if (summarizing) summarizeInBackground(summarizing);
   return summarizing;
 }

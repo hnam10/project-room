@@ -30,7 +30,7 @@ function RemoteAudio({ stream, onBlocked }: { stream: MediaStream; onBlocked: ()
 function useCallState() {
   const { projectId } = useWorkspace();
   const { memberId } = useSession();
-  const { toast, toastError } = useFeedback();
+  const { toast, toastError, confirm } = useFeedback();
   const meetingState = useMeeting(projectId);
   const { current, reload, sendSignal, onSignal } = meetingState;
   const [stoppedId, setStoppedId] = useState<string | null>(null);
@@ -121,10 +121,34 @@ function useCallState() {
     }
   }, [joined, count, meetingId, toast]);
 
+  // Stop the call at the 60-minute cap on any page; the server's sweep that ends it can take a few seconds to arrive.
+  const endsAt = live ? meeting?.endsAt : undefined;
+  useEffect(() => {
+    if (!endsAt || !meetingId) return;
+    const t = window.setTimeout(
+      () => {
+        setStoppedId(meetingId);
+        void reload().catch(() => {});
+      },
+      Math.max(0, new Date(endsAt).getTime() - Date.now()),
+    );
+    return () => window.clearTimeout(t);
+  }, [endsAt, meetingId, reload]);
+
   // Closing the tab needs no leave call: the server drops a member whose last socket closed, and ends the
   // meeting if it stays empty, so a refresh doesn't end it.
 
   const leave = async () => {
+    // The last one out ends the meeting for good, so say so first.
+    if (
+      meeting?.participantIds.length === 1 &&
+      !(await confirm({
+        title: 'Leave and end the meeting?',
+        text: 'You’re the last one here, so leaving ends the meeting and starts the summary.',
+        okLabel: 'Leave and end',
+      }))
+    )
+      return;
     try {
       await meetingsApi.leave(projectId, meetingId!);
     } catch (e) {
