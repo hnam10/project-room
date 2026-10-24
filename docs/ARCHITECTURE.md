@@ -148,6 +148,10 @@ come from the database, writes from any API instance (or a DB console) reach cli
 - Web: `api/auth.ts` adds `Authorization: Bearer <token>` with a token scoped to the project's org
   (`getToken({ organizationId })`); the socket passes `?token=`. Clerk UI lives in
   `features/account/ClerkAccount.tsx` (sign-in gate, `OrganizationSwitcher`, `UserButton`, invites).
+  URL-to-organization synchronization lives above the signed-in gate and runs once per project URL
+  change: Clerk temporarily remounts signed-in content while switching, so syncing there would restore
+  the previous organization. Workspace data and its child UI are keyed by project id to discard the
+  previous project's snapshot, messages, selected channel, and open dialogs together.
 
 ## Web app
 

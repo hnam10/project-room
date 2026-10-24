@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { useMatch, useNavigate } from 'react-router-dom';
 import {
   ClerkProvider,
   InviteMembersButton,
@@ -8,6 +8,7 @@ import {
   Show,
   SignIn,
   UserButton,
+  useAuth,
   useClerk,
   useOrganization,
 } from '@clerk/react';
@@ -28,6 +29,7 @@ export function ClerkRoot({ children }: { children: ReactNode }) {
       routerReplace={(to) => navigate(to, { replace: true })}
       afterSignOutUrl="/"
     >
+      <ActiveTeamSync />
       <Show when="signed-out">
         <div className="boot">
           <SignIn routing="hash" />
@@ -70,15 +72,27 @@ export function InviteButton({ children }: { children: ReactNode }) {
 }
 
 /** Keeps Clerk's active organization in step with the project in the URL (e.g. after opening a link). */
-export function ActiveTeamSync({ projectId }: { projectId: string }) {
+function ActiveTeamSync() {
+  const projectId = useMatch('/p/:projectId/*')?.params.projectId;
+  const { isSignedIn } = useAuth();
   const { organization, isLoaded } = useOrganization();
   const { setActive } = useClerk();
   const activeId = organization?.id;
+  const syncedProject = useRef<string | null>(null);
   useEffect(() => {
-    if (isLoaded && projectId && activeId !== projectId) {
+    // Sync once per URL change. The switcher changes Clerk's organization before
+    // navigating; reacting to that change would activate the previous team again.
+    if (!isLoaded || !isSignedIn) return;
+    if (!projectId) {
+      syncedProject.current = null;
+      return;
+    }
+    if (syncedProject.current === projectId) return;
+    syncedProject.current = projectId;
+    if (activeId !== projectId) {
       // Fails if the user isn't in that team; the API then reports the project as not found.
       setActive({ organization: projectId }).catch(() => undefined);
     }
-  }, [isLoaded, activeId, projectId, setActive]);
+  }, [isLoaded, isSignedIn, activeId, projectId, setActive]);
   return null;
 }

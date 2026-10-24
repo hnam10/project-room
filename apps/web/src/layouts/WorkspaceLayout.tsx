@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useParams, useSearchParams } from 'react-
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
 import { useFeedback } from '../components/Feedback';
-import { AccountButton, ActiveTeamSync, InviteButton, TeamSwitcher } from '../features/account/ClerkAccount';
+import { AccountButton, InviteButton, TeamSwitcher } from '../features/account/ClerkAccount';
 import { DetachedChat } from '../features/dock/DetachedChat';
 import { ChannelDialog } from '../features/chat/ChannelDialog';
 import { ChatWindowProvider } from '../state/chatWindow';
@@ -37,7 +37,6 @@ export function WorkspaceLayout() {
   const { projectId = '' } = useParams();
   return (
     <WorkspaceProvider projectId={projectId}>
-      <ActiveTeamSync projectId={projectId} />
       <ChatWindowProvider projectId={projectId}>
         <Shell />
       </ChatWindowProvider>
