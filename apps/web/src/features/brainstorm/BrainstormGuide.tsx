@@ -21,19 +21,18 @@ interface GuideStep {
 function brainstormGuideSteps(ideas: Idea[], suggestions: Suggestion[]): GuideStep[] {
   const steps: GuideStep[] = [];
   const problem = ideas.find((item) => item.kind === 'problem');
-  if (problem && hasResearchableDetail(problem)) {
+  if (problem) {
     const explored = suggestions.some(
       (suggestion) =>
         suggestion.ideaId === problem.id &&
         suggestion.brainstormTrigger === 'problem_created' &&
-        suggestion.title.startsWith('Brainstorm checked:') &&
-        suggestion.createdAt >= problem.updatedAt,
+        suggestion.title.startsWith('Brainstorm checked:'),
     );
     if (!explored)
       steps.push({
         trigger: 'problem_created',
         title: `Explore ${problem.title}`,
-        text: 'Suggest a direct option or a plan that fits the topic. Product directions can include related web research.',
+        text: 'Research this topic and prepare a strategy before adding ideas.',
         ideaId: problem.id,
         version: problem.updatedAt,
       });
@@ -95,7 +94,7 @@ export function BrainstormGuide({
   const attempted = useRef(new Set<string>());
   const steps = brainstormGuideSteps(ideas, suggestions);
   const latestIdea = [...ideas].reverse().find((idea) => idea.kind === 'idea' && hasResearchableDetail(idea));
-  const problem = ideas.find((idea) => idea.kind === 'problem' && hasResearchableDetail(idea));
+  const problem = ideas.find((idea) => idea.kind === 'problem');
   const manualTarget = problem ?? latestIdea;
 
   useEffect(() => {
@@ -124,15 +123,15 @@ export function BrainstormGuide({
     <section className="brainstorm-guide" aria-labelledby="brainstorm-guide-title">
       <div className="brainstorm-guide-head">
         <div>
-          <strong id="brainstorm-guide-title">Explore with AI</strong>
-          <p>Get options, product ideas, or strategies that fit your topic. Product concepts may also show relevant web examples.</p>
+          <strong id="brainstorm-guide-title">{busy ? 'Researching this topic…' : 'Research the topic'}</strong>
+          <p>AI summarizes relevant sources and proposes a strategy. Your team reviews them and adds ideas.</p>
         </div>
         <button
           className="btn sm"
           disabled={busy || !manualTarget}
           onClick={() => manualTarget && onRun({ trigger: 'manual', ideaId: manualTarget.id })}
         >
-          <Icon name="sparkle" /> Explore now
+          <Icon name="sparkle" /> {busy ? 'Working…' : 'Research again'}
         </button>
       </div>
       {steps.length > 0 && (

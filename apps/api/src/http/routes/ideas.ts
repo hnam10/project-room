@@ -18,6 +18,7 @@ import { runBrainstormAction } from '../../services/brainstorm.js';
 import { isSignificantIdeaChange } from '../../services/idea-change.js';
 import { removeIdea } from '../../services/idea-deletion.js';
 import { ctx } from '../context.js';
+import { resetTopic } from '../../repositories/brainstorm-topics.js';
 
 export const ideasRouter = Router({ mergeParams: true });
 
@@ -33,6 +34,10 @@ ideasRouter.post('/', async (req, res) => {
 ideasRouter.post('/actions', async (req, res) => {
   const { project } = ctx(res);
   res.status(201).json(await runBrainstormAction(project.id, brainstormActionSchema.parse(req.body)));
+});
+
+ideasRouter.post('/:ideaId/clear-ideas', async (req, res) => {
+  res.json(await resetTopic(ctx(res).project.id, req.params.ideaId, 'ideas'));
 });
 
 ideasRouter.patch('/:ideaId', async (req, res) => {

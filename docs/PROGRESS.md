@@ -5,6 +5,16 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-23 — **Topic-based brainstorm boards.** Multiple topic tabs keep ideas, research, strategies
+  and pending AI drafts separate. A topic is required; its initial preparation researches relevant sources
+  and proposes a strategy before enabling idea entry. Missing research is reported honestly. Confirmed
+  topic edits/deletion clear that board; Clear ideas preserves research and strategies. Existing tasks
+  and decisions remain. Topic versions reject AI results arriving after a reset, and concurrent research
+  requests share one operation. Chat/meeting topic approvals add tabs; inbox ideas choose a topic on
+  approval. Older board data is migrated into a topic once, without deleting it. Verified two topic tabs,
+  live sourced research, a strategy draft, isolated idea entry and clear/edit confirmations in Edge.
+  All 191 tests, lint and typecheck pass; the web production build passes.
+
 - 2026-10-23 — **Organization switching stays in sync.** URL-to-Clerk synchronization runs once per
   project URL change above the signed-in gate, so the gate's transition cannot reactivate the previous
   team. Project changes remount workspace data and UI together, discarding old messages and channel
@@ -168,6 +178,11 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
+- Brainstorm topic selection is a browser preference; each browser may work on a different topic.
+  Topic resets intentionally discard that board's drafts and cards; there is no board undo/history yet.
+- Current local validation: `npm run check` stops at existing formatting drift in 140 unrelated files.
+  The root production build compiles shared/API TypeScript, then stops at the API's Unix `cp` command
+  on Windows; the web production build succeeds independently.
 - Organization-switching checks pass individually, but `npm run check` still stops at the existing
   repository-wide formatting baseline (171 files after formatting the three changed web files).
 
@@ -229,6 +244,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Mind Map and Notes tabs are placeholders.
 
 ## Decision log
+
+- 2026-10-23 — **Each brainstorm topic owns a board.** Topic edits reset its content instead of mixing
+  old context into a new question. Clear-ideas keeps research/strategies, and versioned AI writes prevent
+  cleared content from returning. Chat/meeting topics add tabs rather than silently replacing a board.
 
 - 2026-10-23 — **Schema defaults are `DEFAULT ALWAYS`.** A record created before a field existed holds NONE, and
   plain DEFAULT only fills it on CREATE, so every later UPDATE failed (500 approving an older idea suggestion).

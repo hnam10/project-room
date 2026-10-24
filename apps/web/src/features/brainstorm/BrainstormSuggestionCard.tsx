@@ -8,7 +8,9 @@ import { useWorkspace } from '../../state/workspace';
 import { IdeaDetails } from './IdeaDetails';
 
 export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
-  const { projectId, applyRecord, reload } = useWorkspace();
+  const { projectId, applyRecord, reload, snapshot } = useWorkspace();
+  const topics = snapshot?.ideas.filter((idea) => idea.kind === 'problem') ?? [];
+  const [topicId, setTopicId] = useState(suggestion.topicId ?? (topics.length === 1 ? topics[0]!.id : ''));
   const { toast, toastError } = useFeedback();
   const draft = suggestion.ideaDraft;
   const [form, setForm] = useState<IdeaDraft>(draft ?? { title: '', description: '', theme: IDEA_THEME_CHOICES[0] });
@@ -36,7 +38,7 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
     setBusy(true);
     try {
       await api.updateSuggestion(projectId, suggestion.id, { ideaDraft: form });
-      applyRecord('suggestion', await api.approveSuggestion(projectId, suggestion.id));
+      applyRecord('suggestion', await api.approveSuggestion(projectId, suggestion.id, topicId ? { topicId } : {}));
       reload();
       toast(suggestion.ideaId ? 'Idea updated from AI draft' : `“${form.title}” added to Brainstorm`);
       setEditing(false);
@@ -87,12 +89,26 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
             <button type="button" className="btn" onClick={() => setEditing(false)}>
               Cancel
             </button>
-            <button className="btn primary" disabled={busy || !form.title.trim()}>
+            <button className="btn primary" disabled={busy || !form.title.trim() || (!suggestion.ideaId && !topicId)}>
               {suggestion.ideaId ? 'Update idea' : 'Add to Brainstorm'}
             </button>
           </>
         }
       >
+        {!suggestion.topicId && !suggestion.ideaId && (
+          <label className="form-row">
+            Topic
+            <select value={topicId} onChange={(event) => setTopicId(event.target.value)} required>
+              <option value="">Choose a topic first</option>
+              {topics.map((topic) => (
+                <option key={topic.id} value={topic.id}>
+                  {topic.title}
+                </option>
+              ))}
+            </select>
+            {!topics.length && <small>Set a topic in Brainstorm before approving this idea.</small>}
+          </label>
+        )}
         <label className="form-row">
           Title
           <input value={form.title} maxLength={80} onChange={(event) => setForm({ ...form, title: event.target.value })} />

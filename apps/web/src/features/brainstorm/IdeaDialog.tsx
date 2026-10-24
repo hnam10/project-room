@@ -10,16 +10,21 @@ export function IdeaDialog({
   defaultTheme,
   kind = 'idea',
   idea,
+  topicId,
+  onSaved,
   onClose,
 }: {
   open: boolean;
   defaultTheme: IdeaTheme;
   kind?: 'problem' | 'idea';
   idea?: Idea | null;
+  topicId?: string;
+  onSaved?: (idea: Idea) => void;
   onClose: () => void;
 }) {
-  const { projectId, applyRecord } = useWorkspace();
-  const { toast, toastError } = useFeedback();
+  const { projectId, applyRecord, reload } = useWorkspace();
+  const { toast, toastError, confirm } = useFeedback();
+  const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [theme, setTheme] = useState<IdeaTheme>(defaultTheme);
@@ -39,18 +44,32 @@ export function IdeaDialog({
   }
 
   const save = async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || saving) return;
+    if (
+      idea &&
+      kind === 'problem' &&
+      (title.trim() !== idea.title || description.trim() !== idea.description) &&
+      !(await confirm({
+        title: 'Change topic and clear its board?',
+        text: 'This clears all ideas, research, strategies and pending drafts for this topic. Other topics and tasks already on the task board stay in place.',
+        okLabel: 'Change and clear',
+      }))
+    )
+      return;
+    setSaving(true);
     try {
-      applyRecord(
-        'idea',
-        idea
-          ? await api.updateIdea(projectId, idea.id, { title: title.trim(), description: description.trim(), theme })
-          : await api.createIdea(projectId, { title: title.trim(), description: description.trim(), theme, kind }),
-      );
-      toast(idea ? 'Updated' : kind === 'problem' ? 'Central problem added' : 'Idea added');
+      const saved = idea
+        ? await api.updateIdea(projectId, idea.id, { title: title.trim(), description: description.trim(), theme })
+        : await api.createIdea(projectId, { title: title.trim(), description: description.trim(), theme, kind, topicId });
+      applyRecord('idea', saved);
+      if (kind === 'problem') reload();
+      onSaved?.(saved);
+      toast(idea ? 'Updated' : kind === 'problem' ? 'Topic added' : 'Idea added');
       onClose();
     } catch (error) {
       toastError(error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -66,7 +85,7 @@ export function IdeaDialog({
           <button type="button" className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn primary">
+          <button type="submit" className="btn primary" disabled={saving || !title.trim()}>
             {idea ? 'Save changes' : kind === 'problem' ? 'Set topic' : 'Add idea'}
           </button>
         </>

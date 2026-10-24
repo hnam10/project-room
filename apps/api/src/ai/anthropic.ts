@@ -304,7 +304,8 @@ ${research.map((result) => `<result url="${result.url}" title="${result.title}">
 
   async function facilitateBrainstorm(input: FacilitateInput): Promise<FacilitateResult> {
     const goals: Record<FacilitateInput['trigger'], string> = {
-      problem_created: 'Propose one concrete idea or strategy that addresses this problem, if the problem has enough detail.',
+      problem_created:
+        'Research preparation: summarize relevant evidence and offer a practical strategy for exploring this topic. Help the team identify constraints, compare options and test assumptions. Do not propose direct solution ideas yet: members add those after reviewing the research and strategy.',
       first_idea: 'Propose one distinct direction that builds on the newest idea and the central problem, if useful.',
       multiple_ideas: 'Find specific overlaps, differences, or possible combinations. Propose at most one combined idea if useful.',
       research_completed: 'Suggest a concrete improvement grounded in the supplied research. A new idea draft may express it.',
