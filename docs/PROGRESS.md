@@ -5,6 +5,11 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Meeting and brainstorm UI polish.** The transcript / AI suggestions divider in a live meeting
+  drags to resize (reuses the dock's `ResizeHandle`; double-click resets). Meetings are English-only: the
+  Korean option and the language picker are gone and the default is `en-US`. The "Brainstorming ideas"
+  wall (heading, AI idea drafts, Add idea hover) is yellow like its tickets; the rest stays purple.
+
 - 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
   idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
 
