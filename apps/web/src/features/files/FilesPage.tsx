@@ -74,10 +74,11 @@ export function FilesPage() {
     const ok = await confirm({ title: 'Delete file', text: `Delete “${file.name}” for the whole project?`, okLabel: 'Delete' });
     if (!ok) return;
     setDeletingId(file.id);
+    applyRecord('file', file, true);
     try {
       await api.deleteFile(projectId, file.id);
-      applyRecord('file', file, true);
     } catch (error) {
+      applyRecord('file', file);
       toastError(error);
     } finally {
       setDeletingId(null);
@@ -162,7 +163,9 @@ export function FilesPage() {
           })}
         </ul>
       ) : (
-        <div className="empty-state">No files yet. Upload a spec, a slide deck, or anything the team needs in one place.</div>
+        <div className="empty-state">
+          <p>No files yet. Upload a spec, a slide deck, or anything the team needs in one place.</p>
+        </div>
       )}
     </div>
   );
