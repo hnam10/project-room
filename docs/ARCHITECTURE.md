@@ -197,8 +197,10 @@ Deleting a file deletes the Agent Memory document too. "Ask the project" still a
 
 ## Web app
 
-- Routes (`App.tsx`): `/p/:projectId/{board,chat,meeting,brainstorm,decisions,calendar,files,overview,team,settings}`
-  inside `WorkspaceLayout`; `/p/:projectId/popout/chat` is the standalone chat window.
+- Routes (`App.tsx`): `/p/:projectId/{board,chat,meeting,brainstorm,decisions,calendar,files,overview,settings}`
+  inside `WorkspaceLayout`; `/p/:projectId/popout/chat` is the standalone chat window. `/team` redirects to
+  `settings`. Members and roles belong there; workload stays on the planned Overview page. The sidebar
+  lists the working pages plus Settings. Overview has no sidebar item until that dashboard exists.
 - Calendar (`features/calendar/`): tasks that have a due date, grouped into Monday-start weeks. This week
   is listed first. Each week is seven columns: the weekday sits above the date, and that day's tasks stack
   underneath. Tasks with no due date stay in a list beside the weeks. The project deadline is a chip in the

@@ -29,7 +29,6 @@ const SIDE_NAV: [string, string, IconName][] = [
   ['decisions', 'Decisions', 'flag'],
   ['calendar', 'Calendar', 'calendar'],
   ['files', 'Files', 'file'],
-  ['team', 'Team', 'users'],
   ['settings', 'Settings', 'settings'],
 ];
 

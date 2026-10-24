@@ -294,6 +294,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-24 — **Team is a section of Settings, not its own sidebar item.** Members and roles are project
+  administration, and the sidebar was already a long list of pages. Workload stays on the planned Overview
+  page. `/team` redirects to `/settings`.
 - 2026-10-24 — **An empty meeting ends itself; no "End for everyone".** A room nobody is in has nothing to keep
   live. Explicit leave ends at once; a dropped socket waits 30s so a refresh or blip doesn't end the meeting.
 - 2026-10-23 — **Each brainstorm topic owns a board.** Topic edits reset its content instead of mixing
