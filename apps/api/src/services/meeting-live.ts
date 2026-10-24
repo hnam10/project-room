@@ -71,7 +71,7 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
           ...base,
           kind: 'action_items',
           title: `${n} action item${n === 1 ? '' : 's'} from the meeting`,
-          reason: 'Claude heard these commitments in the meeting.',
+          reason: 'The AI heard these commitments in the meeting.',
           items,
           sourceLineId: result.actionItems[0]!.sourceLineId,
           cite: cite(result.actionItems[0]!.sourceLineId),

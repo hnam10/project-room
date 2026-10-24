@@ -14,7 +14,7 @@ function mealOption(existingTitles: string[]) {
 }
 
 // Rule-based stand-in for a model: phrase matching only. It never calls an external service.
-// It is used only when ANTHROPIC_API_KEY is missing, and the UI labels it as mock.
+// It is used only when OPENAI_API_KEY is missing, and the UI labels it as mock.
 
 const URGENT = /\b(friday|deadline|due|tonight|tomorrow|asap|urgent)\b/i;
 const COMMITMENT =

@@ -1,12 +1,28 @@
+import { mkdir, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import type { Decision, Idea, MemoryAnswer, ServerMessage, Suggestion, Task, WorkspaceSnapshot } from '@project-room/shared';
+import {
+  MAX_FILE_BYTES,
+  type Decision,
+  type Idea,
+  type MemoryAnswer,
+  type Message,
+  type Project,
+  type ProjectFile,
+  type ServerMessage,
+  type Suggestion,
+  type Task,
+  type WorkspaceSnapshot,
+} from '@project-room/shared';
 import { createApp } from './app.js';
+import { config } from './config.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
+import { createFile } from './repositories/files.js';
+import { readStoredFile, removeStoredFile, storedFilePath, writeStoredFile } from './services/file-store.js';
 
 let server: Server;
 let hub: RealtimeHub;
@@ -25,6 +41,7 @@ afterAll(async () => {
   await hub.close();
   await new Promise((resolve) => server.close(resolve));
   await closeDb();
+  await rm(config.filesDir, { recursive: true, force: true });
 });
 
 const api = async <T>(path: string, init: RequestInit & { member?: string } = {}) => {
@@ -60,6 +77,7 @@ describe('workspace API', () => {
     const { status, body } = await api<WorkspaceSnapshot>('/projects/hackathon/snapshot');
     expect(status).toBe(200);
     expect(body.tasks).toHaveLength(15);
+    expect(body.files).toEqual([]);
     expect(body.channels.map((c) => c.name)).toContain('general');
     expect(body.suggestions.find((s) => s.id === 's1')?.items[0]?.assigneeId).toBe('jamie');
   });
@@ -234,6 +252,34 @@ describe('workspace API', () => {
     live.ws.close();
   });
 
+  it('answers a later @AI question from approved decisions without repeating suggestions already waiting', async () => {
+    const live = listen('hackathon');
+    await live.ready;
+
+    await api('/projects/hackathon/channels/hackathon-general/messages', {
+      method: 'POST',
+      body: JSON.stringify({ text: '@AI where do we host the demo?' }),
+    });
+
+    const reply = (await live.waitFor(
+      (e) =>
+        e.type === 'change' &&
+        e.table === 'message' &&
+        e.action === 'create' &&
+        e.record.authorId === 'ai' &&
+        e.record.text.includes('Fly.io'),
+    )) as Extract<ServerMessage, { table: 'message' }>;
+    expect(reply.record.suggestionId).toBeNull();
+    expect(reply.record.text).toContain('Mock AI');
+
+    const suggestions = await api<Suggestion[]>('/projects/hackathon/suggestions');
+    const pendingTitles = suggestions.body
+      .filter((suggestion) => suggestion.kind === 'action_items' && suggestion.status === 'pending')
+      .flatMap((suggestion) => suggestion.items.map((item) => item.title));
+    expect(pendingTitles).toEqual(['Implement password reset flow', 'Design onboarding screens in Figma', 'Decide which database to use']);
+    live.ws.close();
+  });
+
   it('requires an explicit assignee to approve a risk suggestion', async () => {
     expect((await api('/projects/hackathon/suggestions/s3/approve', { method: 'POST', body: '{}' })).status).toBe(409);
     const ok = await api<Suggestion>('/projects/hackathon/suggestions/s3/approve', {
@@ -292,4 +338,125 @@ describe('workspace API', () => {
     expect(first.body.task.sourceKind).toBe('idea');
     expect((await api('/projects/hackathon/ideas/i5/convert', { method: 'POST' })).status).toBe(409);
   });
+
+  it('uploads a project file, shares it with members, and deletes it', async () => {
+    const live = listen('hackathon');
+    await live.ready;
+
+    const notes = Buffer.from('demo notes');
+    const created = await uploadFile('계획.txt', notes, { type: 'text/plain' });
+    expect(created.status).toBe(201);
+    const file = created.body as ProjectFile;
+    expect(file.name).toBe('계획.txt');
+    expect(file.size).toBe(notes.length);
+    expect(file.uploadedById).toBe('alex');
+    expect(file).not.toHaveProperty('bytes');
+
+    await live.waitFor((e) => e.type === 'change' && e.table === 'file' && e.action === 'create' && e.record.id === file.id);
+
+    const listed = await api<ProjectFile[]>('/projects/hackathon/files');
+    expect(listed.body.map((item) => item.id)).toContain(file.id);
+
+    const sneaky = await uploadFile('../../etc/passwd', Buffer.from('nope'));
+    expect(sneaky.status).toBe(201);
+    expect((sneaky.body as ProjectFile).name).toBe('passwd');
+
+    const download = await fetch(`${base}/api/projects/hackathon/files/${file.id}/download`, { headers: { 'x-member-id': 'jamie' } });
+    expect(download.status).toBe(200);
+    expect(download.headers.get('content-type')).toContain('text/plain');
+    expect(download.headers.get('content-disposition')).toContain('attachment');
+    expect(download.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(Buffer.from(await download.arrayBuffer()).equals(notes)).toBe(true);
+
+    expect((await uploadFile('..', Buffer.from('x'))).status).toBe(400);
+    expect((await uploadFile('empty.txt', Buffer.alloc(0))).status).toBe(400);
+    expect((await uploadFile('big.bin', Buffer.alloc(MAX_FILE_BYTES + 1))).status).toBe(413);
+    expect((await uploadFile('secret.txt', Buffer.from('no'), { member: 'stranger' })).status).toBe(403);
+
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(204);
+    await live.waitFor((e) => e.type === 'change' && e.table === 'file' && e.action === 'delete' && e.record.id === file.id);
+    const gone = await fetch(`${base}/api/projects/hackathon/files/${file.id}/download`, { headers: { 'x-member-id': 'alex' } });
+    expect(gone.status).toBe(404);
+    live.ws.close();
+  });
+
+  it('posts an uploaded file into the channel and rejects a file from outside the project', async () => {
+    const created = await uploadFile('notes.txt', Buffer.from('hello'));
+    expect(created.status).toBe(201);
+    const file = created.body as ProjectFile;
+
+    const posted = await api<Message>('/projects/hackathon/channels/hackathon-general/messages', {
+      method: 'POST',
+      body: JSON.stringify({ text: file.name, fileId: file.id }),
+    });
+    expect(posted.status).toBe(201);
+    expect(posted.body.fileId).toBe(file.id);
+    expect((await api<ProjectFile[]>('/projects/hackathon/files')).body.map((item) => item.id)).toContain(file.id);
+
+    const missing = await api('/projects/hackathon/channels/hackathon-general/messages', {
+      method: 'POST',
+      body: JSON.stringify({ text: 'missing', fileId: 'missing-file' }),
+    });
+    expect(missing.status).toBe(404);
+
+    await createFile('other', 'alex', { id: 'other-chat-file', name: 'private.txt', size: 1, contentType: 'text/plain' });
+    const foreign = await api('/projects/hackathon/channels/hackathon-general/messages', {
+      method: 'POST',
+      body: JSON.stringify({ text: 'private.txt', fileId: 'other-chat-file' }),
+    });
+    expect(foreign.status).toBe(404);
+  });
+
+  it('keeps the file listed after disk removal fails and allows a DELETE retry', async () => {
+    const bytes = Buffer.from('retry me');
+    const created = await uploadFile('retry.txt', bytes);
+    expect(created.status).toBe(201);
+    const file = created.body as ProjectFile;
+    const stored = storedFilePath('hackathon', file.id);
+    // A directory at the file path makes removal fail without depending on OS permissions.
+    await removeStoredFile('hackathon', file.id);
+    await mkdir(stored);
+
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(500);
+    expect((await api<ProjectFile[]>('/projects/hackathon/files')).body).toContainEqual(file);
+
+    await rm(stored, { recursive: true });
+    await writeStoredFile('hackathon', file.id, bytes);
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(204);
+    expect((await api<ProjectFile[]>('/projects/hackathon/files')).body).not.toContainEqual(file);
+    expect(await readStoredFile('hackathon', file.id)).toBeNull();
+  });
+
+  it('deletes metadata even when the stored bytes are already missing', async () => {
+    const created = await uploadFile('missing.txt', Buffer.from('gone'));
+    expect(created.status).toBe(201);
+    const file = created.body as ProjectFile;
+    await removeStoredFile('hackathon', file.id);
+
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(204);
+    expect((await api<ProjectFile[]>('/projects/hackathon/files')).body).not.toContainEqual(file);
+  });
+
+  it('checks file ownership before touching stored bytes', async () => {
+    const file = await createFile('other', 'alex', { id: 'other-file', name: 'private.txt', size: 1, contentType: 'text/plain' });
+    const bytes = Buffer.from('keep');
+    await writeStoredFile('hackathon', file.id, bytes);
+
+    expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(404);
+    expect(await readStoredFile('hackathon', file.id)).toEqual(bytes);
+  });
 });
+
+async function uploadFile(name: string, bytes: Buffer, options: { member?: string; type?: string } = {}) {
+  const res = await fetch(`${base}/api/projects/hackathon/files`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/octet-stream',
+      'x-file-name': encodeURIComponent(name),
+      'x-file-type': options.type ?? 'application/octet-stream',
+      'x-member-id': options.member ?? 'alex',
+    },
+    body: bytes,
+  });
+  return { status: res.status, body: (res.status === 204 ? null : await res.json()) as ProjectFile | { error: string } };
+}

@@ -33,7 +33,13 @@ const stopLive = startMeetingLive();
 server.listen(config.port, () => {
   const ai = getAiProvider();
   console.log(
-    `Project Room API on http://localhost:${config.port} (db: ${config.surrealUrl}, ai: ${ai.name}${ai.isMock ? ' — set ANTHROPIC_API_KEY for Claude' : ''})`,
+    `Project Room API on http://localhost:${config.port} (db: ${config.surrealUrl}, ai: ${ai.name}${
+      ai.isMock
+        ? ' — set OPENAI_API_KEY or NEBIUS_API_KEY for a real model'
+        : config.openaiApiKey
+          ? ''
+          : ' — set OPENAI_API_KEY to send @AI, Ask the project, and meeting summaries to OpenAI'
+    })`,
   );
 });
 

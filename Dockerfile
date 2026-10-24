@@ -1,5 +1,5 @@
-# One image serves the API and the built web app. SurrealDB runs embedded and keeps its files in /data:
-# mount a persistent volume there, or the database resets on every deploy.
+# One image serves the API and the built web app. SurrealDB runs embedded and keeps its files in /data,
+# and uploaded project files go to /data/files. Mount a persistent volume there, or both reset on every deploy.
 #
 #   docker build --build-arg VITE_CLERK_PUBLISHABLE_KEY=pk_... -t project-room .
 #   docker run -p 4000:4000 -v project-room-data:/data --env-file apps/api/.env project-room
@@ -20,7 +20,8 @@ RUN npm run build
 
 ENV NODE_ENV=production \
     PORT=4000 \
-    SURREAL_URL=surrealkv:///data/project-room.db
+    SURREAL_URL=surrealkv:///data/project-room.db \
+    FILES_DIR=/data/files
 VOLUME /data
 EXPOSE 4000
 WORKDIR /app/apps/api
