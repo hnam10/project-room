@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { IDEA_THEME_CHOICES, type BrainstormActionInput, type Idea, type IdeaTheme } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
@@ -37,7 +37,10 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const [tab, setTab] = useState<IdeaTab>('ideas');
   const [theme, setTheme] = useState<IdeaTheme | 'all'>('all');
   const [dialog, setDialog] = useState<{ kind: 'problem' | 'idea'; idea?: Idea } | null>(null);
-  const [aiBusy, setAiBusy] = useState(false);
+  const runningTopics = useRef(new Set<string>());
+  const automaticAttempts = useRef(new Set<string>());
+  const [busyTopics, setBusyTopics] = useState<string[]>([]);
+  const aiBusy = !!problem && busyTopics.includes(problem.id);
 
   const pendingTopics = snapshot.suggestions.filter(
     (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic',
@@ -64,10 +67,12 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   ];
 
   const runAi = async (input: BrainstormActionInput, automatic = false) => {
-    setAiBusy(true);
+    if (!problem || runningTopics.current.has(problem.id)) return;
+    const topicId = problem.id;
+    runningTopics.current.add(topicId);
+    setBusyTopics((current) => [...current, topicId]);
     try {
-      if (!problem) return;
-      const drafts = await api.runBrainstormAction(projectId, { ...input, topicId: problem.id });
+      const drafts = await api.runBrainstormAction(projectId, { ...input, topicId });
       drafts.forEach((draft) => applyRecord('suggestion', draft));
       reload();
       if (!automatic) {
@@ -88,7 +93,8 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
     } catch (error) {
       if (!automatic) toastError(error);
     } finally {
-      setAiBusy(false);
+      runningTopics.current.delete(topicId);
+      setBusyTopics((current) => current.filter((id) => id !== topicId));
     }
   };
 
@@ -294,7 +300,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                     <h2 id="brainstorm-support-title">Research &amp; strategies</h2>
                     <p>Review the evidence and choose an approach, then develop your own ideas below.</p>
                   </div>
-                  <BrainstormGuide key={problem.id} ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} />
+                  <BrainstormGuide ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} attempted={automaticAttempts} />
                   {suggestions.find((item) => item.kind === 'brainstorm_analysis' && item.title === 'Topic research status')?.proposal && (
                     <p className="brainstorm-research-status" role="status">
                       {suggestions.find((item) => item.title === 'Topic research status')?.proposal}

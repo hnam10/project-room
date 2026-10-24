@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Stable research controls across topic tabs.** Research loading state belongs to each
+  topic, so background work on another board does not flash Working on the selected board. The guide
+  keeps its attempted research states across topic and view switches, and duplicate in-flight requests
+  are blocked. Checked switching to Mind Map/Notes and back on an existing topic in Edge. All 195 tests,
+  lint, typecheck and the web build pass. Full check remains blocked by existing repository formatting drift.
+
 - 2026-10-23 — **Simpler brainstorm header.** Removed the numbered workflow strip. Topic tabs and
   New topic appear only after a topic exists; the empty board uses Set topic as its single entry point.
 
