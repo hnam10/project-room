@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { meetingsApi } from '../api/meetings';
 import { useFeedback } from '../components/Feedback';
 import { Icon } from '../components/Icon';
+import { useAttachFiles, useFileDrop } from '../features/chat/useAttachFiles';
 import { ResizeHandle } from '../features/dock/ResizeHandle';
 import { ConsentDialog } from '../features/meeting/ConsentDialog';
 import { MeetingAiPanel } from '../features/meeting/MeetingAiPanel';
@@ -27,6 +28,10 @@ export function MeetingPage() {
   const [title, setTitle] = useState('');
   const [aiWidth, setAiWidth] = useState<number | null>(null);
   const cols = useRef<HTMLDivElement>(null);
+  // Files shared in the meeting chat land in Files too; the line arrives through realtime like any other.
+  const canChat = !!meeting && joined && !stopped;
+  const files = useAttachFiles((file) => meetingsApi.postLine(projectId, meeting!.id, file.name, 'chat', file.id));
+  const { fileOver, dropProps } = useFileDrop(canChat, (dropped) => void files.attach(dropped));
 
   // Keeps both the transcript and the AI column readable (the first column is 220px).
   const resizeAi = (px: number) => {
@@ -143,7 +148,11 @@ export function MeetingPage() {
                 )}
                 <Participants meeting={meeting} localStream={call.localStream} remoteStreams={call.remoteStreams} muted={muted} />
               </section>
-              <section>
+              <section
+                className={fileOver ? 'file-over' : undefined}
+                data-drop-label="Drop files to share them in the meeting"
+                {...dropProps}
+              >
                 <h2>Transcript{call.listening ? ' · listening' : ''}</h2>
                 {meeting.previousMeetingId && <LastTimeCard projectId={projectId} previousId={meeting.previousMeetingId} />}
                 {joined && call.error && <p className="meeting-notice">{call.error}</p>}
@@ -154,7 +163,7 @@ export function MeetingPage() {
                 )}
                 {joined && stopped && <p className="meeting-notice">The meeting has ended, so transcribing stopped.</p>}
                 <TranscriptView lines={current.lines} interim={joined ? call.interim : ''} />
-                {joined && !stopped && <MeetingChat meetingId={meeting.id} />}
+                {canChat && <MeetingChat meetingId={meeting.id} files={files} />}
               </section>
               <ResizeHandle
                 orientation="vertical"

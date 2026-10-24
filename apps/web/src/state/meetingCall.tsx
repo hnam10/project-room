@@ -1,10 +1,10 @@
+import { splitLine } from '@project-room/shared';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useMatch } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { meetingsApi } from '../api/meetings';
 import { useFeedback } from '../components/Feedback';
 import { Icon } from '../components/Icon';
-import { splitLine } from '../features/meeting/splitLine';
 import { useClipTranscriber } from '../features/meeting/useClipTranscriber';
 import { useMeeting } from '../features/meeting/useMeeting';
 import { useMeshAudio } from '../features/meeting/useMeshAudio';

@@ -1,10 +1,12 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 import { AssistantTab } from './AssistantTab';
 import { Composer } from './Composer';
 import { DecisionsTab } from './DecisionsTab';
 import { MessageList } from './MessageList';
+import { useAttachFiles, useFileDrop } from './useAttachFiles';
 
 export type ChatTab = 'chat' | 'assistant' | 'decisions';
 
@@ -21,11 +23,16 @@ export function ChatPanel(props: {
   children?: ReactNode;
   initialTab?: ChatTab;
 }) {
-  const { activeChannelId, setActiveChannelId } = useWorkspace();
+  const { projectId, activeChannelId, setActiveChannelId, applyRecord } = useWorkspace();
   const { channels, suggestions } = useSnapshot();
   const [tab, setTab] = useState<ChatTab>(props.initialTab ?? 'chat');
   const panel = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
+  const files = useAttachFiles(async (file) =>
+    applyRecord('message', await api.sendMessage(projectId, activeChannelId!, file.name, file.id)),
+  );
+  // Dropping files anywhere on the chat shares them in the open channel, like the composer's + button.
+  const { fileOver, dropProps } = useFileDrop(tab === 'chat' && !!activeChannelId, (dropped) => void files.attach(dropped));
   const pendingInsights = suggestions.filter((s) => s.status === 'pending' && (s.kind === 'decision' || s.kind === 'risk')).length;
 
   const tabButton = (id: ChatTab, label: ReactNode) => (
@@ -35,7 +42,13 @@ export function ChatPanel(props: {
   );
 
   return (
-    <div ref={panel} className={`panel chat-panel ${props.className ?? ''}`} style={props.style}>
+    <div
+      ref={panel}
+      className={`panel chat-panel ${props.className ?? ''}${fileOver ? ' file-over' : ''}`}
+      style={props.style}
+      data-drop-label="Drop files to share them in this channel"
+      {...dropProps}
+    >
       <div
         className="panel-tabs chat-tabs"
         role="tablist"
@@ -83,7 +96,7 @@ export function ChatPanel(props: {
         {tab === 'assistant' && <AssistantTab onOpenDecisions={() => setTab('decisions')} />}
         {tab === 'decisions' && <DecisionsTab />}
       </div>
-      {tab === 'chat' && activeChannelId && <Composer channelId={activeChannelId} />}
+      {tab === 'chat' && activeChannelId && <Composer channelId={activeChannelId} files={files} />}
       {props.children}
     </div>
   );

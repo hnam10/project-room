@@ -10,6 +10,7 @@ import {
   type SuggestionStatus,
 } from '@project-room/shared';
 import { mockMeetingAi } from './mock-meeting.js';
+import type { FileExcerpt } from './provider.js';
 import { providerName, routedModels, type RoutedModel } from './routing.js';
 import { createStructuredMeetingAi } from './structured-meeting.js';
 import type { MemberBrief } from './provider.js';
@@ -27,6 +28,8 @@ export interface MeetingTickInput {
   /** Titles of suggestions already made, so the AI doesn't repeat them. */
   alreadySuggested: string[];
   members: MemberBrief[];
+  /** Passages from files shared in the meeting chat, found by Agent Memory. Empty when none were shared. */
+  files?: FileExcerpt[];
 }
 
 export interface MeetingTickResult {

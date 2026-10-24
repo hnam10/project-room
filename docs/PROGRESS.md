@@ -53,6 +53,15 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   live sourced research, a strategy draft, isolated idea entry and clear/edit confirmations in Edge.
   All 191 tests, lint and typecheck pass; the web production build passes.
 
+- 2026-10-24 — **Drop files into chat and meetings.** Dropping files on the chat panel shares them in the open
+  channel, like the + button. In a live meeting, the meeting chat gets a + button and the transcript column takes
+  dropped files: each upload lands in Files and joins the transcript as a chat line with `fileId` (text = file name,
+  shown as a download chip). Once a file is shared, each live AI tick asks Agent Memory for passages matching the
+  new lines and passes the ones from this meeting's files as `<files>` (quotes still come from the transcript only).
+  The end-of-meeting summary sees file names, not passages. `@AI` in the meeting chat runs the same mention agent
+  as channel `@AI` over the last 40 transcript lines plus the meeting's files (latest text files read whole, other
+  types through Agent Memory) and posts the reply as `source: 'ai'` lines (speakerId = who asked). Live ticks skip
+  those lines; action items still arrive in the AI panel from the ticks.
 - 2026-10-24 — **Meeting chat.** Participants can type in a live meeting. A message is stored as a
   `transcript_line` with `source: 'chat'`, shows in the transcript with a chat tag, and the live AI and the
   summary read it like speech (tagged "(chat)"; cites say "Meeting chat"). One chat line is enough for an AI

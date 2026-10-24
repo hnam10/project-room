@@ -1,6 +1,6 @@
 import type { TranscriptLine, TranscriptSource } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
-import { rid } from '../db/records.js';
+import { rid, ridOrNull } from '../db/records.js';
 
 export async function createLine(
   projectId: string,
@@ -8,6 +8,7 @@ export async function createLine(
   speakerId: string,
   text: string,
   source: TranscriptSource = 'voice',
+  fileId: string | null = null,
 ): Promise<TranscriptLine> {
   const line = await queryOne<TranscriptLine>('CREATE ONLY transcript_line CONTENT $content', {
     content: {
@@ -16,6 +17,7 @@ export async function createLine(
       speakerId: rid('member', speakerId),
       text,
       source,
+      fileId: ridOrNull('file', fileId),
     },
   });
   if (!line) throw new Error('Transcript line creation returned nothing');
@@ -49,5 +51,13 @@ export function listLinesAfter(
       cursor: cursorLineId ? rid('transcript_line', cursorLineId) : undefined,
       limit,
     },
+  );
+}
+
+/** Files shared in this meeting's chat, oldest first. */
+export async function listMeetingFiles(projectId: string, meetingId: string): Promise<{ fileId: string; name: string }[]> {
+  return queryMany<{ fileId: string; name: string }>(
+    'SELECT fileId, text AS name, spokenAt FROM transcript_line WHERE projectId = $project AND meetingId = $meeting AND fileId != NULL ORDER BY spokenAt',
+    { project: rid('project', projectId), meeting: rid('meeting', meetingId) },
   );
 }
