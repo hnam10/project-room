@@ -7,7 +7,7 @@ import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { addProjectMember, ensureProject } from './repositories/projects.js';
-import { endExpiredMeetings } from './services/meetings.js';
+import { dropFromLiveMeeting, endExpiredMeetings } from './services/meetings.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
 
 let server: Server;
@@ -139,5 +139,23 @@ describe('meetings API', () => {
     const ended = await post(`/${started.body.id}/end`, 'alex');
     expect(ended.body).toMatchObject({ status: 'summarizing', participantIds: [] });
     expect(ended.body.endedAt).toBeTruthy();
+  });
+
+  it('ends the meeting when the last participant leaves', async () => {
+    const { body } = await post('', 'alex');
+    await post(`/${body.id}/join`, 'jamie');
+    expect((await post(`/${body.id}/leave`, 'jamie')).body).toMatchObject({ status: 'live', participantIds: ['alex'] });
+    expect((await post(`/${body.id}/leave`, 'alex')).body).toMatchObject({ status: 'summarizing', participantIds: [] });
+  });
+
+  it('a dropped last participant ends the meeting after the grace period unless someone rejoins', async () => {
+    const { body } = await post('', 'alex');
+    const dropping = dropFromLiveMeeting('hackathon', 'alex', 300);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // removed, still in the grace period
+    await post(`/${body.id}/join`, 'alex'); // a refresh rejoins
+    await dropping;
+    expect((await api<MeetingDetail>(`${M}/${body.id}`)).body.meeting.status).toBe('live');
+    await dropFromLiveMeeting('hackathon', 'alex', 0);
+    expect((await api<MeetingDetail>(`${M}/${body.id}`)).body.meeting.status).not.toBe('live');
   });
 });
