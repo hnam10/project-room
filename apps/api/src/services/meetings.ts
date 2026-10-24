@@ -1,4 +1,4 @@
-import type { Meeting, MeetingCreateInput, TranscriptLine } from '@project-room/shared';
+import type { Meeting, MeetingCreateInput, TranscriptLine, TranscriptSource } from '@project-room/shared';
 import { ConflictError, ForbiddenError } from '../db/records.js';
 import {
   addParticipant,
@@ -65,10 +65,16 @@ export async function addAudio(projectId: string, meetingId: string, memberId: s
   return text ? addLine(projectId, meetingId, memberId, text) : null;
 }
 
-export async function addLine(projectId: string, meetingId: string, memberId: string, text: string): Promise<TranscriptLine> {
+export async function addLine(
+  projectId: string,
+  meetingId: string,
+  memberId: string,
+  text: string,
+  source: TranscriptSource = 'voice',
+): Promise<TranscriptLine> {
   const meeting = await liveMeeting(projectId, meetingId);
   if (!meeting.participantIds.includes(memberId)) throw new ForbiddenError('Join the meeting to speak in it');
-  const line = await createLine(projectId, meetingId, memberId, text);
+  const line = await createLine(projectId, meetingId, memberId, text, source);
   for (const listener of lineListeners) {
     try {
       listener(meeting, line);

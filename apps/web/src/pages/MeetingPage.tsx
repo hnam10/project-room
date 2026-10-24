@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon';
 import { ResizeHandle } from '../features/dock/ResizeHandle';
 import { ConsentDialog } from '../features/meeting/ConsentDialog';
 import { MeetingAiPanel } from '../features/meeting/MeetingAiPanel';
+import { MeetingChat } from '../features/meeting/MeetingChat';
 import { LastTimeCard } from '../features/meeting/LastTimeCard';
 import { MeetingSummaryView } from '../features/meeting/MeetingSummaryView';
 import { MeetingTimer } from '../features/meeting/MeetingTimer';
@@ -304,6 +305,7 @@ export function MeetingPage() {
                 )}
                 {joined && stopped && <p className="meeting-notice">The meeting has ended, so transcribing stopped.</p>}
                 <TranscriptView lines={current.lines} interim={joined ? interim : ''} />
+                {joined && !stopped && <MeetingChat meetingId={meeting.id} />}
               </section>
               <ResizeHandle
                 orientation="vertical"

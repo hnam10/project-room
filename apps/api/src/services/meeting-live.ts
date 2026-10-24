@@ -1,4 +1,4 @@
-import type { ActionItem, Meeting, Suggestion } from '@project-room/shared';
+import type { ActionItem, Meeting, Suggestion, TranscriptLine } from '@project-room/shared';
 import { getMeetingAi, type MeetingAi, type MeetingTickInput } from '../ai/meeting.js';
 import { getMeeting, recordTick } from '../repositories/meetings.js';
 import { getProject, listMembers } from '../repositories/projects.js';
@@ -7,10 +7,12 @@ import { createSuggestion, listSuggestions } from '../repositories/suggestions.j
 import { listTasks } from '../repositories/tasks.js';
 import { listLinesAfter } from '../repositories/transcripts.js';
 import { onLine } from './meetings.js';
-import { shouldRun, type TriggerState } from './meeting-trigger.js';
+import { QUIET_WORDS, shouldRun, type TriggerState } from './meeting-trigger.js';
 import { proposeMeetingTopic } from './meeting-topic.js';
 
 const MAX_LINES = 200;
+/** The AI reads typed chat like speech; the tag tells it the line was typed. */
+export const speakerName = (name: string, line: Pick<TranscriptLine, 'source'>) => (line.source === 'chat' ? `${name} (chat)` : name);
 const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 /** Reads the new transcript, asks the AI, stores its proposals as suggestions. Never throws. */
@@ -31,7 +33,7 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
     ]);
     const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? 'Someone';
     const input: MeetingTickInput = {
-      lines: lines.map((l) => ({ id: l.id, speakerId: l.speakerId, speakerName: nameOf(l.speakerId), text: l.text })),
+      lines: lines.map((l) => ({ id: l.id, speakerId: l.speakerId, speakerName: speakerName(nameOf(l.speakerId), l), text: l.text })),
       runningSummary: meeting.runningSummary ?? '',
       carryOver: previous?.carryOver ?? [],
       ideas: ideas.map((i) => ({ id: i.id, title: i.title })),
@@ -44,7 +46,9 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
     const result = await ai.meetingTick(input);
     const cite = (lineId: string | null) => {
       const line = lines.find((l) => l.id === lineId);
-      return line ? `${nameOf(line.speakerId)} · Meeting · ${timeLabel(line.spokenAt)}` : null;
+      return line
+        ? `${nameOf(line.speakerId)} · ${line.source === 'chat' ? 'Meeting chat' : 'Meeting'} · ${timeLabel(line.spokenAt)}`
+        : null;
     };
     const base = { meetingId };
     const created: Suggestion[] = [];
@@ -128,6 +132,7 @@ function stateFor(meeting: Meeting) {
       newWords: 0,
       lastRunAt: null,
       lastLineAt: null,
+      lastLineChat: false,
       calls: meeting.usage.calls,
       inFlight: false,
       aiEnabled: meeting.aiEnabled,
@@ -162,11 +167,16 @@ export async function checkMeeting(meetingId: string, now = Date.now(), ai?: Mee
 /** Test hook: the current trigger state. */
 export const triggerState = (meetingId: string) => states.get(meetingId);
 
-/** Test hook: feed a line into the trigger state as the onLine listener does. */
-export function noteLine(meeting: Meeting, text: string, now = Date.now()): void {
+/**
+ * Test hook: feed a line into the trigger state as the onLine listener does. A typed chat line is a whole
+ * thought, so it alone is enough for a run after the (shorter) chat pause, however short it is.
+ */
+export function noteLine(meeting: Meeting, text: string, now = Date.now(), chat = false): void {
   const state = stateFor(meeting);
   state.newWords += text.trim().split(/\s+/).filter(Boolean).length;
+  if (chat) state.newWords = Math.max(state.newWords, QUIET_WORDS);
   state.lastLineAt = now;
+  state.lastLineChat = chat;
 }
 
 let started = false;
@@ -175,7 +185,7 @@ export function startMeetingLive(): () => void {
   if (started) return () => {};
   started = true;
   onLine((meeting, line) => {
-    noteLine(meeting, line.text);
+    noteLine(meeting, line.text, Date.now(), line.source === 'chat');
     void checkMeeting(meeting.id);
   });
   const timer = setInterval(() => {
