@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import type { Member, Task, TaskStatus } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
@@ -10,6 +10,7 @@ import {
   dayNumber,
   daysBetween,
   formatLong,
+  formatShort,
   parseIsoDate,
   relativeDay,
   startOfWeek,
@@ -53,18 +54,23 @@ function isWeekend(iso: string): boolean {
 
 export function CalendarPage() {
   const { project, tasks } = useSnapshot();
-  const { projectId, members, applyProject } = useWorkspace();
-  const { toastError } = useFeedback();
+  const { projectId, members, applyProject, applyRecord, isRecordRemoved } = useWorkspace();
+  const { toast, toastError } = useFeedback();
   const [dialog, setDialog] = useState<TaskDialogState>(null);
+  const [dropDay, setDropDay] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const today = todayIso();
   const [cursor, setCursor] = useState(today);
   const deadline = project.dueDate;
   const deadlineSaving = useRef(false);
+  const pendingTaskUpdates = useRef(new Map<string, symbol>());
   const [savingDeadline, setSavingDeadline] = useState(false);
 
   useEffect(() => {
+    const pending = pendingTaskUpdates.current;
     document.title = 'Calendar · Project Room';
     return () => {
+      pending.clear();
       document.title = 'Project Room';
     };
   }, []);
@@ -113,6 +119,46 @@ export function CalendarPage() {
   for (const list of byDay.values()) list.sort(compareTasks);
   undated.sort((a, b) => a.num - b.num);
 
+  async function assignDueDate(taskId: string, dueDate: string) {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task || task.dueDate === dueDate || isRecordRemoved('task', taskId)) return;
+    const request = Symbol();
+    pendingTaskUpdates.current.set(task.id, request);
+    const optimisticTask: Task = { ...task, dueDate };
+    applyRecord('task', optimisticTask);
+    try {
+      const saved = await api.updateTask(projectId, task.id, { dueDate });
+      if (pendingTaskUpdates.current.get(task.id) !== request || isRecordRemoved('task', task.id)) return;
+      applyRecord('task', saved);
+      toast(`#${task.num} due ${formatShort(dueDate)}`);
+    } catch (error) {
+      if (pendingTaskUpdates.current.get(task.id) !== request || isRecordRemoved('task', task.id)) return;
+      applyRecord('task', task);
+      toastError(error);
+    } finally {
+      if (pendingTaskUpdates.current.get(task.id) === request) pendingTaskUpdates.current.delete(task.id);
+    }
+  }
+
+  function dragOverDay(day: string, event: DragEvent) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropDay(day);
+  }
+
+  function dragLeaveDay(day: string, event: DragEvent<HTMLElement>) {
+    if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+    setDropDay((current) => (current === day ? null : current));
+  }
+
+  function dropOnDay(day: string, event: DragEvent) {
+    event.preventDefault();
+    const taskId = event.dataTransfer.getData('text/plain');
+    setDragging(false);
+    setDropDay(null);
+    if (taskId) void assignDueDate(taskId, day);
+  }
+
   const showRail = undated.length > 0;
   const weekStarts = weeksToShow(tasks, deadline, today, cursor);
   const thisWeek = startOfWeek(today);
@@ -124,7 +170,7 @@ export function CalendarPage() {
   const overdueDate = overdue.map((task) => task.dueDate).sort()[0];
 
   return (
-    <div className="page calendar-page">
+    <div className={`page calendar-page${dragging ? ' is-assigning' : ''}`}>
       <section className="page-head">
         <span className="page-emoji" aria-hidden="true">
           <Icon name="calendar" />
@@ -156,12 +202,32 @@ export function CalendarPage() {
             deadline={deadline}
             byDay={byDay}
             members={members}
+            dropDay={dropDay}
             onOpen={(task) => setDialog({ task })}
             onAdd={(dueDate) => setDialog({ preset: { dueDate } })}
+            onDragStart={() => setDragging(true)}
+            onDragEnd={() => {
+              setDragging(false);
+              setDropDay(null);
+            }}
+            onDragOverDay={dragOverDay}
+            onDragLeaveDay={dragLeaveDay}
+            onDropDay={dropOnDay}
           />
         </div>
 
-        {showRail && <CalendarRail undated={undated} members={members} onOpen={(task) => setDialog({ task })} />}
+        {showRail && (
+          <CalendarRail
+            undated={undated}
+            members={members}
+            onOpen={(task) => setDialog({ task })}
+            onDragStart={() => setDragging(true)}
+            onDragEnd={() => {
+              setDragging(false);
+              setDropDay(null);
+            }}
+          />
+        )}
       </div>
 
       <TaskDialog state={dialog} onClose={() => setDialog(null)} />
@@ -169,24 +235,83 @@ export function CalendarPage() {
   );
 }
 
-function CalendarRail({ undated, members, onOpen }: { undated: Task[]; members: Map<string, Member>; onOpen: (task: Task) => void }) {
+function CalendarRail({
+  undated,
+  members,
+  onOpen,
+  onDragStart,
+  onDragEnd,
+}: {
+  undated: Task[];
+  members: Map<string, Member>;
+  onOpen: (task: Task) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) {
   return (
     <aside className="calendar-rail" aria-label="Tasks with no due date">
       <section>
         <h2>No due date</h2>
+        <p className="rail-hint">Drag onto a day</p>
         <ul className="undated-list">
           {undated.map((task) => (
             <li key={task.id}>
-              <button type="button" onClick={() => onOpen(task)}>
+              <DraggableTask taskId={task.id} onOpen={() => onOpen(task)} onDragStart={onDragStart} onDragEnd={onDragEnd}>
                 <span className="num">#{task.num}</span>
                 <span className="undated-title">{task.title}</span>
                 <Avatar member={task.assigneeId ? members.get(task.assigneeId) : undefined} />
-              </button>
+              </DraggableTask>
             </li>
           ))}
         </ul>
       </section>
     </aside>
+  );
+}
+
+function DraggableTask({
+  taskId,
+  className,
+  onOpen,
+  onDragStart,
+  onDragEnd,
+  children,
+}: {
+  taskId: string;
+  className?: string;
+  onOpen: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  children: ReactNode;
+}) {
+  const dragged = useRef(false);
+  const [dragging, setDragging] = useState(false);
+  return (
+    <button
+      type="button"
+      draggable
+      className={[className, dragging ? 'dragging' : ''].filter(Boolean).join(' ')}
+      onDragStart={(event) => {
+        dragged.current = true;
+        setDragging(true);
+        event.dataTransfer.setData('text/plain', taskId);
+        event.dataTransfer.effectAllowed = 'move';
+        onDragStart();
+      }}
+      onDragEnd={() => {
+        setDragging(false);
+        onDragEnd();
+        window.setTimeout(() => {
+          dragged.current = false;
+        }, 0);
+      }}
+      onClick={() => {
+        if (dragged.current) return;
+        onOpen();
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -288,8 +413,14 @@ function WeekAgenda({
   deadline,
   byDay,
   members,
+  dropDay,
   onOpen,
   onAdd,
+  onDragStart,
+  onDragEnd,
+  onDragOverDay,
+  onDragLeaveDay,
+  onDropDay,
 }: {
   upcoming: string[];
   earlier: string[];
@@ -297,10 +428,29 @@ function WeekAgenda({
   deadline: string | null;
   byDay: Map<string, Task[]>;
   members: Map<string, Member>;
+  dropDay: string | null;
   onOpen: (task: Task) => void;
   onAdd: (day: string) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOverDay: (day: string, event: DragEvent) => void;
+  onDragLeaveDay: (day: string, event: DragEvent<HTMLElement>) => void;
+  onDropDay: (day: string, event: DragEvent) => void;
 }) {
-  const weekProps = { today, deadline, byDay, members, onOpen, onAdd };
+  const weekProps = {
+    today,
+    deadline,
+    byDay,
+    members,
+    dropDay,
+    onOpen,
+    onAdd,
+    onDragStart,
+    onDragEnd,
+    onDragOverDay,
+    onDragLeaveDay,
+    onDropDay,
+  };
   return (
     <div className="agenda">
       {upcoming.map((start) => (
@@ -324,16 +474,28 @@ function WeekSection({
   deadline,
   byDay,
   members,
+  dropDay,
   onOpen,
   onAdd,
+  onDragStart,
+  onDragEnd,
+  onDragOverDay,
+  onDragLeaveDay,
+  onDropDay,
 }: {
   start: string;
   today: string;
   deadline: string | null;
   byDay: Map<string, Task[]>;
   members: Map<string, Member>;
+  dropDay: string | null;
   onOpen: (task: Task) => void;
   onAdd: (day: string) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOverDay: (day: string, event: DragEvent) => void;
+  onDragLeaveDay: (day: string, event: DragEvent<HTMLElement>) => void;
+  onDropDay: (day: string, event: DragEvent) => void;
 }) {
   return (
     <section className={`agenda-week${start === startOfWeek(today) ? ' current' : ''}`} aria-label={weekRelation(start, today)}>
@@ -352,8 +514,14 @@ function WeekSection({
             deadline={deadline}
             tasks={byDay.get(day) ?? []}
             members={members}
+            dropTarget={dropDay === day}
             onOpen={onOpen}
             onAdd={onAdd}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onDragOver={onDragOverDay}
+            onDragLeave={onDragLeaveDay}
+            onDrop={onDropDay}
           />
         ))}
       </div>
@@ -367,16 +535,28 @@ function AgendaDay({
   today,
   deadline,
   members,
+  dropTarget,
   onOpen,
   onAdd,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: {
   day: string;
   tasks: Task[];
   today: string;
   deadline: string | null;
   members: Map<string, Member>;
+  dropTarget: boolean;
   onOpen: (task: Task) => void;
   onAdd: (day: string) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: (day: string, event: DragEvent) => void;
+  onDragLeave: (day: string, event: DragEvent<HTMLElement>) => void;
+  onDrop: (day: string, event: DragEvent) => void;
 }) {
   const isToday = day === today;
   const isDeadline = day === deadline;
@@ -389,11 +569,15 @@ function AgendaDay({
         isWeekend(day) ? 'weekend' : '',
         isDeadline ? 'deadline' : '',
         pastDeadline ? 'past' : '',
+        dropTarget ? 'drop-target' : '',
       ]
         .filter(Boolean)
         .join(' ')}
       aria-label={formatLong(day)}
       aria-current={isToday ? 'date' : undefined}
+      onDragOver={(event) => onDragOver(day, event)}
+      onDragLeave={(event) => onDragLeave(day, event)}
+      onDrop={(event) => onDrop(day, event)}
     >
       <header className="agenda-day-head">
         <div className="agenda-date">
@@ -414,11 +598,13 @@ function AgendaDay({
         {tasks.map((task) => {
           const overdue = !!task.dueDate && task.dueDate < today && task.status !== 'done';
           return (
-            <button
+            <DraggableTask
               key={task.id}
-              type="button"
+              taskId={task.id}
               className={`agenda-task${overdue ? ' overdue' : ''}${task.status === 'done' ? ' done' : ''}`}
-              onClick={() => onOpen(task)}
+              onOpen={() => onOpen(task)}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
             >
               <span className={`prio prio-${task.priority}`} aria-hidden="true" />
               <span className="agenda-task-title">{task.title}</span>
@@ -427,7 +613,7 @@ function AgendaDay({
                 <span>{STATUS_LABEL[task.status]}</span>
                 <Avatar member={task.assigneeId ? members.get(task.assigneeId) : undefined} />
               </span>
-            </button>
+            </DraggableTask>
           );
         })}
       </div>

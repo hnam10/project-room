@@ -5,6 +5,13 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Calendar scheduling ignores stale task requests.** Only the latest pending update per task
+  may apply its response or rollback; workspace deletion tombstones prevent either from restoring a deleted task.
+
+- 2026-10-24 — **Calendar tasks can be dragged onto a day.** Tasks with no due date, and tasks already on a day,
+  set or move `dueDate` by dropping on a day (`PATCH` the task). The day highlights while the task is over it.
+  Opening a task still uses the dialog. A drop on the task's current day does nothing.
+
 - 2026-10-24 — **The meeting follows you.** The call moved from `MeetingPage` to `MeetingCallProvider` in the
   workspace layout, so changing pages keeps the mic, audio and transcript going; a floating bar (live, title,
   mute, leave) shows off the meeting page. "End for everyone" is gone: the last participant leaving ends the
@@ -338,6 +345,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   only when they match a search result. AI ideas remain pending suggestions, and voting starts only after
   a separate member confirmation.
 
+- 2026-10-24 — **Dragging a task onto a calendar day sets its due date.** The task update already accepts `dueDate`,
+  so the calendar adds no table or route. A drop on the same day is ignored.
 - 2026-10-23 — **The deadline chip is the date control.** Clicking the date used to jump to the week, while a
   calendar icon opened the picker and × cleared it, so the chip looked like a tag. The chip now sets the
   date. Clear is a separate label. With no date, the whole chip opens the picker. It sits in the calendar header.
