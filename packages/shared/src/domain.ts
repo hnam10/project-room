@@ -77,6 +77,10 @@ export interface Task {
 export interface Idea {
   id: string;
   projectId: string;
+  /** Topics use kind=problem and have no parent; every board card belongs to one topic. */
+  topicId: string | null;
+  /** Incremented when a topic's board is reset, invalidating in-flight AI work. */
+  boardVersion: number;
   title: string;
   description: string;
   theme: IdeaTheme;
@@ -151,6 +155,8 @@ export interface ActionItem {
 export interface Suggestion {
   id: string;
   projectId: string;
+  topicId: string | null;
+  topicVersion: number | null;
   kind: SuggestionKind;
   status: SuggestionStatus;
   title: string;

@@ -123,6 +123,16 @@ interface Workspace {
 const WorkspaceContext = createContext<Workspace | null>(null);
 
 export function WorkspaceProvider({ projectId, children }: { projectId: string; children: ReactNode }) {
+  // A project change must discard snapshots, messages, channel selection and child
+  // UI together. Late requests from the old instance cannot update the new one.
+  return (
+    <ProjectWorkspace key={projectId} projectId={projectId}>
+      {children}
+    </ProjectWorkspace>
+  );
+}
+
+function ProjectWorkspace({ projectId, children }: { projectId: string; children: ReactNode }) {
   const { memberId } = useSession();
   const [state, dispatch] = useReducer(reducer, { snapshot: null, messages: {}, error: null });
   const [chosenChannelId, setActiveChannelId] = useState<string | null>(null);

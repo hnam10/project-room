@@ -224,7 +224,7 @@ async function replyToMention(projectId: string, channelId: string, channelName:
         reason: proposedTopic.reason,
         quote: proposedTopic.quote,
         ...citation,
-        ideaId: currentTopic?.id ?? null,
+        ideaId: null,
         ideaDraft: { title: proposedTopic.title, description: proposedTopic.description, theme: mode === 'product' ? 'Product' : 'Option' },
       });
       topicCreated = true;

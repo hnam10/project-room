@@ -9,6 +9,7 @@ import { startRealtime } from './realtime/hub.js';
 import { resumeMeetings } from './services/meeting-summary.js';
 import { startMeetingClock } from './services/meetings.js';
 import { startMeetingLive } from './services/meeting-live.js';
+import { migrateLegacyTopics } from './repositories/brainstorm-topics.js';
 
 // There is no anonymous mode: without Clerk keys anyone could act as anyone, so don't start at all.
 if (authMode !== 'clerk') {
@@ -17,6 +18,7 @@ if (authMode !== 'clerk') {
 }
 
 const db = await connectDb();
+await migrateLegacyTopics();
 if (config.seedOrgId && !(await getProject(config.seedOrgId))) {
   await seedDemoData({ projectId: config.seedOrgId });
   console.log(`Seeded demo project into Clerk organization ${config.seedOrgId}`);

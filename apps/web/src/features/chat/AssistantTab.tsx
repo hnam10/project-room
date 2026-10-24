@@ -7,6 +7,8 @@ import { useSession } from '../../state/session';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 import { BrainstormAnalysisCard } from '../brainstorm/BrainstormAnalysisCard';
 import { isCurrentWebSuggestion } from '../brainstorm/similarWebSuggestion';
+import { BrainstormSuggestionCard } from '../brainstorm/BrainstormSuggestionCard';
+import { BrainstormTopicSuggestionCard } from '../brainstorm/BrainstormTopicSuggestionCard';
 
 const KINDS: Record<'decision' | 'risk', { label: string; icon: IconName; color: string }> = {
   decision: { label: 'Decision', icon: 'flag', color: '#a06c00' },
@@ -18,7 +20,13 @@ export function AssistantTab({ onOpenDecisions }: { onOpenDecisions: () => void 
   const { me } = useSession();
   const { ideas, suggestions } = useSnapshot();
   const pending = suggestions.filter(
-    (s) => s.status === 'pending' && (s.kind === 'decision' || s.kind === 'risk' || isCurrentWebSuggestion(s, ideas, suggestions)),
+    (s) =>
+      s.status === 'pending' &&
+      (s.kind === 'decision' ||
+        s.kind === 'risk' ||
+        s.kind === 'idea' ||
+        s.kind === 'brainstorm_topic' ||
+        isCurrentWebSuggestion(s, ideas, suggestions)),
   );
 
   return (
@@ -26,12 +34,16 @@ export function AssistantTab({ onOpenDecisions }: { onOpenDecisions: () => void 
       {me?.ai.isMock && (
         <div className="mock-note">
           <Icon name="sparkle" />
-          Mock AI — no OPENAI_API_KEY is set, so suggestions come from simple local rules. Nothing changes until you confirm.
+          Mock AI — set OPENAI_API_KEY or NEBIUS_API_KEY for a real model. Nothing changes until you confirm.
         </div>
       )}
       {pending.length ? (
         pending.map((s) =>
-          s.kind === 'brainstorm_analysis' ? (
+          s.kind === 'idea' ? (
+            <BrainstormSuggestionCard key={s.id} suggestion={s} />
+          ) : s.kind === 'brainstorm_topic' ? (
+            <BrainstormTopicSuggestionCard key={s.id} suggestion={s} />
+          ) : s.kind === 'brainstorm_analysis' ? (
             <BrainstormAnalysisCard key={s.id} suggestion={s} />
           ) : (
             <InsightCard key={s.id} suggestion={s} onOpenDecisions={onOpenDecisions} />

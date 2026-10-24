@@ -37,10 +37,10 @@ Configuration lives in `apps/api/.env` (copy `apps/api/.env.example`) and `apps/
 
 ## Status
 
-- **AI:** an OpenAI-compatible model when `OPENAI_API_KEY` is set (structured action items, decisions and
-  risks, each with a reason and a quote; plus "Ask the project", answered from approved decisions only).
-  `OPENAI_BASE_URL` can point at Groq or Nebius. Without a key a local rule-based mock runs and is labelled
-  as such in the UI.
+- **AI:** OpenAI for longer calls (`OPENAI_API_KEY`) and Nebius for frequent short calls (`NEBIUS_API_KEY`).
+  One key covers every job. Without either key a local rule-based mock runs and is labelled as such in the UI.
+  Suggestions include action items, decisions and risks, each with a reason and a quote. "Ask the project"
+  is answered from approved decisions only.
 - **Brainstorm research:** optional Tavily web search with `TAVILY_API_KEY`. AI idea drafts keep clickable
   sources, require member approval, and stay closed to votes until a member confirms "Start voting".
 - **Login:** Clerk is required (`apps/api/.env` and `apps/web/.env.local`, see the `.env.example` files);
@@ -49,7 +49,7 @@ Configuration lives in `apps/api/.env` (copy `apps/api/.env.example`) and `apps/
   into one of your Clerk organizations.
 - **Deploy:** the [Dockerfile](Dockerfile) builds one image that serves the API and the web app; mount a
   volume at `/data` for the embedded database and uploaded files.
-- **Placeholders:** Overview, Team and Settings are labelled placeholders. The calendar shows task due dates by week and the project deadline.
+- **Placeholders:** Overview, Team and Settings are labelled placeholders. The calendar shows task due dates by week and the project deadline. Files are uploaded project files.
 
 ## Docs
 

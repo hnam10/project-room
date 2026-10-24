@@ -19,12 +19,16 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 | `member`     | A person                                                                                                                                                                            | —                                                             |
 | `project`    | Workspace; holds `memberIds` and the `taskCounter` for #numbers                                                                                                                     | `memberIds → member`                                          |
 | `channel`    | Chat channel                                                                                                                                                                        | `projectId`                                                   |
+
 | `message`    | Chat message; `authorId` is a member id or `'ai'`. `fileId` points at a shared file when the message attaches one.                                                                  | `channelId`, `suggestionId`, `fileId`                         |
+
 | `task`       | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from                                                                                                   | `assigneeId → member`                                         |
 | `idea`       | Central problem or brainstorm card; cards can be shortlisted and explicitly approved; voting starts only after a member opens it; source links and significant edits remain visible | `sourceSuggestionId`, `taskId` once converted                 |
 | `decision`   | Open question or recorded decision                                                                                                                                                  | `raisedById`, `decidedById`                                   |
 | `suggestion` | **Structured AI output** awaiting review, including `brainstorm_analysis`, idea drafts and task drafts; `status` = `pending` / `approved` / `dismissed`                             | `sourceMessageId`, `ideaId`, `originIdeaId`, `createdTaskIds` |
+
 | `file`       | Metadata for a shared project file (name, size, type, uploader). The bytes are not in the database.                                                                                 | `uploadedById → member`                                       |
+
 
 All records carry `projectId`; repositories always filter by it.
 
@@ -32,6 +36,7 @@ All records carry `projectId`; repositories always filter by it.
 
 1. `POST …/channels/:id/messages` stores the message and responds immediately.
 2. `services/ai-engine.ts` then runs on the message:
+
    - `detectOpenQuestion` → a `decision` suggestion (shows in the AI Assistant tab, not in chat). It only
      runs on messages that read like a question or an unsettled choice;
    - if the text mentions `@AI` plus brainstorm/idea/research language: `classifyBrainstorm` assesses the
@@ -44,10 +49,12 @@ All records carry `projectId`; repositories always filter by it.
      `decision`, `risk` and `idea` suggestions. The mock still uses one `analyzeConversation` call, and answers
      a question that has no new tasks from approved decisions. An AI chat message renders the action items;
      the other kinds show in the panel.
+
 3. Members review: edit items (`PATCH /suggestions/:id`), `approve`, or `dismiss`.
 4. `services/suggestions.ts#approveSuggestion` is the only place AI output turns into real changes:
    creates tasks / ideas / logs a decision / assigns an owner (risk requires an explicit `assigneeId`).
 5. All of the above reach every open browser through realtime.
+
 
 The provider is chosen in `src/ai/routing.ts`. `OPENAI_API_KEY` handles the longer calls: `@AI`, Ask the
 project, chat brainstorm drafts, and the end-of-meeting summary. `NEBIUS_API_KEY` handles the frequent
@@ -65,21 +72,29 @@ fabricates research and brainstorming falls back to chat context.
 
 ## Brainstorm facilitator
 
-`idea.kind = problem` identifies the project's central problem; ordinary ideas have `shortlisted`, `approved`,
+`idea.kind = problem` identifies a topic; a project can have several topic tabs. Cards and AI suggestions
+carry `topicId` (a link to the topic's idea record). A topic has `topicId = null`; every new board card
+requires a valid topic in the same project. Ordinary ideas have `shortlisted`, `approved`,
 `researchStale`, and `significantChangeAt` fields. Members edit cards through `PATCH /ideas/:id`, shortlist
 through `POST /ideas/:id/shortlist`, and explicitly approve a shortlisted direction through
 `POST /ideas/:id/approve`. `services/idea-change.ts` filters minor text edits; a significant edit clears
 approval, flags existing research as stale, and exposes a re-evaluation trigger. Saving the form groups edits
 before this check, rather than invoking the model for each keystroke.
 
-`BrainstormGuide` explores a sufficiently specific central problem or idea once per meaningful state.
+
+`BrainstormGuide` first prepares the selected topic: relevant web sources are summarized and a
+reviewable Strategy is proposed before idea entry is enabled. Missing keys, failed searches, and no
+matching sources produce an honest status message; topic-context strategies and member ideas remain
+available. A hidden check records that preparation completed. Subsequent exploration develops ideas
+once per meaningful state. Concurrent requests for the same topic/version/action share one operation.
 Chat `@AI brainstorm` produces a separate `brainstorm_topic` suggestion with an editable `ideaDraft`
-as well as direct idea suggestions. Approving that topic suggestion creates the `problem` idea or
-updates the existing one; AI generation never writes the topic directly. Pending topic cards appear
+as well as direct idea suggestions. Approving a new topic suggestion creates a separate topic tab;
+AI generation never writes the topic directly. Inbox ideas require a member-selected topic on approval.
+Pending topic cards appear
 beside the current topic so members can review or dismiss them before changing the board.
-`AiProvider.classifyBrainstorm` returns product, non-product, or unclear; unclear goals stay quiet. For a
-product problem, `facilitateBrainstorm` may draft a reviewable concept, and `services/brainstorm.ts` may
-attach relevant Tavily sources to that draft. Product ideas may also receive up to two sourced
+`AiProvider.classifyBrainstorm` returns product, non-product, or unclear. Topic preparation can research
+any topic and uses `facilitateBrainstorm` for a starting strategy. Later product ideas may receive a
+reviewable concept and up to two sourced
 `brainstorm_analysis` cards, filtered by topic overlap and distinct hosts. `AiProvider.summarizeResearch`
 turns the supplied search snippets into short descriptions of what each related idea does; copied or
 unsupported summaries are omitted. Earlier pending cards can be summarized on demand through
@@ -93,6 +108,18 @@ an idea or creates an AI-drafted idea. `originIdeaId` links a new draft to its p
 dismisses the related pending draft without making approval update that original idea. Approved directions may receive reviewable next-step tasks; the
 language is specific to the classified goal. Old generic problem, comparison, and inactivity cards are not
 shown.
+
+
+`repositories/brainstorm-topics.ts` resets boards in one transaction. Editing a topic's title/details
+removes all of its cards and suggestions and clears saved topic research. Deleting a topic also removes
+the topic itself. `POST /ideas/:topicId/clear-ideas` removes direct ideas/drafts and related task drafts,
+but preserves saved strategies and Strategy drafts; research linked to removed ideas is retained on the
+topic. Tasks/decisions already approved remain project records. An incrementing `boardVersion` and an
+`AsyncLocalStorage` scope capture each AI operation's topic/version; conditional repository writes reject
+results after a topic edit, deletion, or clear. The guard also covers nested research and follow-up drafts.
+Startup migrates older unscoped boards once per project (`brainstormTopicsMigrated`), preserving their
+cards under their existing topic or an "Earlier brainstorming" tab. New projects skip this legacy migration.
+
 The Brainstorm panel groups the guide, sourced research, strategies, and next-step drafts above the
 direct-idea grid. Research holds summarized web examples; direct concept drafts stay in the Ideas grid
 even when they include source links. Strategy drafts and approved
@@ -115,7 +142,7 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | `meeting`         | AI Meeting Room session: `status` = `live` / `summarizing` / `ended`, 60-minute `endsAt`, `participantIds`, `summary`, `carryOver`, `usage`, `summaryError`    | `previousMeetingId`               |
 | `live_meeting`    | Reservation with id = project id while a meeting is live; created with the meeting and deleted on live -> summarizing in one transaction, so starts can't race | `meetingId`                       |
-| `transcript_line` | One final speech result (<= 1000 chars) from a participant's browser                                                                                           | `meetingId`, `speakerId`          |
+| `transcript_line` | One final speech result or typed meeting-chat message (<= 1000 chars, `source` voice/chat)                                                                     | `meetingId`, `speakerId`          |
 | `poll`            | Meeting poll with 2-5 options; one movable vote per member                                                                                                     | `meetingId`, `sourceSuggestionId` |
 
 `suggestion` also carries the meeting kinds `brainstorm_topic`, `idea`, `poll`, `meeting_notes` and the fields `meetingId`,
@@ -128,12 +155,16 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
   `GET /meetings/rtc-config` tells clients which mode is on. The speaker is always the caller.
 - **Voice:** WebRTC mesh. `rtc` offer/answer/ICE signals are relayed between participants over `/ws` (`realtime/rtc-relay.ts`); STUN/TURN
   come from `RTC_ICE_SERVERS`.
+
 - **Live AI:** new lines trigger `MeetingAi` (separate from `AiProvider`; Nebius when `NEBIUS_API_KEY` is set, otherwise the OpenAI fast model) which stores
+
   `brainstorm_topic` / `action_items` / `idea` / `poll` suggestions. A tick runs after 40 new words (at most every 20s) or 15 words then 8s of silence; a meeting is capped at 150 AI calls. Members approve them; AI never writes tasks, ideas or polls.
 - **Topic review:** a live meeting proposes at most one pending topic, separate from its ideas. The end summary
   can propose a topic from the full transcript if live analysis missed it. The topic appears in the meeting and
   Brainstorm views; idea drafts remain pending after the meeting and after topic approval.
+
 - **End:** `POST /meetings/:id/end` summarizes on the OpenAI model (Nebius when that key is the only one) into `meeting.summary` plus a `meeting_notes`
+
   suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
   shows a "Last time" card. Summary suggestions use fixed ids (`<meetingId>-summary-topic` / `-summary-actions` / `-summary-notes`) and are
   stored before the meeting ends; if a write fails the meeting ends with `summaryError`, and the `/end` rerun skips the
@@ -173,6 +204,10 @@ Deleting a file deletes the Agent Memory document too. "Ask the project" still a
 - Web: `api/auth.ts` adds `Authorization: Bearer <token>` with a token scoped to the project's org
   (`getToken({ organizationId })`); the socket passes `?token=`. Clerk UI lives in
   `features/account/ClerkAccount.tsx` (sign-in gate, `OrganizationSwitcher`, `UserButton`, invites).
+  URL-to-organization synchronization lives above the signed-in gate and runs once per project URL
+  change: Clerk temporarily remounts signed-in content while switching, so syncing there would restore
+  the previous organization. Workspace data and its child UI are keyed by project id to discard the
+  previous project's snapshot, messages, selected channel, and open dialogs together.
 
 ## Web app
 
@@ -196,6 +231,7 @@ Deleting a file deletes the Agent Memory document too. "Ask the project" still a
 
 ## Configuration (`apps/api/.env`)
 
+
 | Variable                                     | Default                     | Notes                                                           |
 | -------------------------------------------- | --------------------------- | --------------------------------------------------------------- |
 | `PORT`                                       | 4000                        | API port                                                        |
@@ -216,6 +252,7 @@ Deleting a file deletes the Agent Memory document too. "Ask the project" still a
 | `WEB_DIST`                                   | `apps/web/dist`             | built web app served by the API when it exists                  |
 | `FILES_DIR`                                  | `./data/files`              | uploaded bytes; `/data/files` in the Docker image               |
 | `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`                |
+
 
 To use a SurrealDB server instead of the embedded engine:
 `surreal start --user root --pass root rocksdb:./data/server.db`, then `SURREAL_URL=ws://127.0.0.1:8000`.

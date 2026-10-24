@@ -38,7 +38,7 @@ export async function proposeMeetingTopic(
       quote: topic.quote,
       cite,
       sourceLineId: topic.sourceLineId,
-      ideaId: currentTopic?.id ?? null,
+      ideaId: null,
       ideaDraft: { title: topic.title, description: topic.description, theme: 'Option' },
     },
     id,

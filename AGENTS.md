@@ -97,6 +97,10 @@ prototype/         the first static prototype; do not build on it
 - Proactive AI goes to the AI Assistant panel; it doesn't interrupt the chat unless @AI is mentioned.
 - Data never crosses projects: every project route goes through `requireProjectMember`, and every
   repository query filters by `projectId`.
+- Brainstorming starts with a member-selected topic. Each topic has its own board: research and
+  reviewable strategies come first, then member ideas and iteration. Changing or deleting a topic
+  clears its board; clearing only ideas preserves its research and strategies. Other topics and
+  tasks or decisions already created are unaffected. New AI topics never replace a topic automatically.
 
 ## Engineering conventions
 

@@ -51,7 +51,11 @@ DEFINE FIELD OVERWRITE createdAt  ON task TYPE datetime DEFAULT time::now() READ
 DEFINE FIELD OVERWRITE updatedAt  ON task TYPE datetime VALUE time::now();
 DEFINE INDEX OVERWRITE task_project_num ON task FIELDS projectId, num UNIQUE;
 
+DEFINE FIELD OVERWRITE brainstormTopicsMigrated ON project TYPE bool DEFAULT ALWAYS false;
+
 DEFINE TABLE OVERWRITE idea SCHEMAFULL;
+DEFINE FIELD OVERWRITE topicId ON idea TYPE null | record<idea> DEFAULT ALWAYS null;
+DEFINE FIELD OVERWRITE boardVersion ON idea TYPE int DEFAULT ALWAYS 0;
 DEFINE FIELD OVERWRITE projectId   ON idea TYPE record<project>;
 DEFINE FIELD OVERWRITE title       ON idea TYPE string ASSERT string::len($value) > 0 AND string::len($value) <= 80;
 DEFINE FIELD OVERWRITE description ON idea TYPE string DEFAULT ALWAYS '';
@@ -86,6 +90,8 @@ DEFINE FIELD OVERWRITE decidedAt   ON decision TYPE null | datetime DEFAULT ALWA
 
 -- AI suggestions are structured data. They only change other tables when a member approves them.
 DEFINE TABLE OVERWRITE suggestion SCHEMAFULL;
+DEFINE FIELD OVERWRITE topicId ON suggestion TYPE null | record<idea> DEFAULT ALWAYS null;
+DEFINE FIELD OVERWRITE topicVersion ON suggestion TYPE null | int DEFAULT ALWAYS null;
 DEFINE FIELD OVERWRITE projectId        ON suggestion TYPE record<project>;
 DEFINE FIELD OVERWRITE kind             ON suggestion TYPE string ASSERT $value IN ['action_items', 'decision', 'risk', 'idea', 'brainstorm_topic', 'poll', 'meeting_notes', 'brainstorm_analysis'];
 DEFINE FIELD OVERWRITE status           ON suggestion TYPE string ASSERT $value IN ['pending', 'approved', 'dismissed'];

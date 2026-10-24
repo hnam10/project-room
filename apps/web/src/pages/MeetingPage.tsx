@@ -3,8 +3,10 @@ import { ApiError } from '../api/client';
 import { meetingsApi } from '../api/meetings';
 import { useFeedback } from '../components/Feedback';
 import { Icon } from '../components/Icon';
+import { ResizeHandle } from '../features/dock/ResizeHandle';
 import { ConsentDialog } from '../features/meeting/ConsentDialog';
 import { MeetingAiPanel } from '../features/meeting/MeetingAiPanel';
+import { MeetingChat } from '../features/meeting/MeetingChat';
 import { LastTimeCard } from '../features/meeting/LastTimeCard';
 import { MeetingSummaryView } from '../features/meeting/MeetingSummaryView';
 import { MeetingTimer } from '../features/meeting/MeetingTimer';
@@ -17,6 +19,9 @@ import { useClipTranscriber } from '../features/meeting/useClipTranscriber';
 import { useTranscriber } from '../features/meeting/useTranscriber';
 import { useSession } from '../state/session';
 import { useWorkspace } from '../state/workspace';
+
+const AI_MIN_W = 240;
+const TRANSCRIPT_MIN_W = 320;
 
 function RemoteAudio({ stream, onBlocked }: { stream: MediaStream; onBlocked: () => void }) {
   const ref = useRef<HTMLAudioElement>(null);
@@ -40,7 +45,8 @@ export function MeetingPage() {
   const { current, loaded, reload, applyPoll, setCurrent, dismiss, select, recent, sendSignal, onSignal } = useMeeting(projectId);
   const [consent, setConsent] = useState<'start' | 'join' | null>(null);
   const [title, setTitle] = useState('');
-  const [language, setLanguage] = useState('ko-KR');
+  const [aiWidth, setAiWidth] = useState<number | null>(null);
+  const cols = useRef<HTMLDivElement>(null);
   const [stoppedId, setStoppedId] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const [ice, setIce] = useState<{ meetingId: string; servers: RTCIceServer[]; serverStt: boolean } | null>(null);
@@ -71,10 +77,15 @@ export function MeetingPage() {
     },
     [projectId, meetingId, toastError],
   );
+  // Keeps both the transcript and the AI column readable (the first column is 220px).
+  const resizeAi = (px: number) => {
+    const width = cols.current?.getBoundingClientRect().width ?? 0;
+    if (width) setAiWidth(Math.round(Math.max(AI_MIN_W, Math.min(px, width - 220 - TRANSCRIPT_MIN_W))));
+  };
   const iceReady = ice?.meetingId === meetingId;
   const serverStt = iceReady && !!ice?.serverStt;
   const browser = useTranscriber({
-    language: meeting?.language ?? language,
+    language: meeting?.language ?? 'en-US',
     enabled: joined && !stopped && !muted && iceReady && !serverStt,
     onFinal: post,
   });
@@ -149,7 +160,7 @@ export function MeetingPage() {
     try {
       const m =
         action === 'start'
-          ? await meetingsApi.start(projectId, { title: title.trim() || undefined, language })
+          ? await meetingsApi.start(projectId, { title: title.trim() || undefined })
           : await meetingsApi.join(projectId, meetingId!);
       if (action === 'start') await reload();
       else setCurrent((prev) => (prev ? { ...prev, meeting: m } : prev));
@@ -195,7 +206,7 @@ export function MeetingPage() {
           </span>
           <h1>Meeting room</h1>
           <p className="meeting-start-text">
-            Start a conversation about your project. AI listens and proposes tasks, ideas and polls for you to review; nothing is added to the
+            Start a conversation about your project. AI listens and proposes ideas and tasks for you to review; nothing is added to the
             board until you approve it. Teammates can join, and meetings last at most 60 minutes.
           </p>
           {snapshot?.members.length === 1 && snapshot.ideas.length === 0 && snapshot.tasks.length === 0 && (
@@ -212,13 +223,6 @@ export function MeetingPage() {
           <label>
             Title (optional)
             <input value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Weekly sync" />
-          </label>
-          <label>
-            Spoken language
-            <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-              <option value="ko-KR">Korean</option>
-              <option value="en-US">English</option>
-            </select>
           </label>
           <button className="btn primary">Start meeting</button>
           {recent.length > 0 && (
@@ -266,7 +270,7 @@ export function MeetingPage() {
           {!live ? (
             <MeetingSummaryView detail={current} applyPoll={applyPoll} setCurrent={setCurrent} />
           ) : (
-            <div className="meeting-cols">
+            <div ref={cols} className="meeting-cols" style={aiWidth ? ({ '--ai-w': `${aiWidth}px` } as React.CSSProperties) : undefined}>
               <section>
                 <h2>In the call</h2>
                 {joined && micError && <p className="meeting-notice">Microphone unavailable — others can’t hear you.</p>}
@@ -301,7 +305,15 @@ export function MeetingPage() {
                 )}
                 {joined && stopped && <p className="meeting-notice">The meeting has ended, so transcribing stopped.</p>}
                 <TranscriptView lines={current.lines} interim={joined ? interim : ''} />
+                {joined && !stopped && <MeetingChat meetingId={meeting.id} />}
               </section>
+              <ResizeHandle
+                orientation="vertical"
+                label="Resize transcript and AI suggestions"
+                onDrag={(x) => resizeAi((cols.current?.getBoundingClientRect().right ?? 0) - x)}
+                onNudge={(d) => resizeAi((cols.current?.lastElementChild?.getBoundingClientRect().width ?? 0) - d)}
+                onReset={() => setAiWidth(null)}
+              />
               <section>
                 <MeetingAiPanel detail={current} joined={joined} applyPoll={applyPoll} setCurrent={setCurrent} />
               </section>

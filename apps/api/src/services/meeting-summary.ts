@@ -7,6 +7,7 @@ import { createSuggestion, listSuggestions } from '../repositories/suggestions.j
 import { listTasks } from '../repositories/tasks.js';
 import { listLinesAfter } from '../repositories/transcripts.js';
 import { endExpiredMeetings } from './meetings.js';
+import { speakerName } from './meeting-live.js';
 import { proposeMeetingTopic } from './meeting-topic.js';
 
 const MAX_LINES = 2000;
@@ -45,11 +46,11 @@ export async function summarize(
     lineCites = new Map(
       lines.map((line) => [
         line.id,
-        `${nameOf(line.speakerId)} · Meeting · ${new Date(line.spokenAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+        `${nameOf(line.speakerId)} · ${line.source === 'chat' ? 'Meeting chat' : 'Meeting'} · ${new Date(line.spokenAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
       ]),
     );
     input = {
-      lines: lines.map((l) => ({ id: l.id, speakerId: l.speakerId, speakerName: nameOf(l.speakerId), text: l.text })),
+      lines: lines.map((l) => ({ id: l.id, speakerId: l.speakerId, speakerName: speakerName(nameOf(l.speakerId), l), text: l.text })),
       carryOver: previous?.carryOver ?? [],
       ideas: ideas.map((i) => ({ id: i.id, title: i.title })),
       currentTopic: ideas.find((idea) => idea.kind === 'problem') ?? null,

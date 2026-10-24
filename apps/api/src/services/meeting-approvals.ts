@@ -4,18 +4,33 @@ import { createIdea, getIdea, updateIdea } from '../repositories/ideas.js';
 import { isSignificantIdeaChange } from './idea-change.js';
 import { getMeeting, setCarryOver } from '../repositories/meetings.js';
 import { createPoll } from '../repositories/polls.js';
-import { resolveSuggestion } from '../repositories/suggestions.js';
+import { assignSuggestionTopic, resolveSuggestion } from '../repositories/suggestions.js';
+import { getTopic, resetTopic } from '../repositories/brainstorm-topics.js';
 
 // Approval paths for suggestions that come from meetings (and idea/poll suggestions in general).
 
-export async function approveIdea(projectId: string, suggestion: Suggestion, memberId: string): Promise<Suggestion> {
+export async function approveIdea(
+  projectId: string,
+  suggestion: Suggestion,
+  memberId: string,
+  topicId?: string | null,
+): Promise<Suggestion> {
   const draft = suggestion.ideaDraft;
   if (!draft) throw new ConflictError('Suggestion has no idea to add');
   if (suggestion.ideaId) {
     const before = await getIdea(projectId, suggestion.ideaId);
     const patch = { description: draft.description };
     await updateIdea(projectId, suggestion.ideaId, patch, isSignificantIdeaChange(before, patch));
-  } else await createIdea(projectId, memberId, draft, { suggestionId: suggestion.id, researchSources: suggestion.researchSources ?? [] });
+  } else {
+    const topic = await getTopic(projectId, suggestion.topicId ?? topicId);
+    if (!suggestion.topicId) await assignSuggestionTopic(projectId, suggestion.id, topic.id);
+    await createIdea(
+      projectId,
+      memberId,
+      { ...draft, topicId: topic.id },
+      { suggestionId: suggestion.id, researchSources: suggestion.researchSources ?? [] },
+    );
+  }
   return resolveSuggestion(suggestion.id, 'approved', memberId);
 }
 
@@ -27,7 +42,7 @@ export async function approveBrainstormTopic(projectId: string, suggestion: Sugg
     const before = await getIdea(projectId, suggestion.ideaId);
     if (before.kind !== 'problem') throw new ConflictError('The suggested topic no longer points to a brainstorm topic');
     const patch = { title: draft.title, description: draft.description.slice(0, 240) };
-    await updateIdea(projectId, before.id, patch, isSignificantIdeaChange(before, patch));
+    await resetTopic(projectId, before.id, 'all', patch, suggestion.id);
   } else {
     await createIdea(
       projectId,

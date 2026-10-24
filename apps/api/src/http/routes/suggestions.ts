@@ -9,7 +9,10 @@ import { ctx } from '../context.js';
 
 export const suggestionsRouter = Router({ mergeParams: true });
 
-const approveSchema = z.object({ assigneeId: z.string().min(1).max(64).nullable().optional() });
+const approveSchema = z.object({
+  assigneeId: z.string().min(1).max(64).nullable().optional(),
+  topicId: z.string().min(1).max(64).optional(),
+});
 
 suggestionsRouter.get('/', async (_req, res) => {
   res.json(await listSuggestions(ctx(res).project.id));
@@ -39,12 +42,12 @@ suggestionsRouter.patch('/:suggestionId', async (req, res) => {
 
 suggestionsRouter.post('/:suggestionId/approve', async (req, res) => {
   const { project, memberId, members } = ctx(res);
-  const { assigneeId } = approveSchema.parse(req.body ?? {});
+  const { assigneeId, topicId } = approveSchema.parse(req.body ?? {});
   if (assigneeId && !members.has(assigneeId)) {
     res.status(400).json({ error: 'Assignee is not a member of this project' });
     return;
   }
-  res.json(await approveSuggestion(project.id, req.params.suggestionId, memberId, { assigneeId }));
+  res.json(await approveSuggestion(project.id, req.params.suggestionId, memberId, { assigneeId, topicId }));
 });
 
 suggestionsRouter.post('/:suggestionId/dismiss', async (req, res) => {

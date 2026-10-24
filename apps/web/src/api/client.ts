@@ -121,6 +121,7 @@ export const api = {
   updateIdea: (projectId: string, ideaId: string, patch: IdeaUpdateInput) =>
     request<Idea>('PATCH', `${p(projectId)}/ideas/${ideaId}`, patch),
   deleteIdea: (projectId: string, ideaId: string) => request<void>('DELETE', `${p(projectId)}/ideas/${ideaId}`),
+  clearTopicIdeas: (projectId: string, topicId: string) => request<Idea>('POST', `${p(projectId)}/ideas/${topicId}/clear-ideas`),
   shortlistIdea: (projectId: string, ideaId: string, shortlisted: boolean) =>
     request<Idea>('POST', `${p(projectId)}/ideas/${ideaId}/shortlist`, { shortlisted }),
   approveIdea: (projectId: string, ideaId: string) => request<Idea>('POST', `${p(projectId)}/ideas/${ideaId}/approve`),
@@ -137,7 +138,7 @@ export const api = {
 
   updateSuggestion: (projectId: string, suggestionId: string, input: SuggestionUpdateInput) =>
     request<Suggestion>('PATCH', `${p(projectId)}/suggestions/${suggestionId}`, input),
-  approveSuggestion: (projectId: string, suggestionId: string, options: { assigneeId?: string } = {}) =>
+  approveSuggestion: (projectId: string, suggestionId: string, options: { assigneeId?: string; topicId?: string } = {}) =>
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/approve`, options),
   dismissSuggestion: (projectId: string, suggestionId: string) =>
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/dismiss`),

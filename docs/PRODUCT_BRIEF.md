@@ -73,6 +73,12 @@ Task assignments must remain suggestions until an authorized user confirms them.
 
 A collaborative space for exploring ideas and solving problems.
 
+The flow is: pick a topic → review AI research and strategies → add ideas → iterate and decide.
+Projects can keep several topics in tabs, each with its own ideas, research and strategies. A topic is
+required before starting a board. Changing or deleting a topic clears its board after confirmation;
+a separate Clear ideas action keeps the topic, research and strategies. Other topics and already-created
+tasks or decisions are preserved. AI drafts remain reviewable before they change the board.
+
 Users should be able to:
 - Add and organize ideas.
 - Group related ideas into themes.

@@ -5,13 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+
 - 2026-10-23 — **OpenAI and Nebius split the model calls.** OpenAI handles `@AI`, Ask the project, chat
   brainstorm drafts, and the end-of-meeting summary. Nebius handles the open-question check, live meeting
   ticks, brainstorm classification, board facilitation, and research summaries. One key covers both jobs.
   Meeting speech-to-text stays on Groq.
 
-- 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
-  idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
 
 - 2026-10-23 — **@AI reads the channel thread, and Agent Memory reads project files.** A mention always sees the
   latest 80 messages in that channel, including turns from before the last AI reply. Older lines in the same
@@ -30,6 +29,66 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   suggestions only. The mock still uses one-shot analysis.
 - 2026-10-23 — **File deletion and batch upload fixes.** Deletes enforce the project boundary in the write
   and retain metadata when disk removal fails so DELETE can be retried. Batch uploads continue after each failed file.
+
+
+- 2026-10-23 — **Simpler brainstorm header.** Removed the numbered workflow strip. Topic tabs and
+  New topic appear only after a topic exists; the empty board uses Set topic as its single entry point.
+
+- 2026-10-23 — **Topic-based brainstorm boards.** Multiple topic tabs keep ideas, research, strategies
+  and pending AI drafts separate. A topic is required; its initial preparation researches relevant sources
+  and proposes a strategy before enabling idea entry. Missing research is reported honestly. Confirmed
+  topic edits/deletion clear that board; Clear ideas preserves research and strategies. Existing tasks
+  and decisions remain. Topic versions reject AI results arriving after a reset, and concurrent research
+  requests share one operation. Chat/meeting topic approvals add tabs; inbox ideas choose a topic on
+  approval. Older board data is migrated into a topic once, without deleting it. Verified two topic tabs,
+  live sourced research, a strategy draft, isolated idea entry and clear/edit confirmations in Edge.
+  All 191 tests, lint and typecheck pass; the web production build passes.
+
+- 2026-10-24 — **Meeting chat.** Participants can type in a live meeting. A message is stored as a
+  `transcript_line` with `source: 'chat'`, shows in the transcript with a chat tag, and the live AI and the
+  summary read it like speech (tagged "(chat)"; cites say "Meeting chat"). One chat line is enough for an AI
+  run after a 2s pause (speech still needs 15 words and 8s), so short typed requests get suggestions quickly.
+- 2026-10-24 — **Meeting and brainstorm UI polish.** The transcript / AI suggestions divider in a live meeting
+  drags to resize (reuses the dock's `ResizeHandle`; double-click resets). Meetings are English-only: the
+  Korean option and the language picker are gone and the default is `en-US`. The "Brainstorming ideas"
+  wall (heading, AI idea drafts, Add idea hover) is yellow like its tickets; the rest stays purple.
+- 2026-10-23 — **Organization switching stays in sync.** URL-to-Clerk synchronization runs once per
+  project URL change above the signed-in gate, so the gate's transition cannot reactivate the previous
+  team. Project changes remount workspace data and UI together, discarding old messages and channel
+  selection. Checked round-trip switching and a direct project link in Edge; the selected team and
+  project agree. Lint, typecheck, all 177 tests, and the web production build passed.
+- 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
+  idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
+
+- 2026-10-23 — **Calendar review fixes.** Deadline controls wait for the pending save, including clear and error rollback.
+  Week columns switch to day rows when the agenda is too narrow for task metadata, including beside the undated rail.
+  Project and task due dates reject impossible calendar dates, with leap-year checks; clearing still uses null.
+
+- 2026-10-23 — **Project deadline reads as a deadline.** The calendar header chip always says Deadline, shows the
+  weekday and how soon (soon, today, or past). A calendar icon opens the date picker, and × clears it.
+  With no date, the whole chip says Set a date and opens the picker. Empty and set are both only as wide
+  as their text. A set date colors the whole chip (later, soon, today, or past).
+- 2026-10-23 — **Project deadline is a short chip.** A flag, the short date, and how soon, only as wide as the text.
+  The date jumps to that week. A calendar icon changes it, and × clears it.
+- 2026-10-23 — **Month view removed.** The calendar is the week columns only. Tasks with no due date stay in the
+  side list. Every dated task is already on a week, so nothing is hidden by dropping the month grid.
+- 2026-10-23 — **Week view is columns, month view stays the grid.** This week is listed first. Each week is seven
+  vertical days: the weekday sits above the date, and tasks stack under it. Earlier weeks sit under "Earlier".
+  The project deadline is a card under the title: the date written out, how soon it is, Change, and clear.
+  Clicking the date jumps to that week or month. Its day keeps a flag on the agenda and on the month grid.
+- 2026-10-23 — **Month view keeps the tasks it does not draw.** Beside the grid: tasks with no due date, and tasks
+  whose date falls on another month (open one, or jump to that month). Week view is still the full agenda:
+  a week is listed when it has a task. The two views answer different questions.
+- 2026-10-23 — **Project deadline can be set from the calendar.** A compact date field in the calendar header
+  saves `project.dueDate` (`PATCH /api/projects/:id`). The old banner is gone; the day on the grid still
+  shows a flag, and the relative date ("in 4 days") jumps to that week or month.
+- 2026-10-23 — **Calendar month view.** A Week / Month switch in the header (remembered in the browser). Month
+  view shows one month at a time, with previous, next, and Today. A day still opens or creates a task.
+  The project deadline and the overdue jump land on that month. Days from the neighboring months stay
+  visible so a task on the edge of the month does not disappear.
+- 2026-10-22 — **Calendar page.** Tasks with a due date are grouped by week (Monday start), and the project
+  deadline is marked on its day. A task opens in the existing dialog; a day can also start a new task
+  already dated. Overdue uses the local calendar day, on the board as well as here, and done tasks are not overdue.
 
 - 2026-10-23 — **Research cards summarize related ideas.** Relevant Tavily results are summarized in
   short, source grounded descriptions instead of showing raw search snippets. Results without a reliable
@@ -91,35 +150,7 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   back to conversation context. A member must review/approve every AI draft, then explicitly confirm
   "Start voting" before teammates can vote.
 
-- 2026-10-23 — **Calendar review fixes.** Deadline controls wait for the pending save, including clear and error rollback.
-  Week columns switch to day rows when the agenda is too narrow for task metadata, including beside the undated rail.
-  Project and task due dates reject impossible calendar dates, with leap-year checks; clearing still uses null.
 
-- 2026-10-23 — **Project deadline reads as a deadline.** The calendar header chip always says Deadline, shows the
-  weekday and how soon (soon, today, or past). A calendar icon opens the date picker, and × clears it.
-  With no date, the whole chip says Set a date and opens the picker. Empty and set are both only as wide
-  as their text. A set date colors the whole chip (later, soon, today, or past).
-- 2026-10-23 — **Project deadline is a short chip.** A flag, the short date, and how soon, only as wide as the text.
-  The date jumps to that week. A calendar icon changes it, and × clears it.
-- 2026-10-23 — **Month view removed.** The calendar is the week columns only. Tasks with no due date stay in the
-  side list. Every dated task is already on a week, so nothing is hidden by dropping the month grid.
-- 2026-10-23 — **Week view is columns, month view stays the grid.** This week is listed first. Each week is seven
-  vertical days: the weekday sits above the date, and tasks stack under it. Earlier weeks sit under "Earlier".
-  The project deadline is a card under the title: the date written out, how soon it is, Change, and clear.
-  Clicking the date jumps to that week or month. Its day keeps a flag on the agenda and on the month grid.
-- 2026-10-23 — **Month view keeps the tasks it does not draw.** Beside the grid: tasks with no due date, and tasks
-  whose date falls on another month (open one, or jump to that month). Week view is still the full agenda:
-  a week is listed when it has a task. The two views answer different questions.
-- 2026-10-23 — **Project deadline can be set from the calendar.** A compact date field in the calendar header
-  saves `project.dueDate` (`PATCH /api/projects/:id`). The old banner is gone; the day on the grid still
-  shows a flag, and the relative date ("in 4 days") jumps to that week or month.
-- 2026-10-23 — **Calendar month view.** A Week / Month switch in the header (remembered in the browser). Month
-  view shows one month at a time, with previous, next, and Today. A day still opens or creates a task.
-  The project deadline and the overdue jump land on that month. Days from the neighboring months stay
-  visible so a task on the edge of the month does not disappear.
-- 2026-10-22 — **Calendar page.** Tasks with a due date are grouped by week (Monday start), and the project
-  deadline is marked on its day. A task opens in the existing dialog; a day can also start a new task
-  already dated. Overdue uses the local calendar day, on the board as well as here, and done tasks are not overdue.
 - 2026-10-21 — **AI Meeting Room** (Hansol). In-app voice meetings (WebRTC mesh, 60-minute cap) with a live
   transcript from each browser's speech recognition. Claude (fast model) joins read-only and proposes tickets,
   ideas and polls as suggestions; ending the meeting writes an AI summary and a "Notes for next time"
@@ -185,12 +216,25 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
       chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
 - [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open decisions, workload per member.
-- [ ] **Brainstorm grouping** — themes as columns and a comparison view for proposals.
+
+- [ ] **Brainstorm grouping** — themes as columns and a comparison view for proposals; starting a vote still needs confirmation.
+
 - [ ] **Web tests** — Playwright for: approve AI action items → task appears; drag task; detach chat.
 
 ## Known gaps
 
+
 - The Files picker clears its live `FileList` before starting uploads; use drag and drop until that separate issue is fixed.
+
+- Brainstorm topic selection is a browser preference; each browser may work on a different topic.
+  Topic resets intentionally discard that board's drafts and cards; there is no board undo/history yet.
+- Current local validation: `npm run check` stops at existing formatting drift in 140 unrelated files.
+  The root production build compiles shared/API TypeScript, then stops at the API's Unix `cp` command
+  on Windows; the web production build succeeds independently.
+- Organization-switching checks pass individually, but `npm run check` still stops at the existing
+  repository-wide formatting baseline (171 files after formatting the three changed web files).
+
+
 - Goal classification can be wrong or unclear, especially for mixed product and activity goals. Members can
   refine the problem and retry, but there is no explicit goal-type override yet.
 - Product similar-work search runs while the brainstorm board is open, uses search snippets rather than full page
@@ -253,6 +297,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+
 - 2026-10-23 — **Split model hosts by how often the call runs.** Nebius takes the frequent short calls
   (open-question check, live meeting ticks, brainstorm automation). OpenAI takes `@AI`, Ask the project,
   chat brainstorm drafts, and the meeting summary. Groq stays on Whisper only. A missing key falls back
@@ -265,10 +310,17 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-23 — **@AI tools are named lookups, not SurrealQL** (Nebius / any OpenAI-compatible model): a cheaper
   model stays accurate when the server reads the project and checks ids and quotes. propose_* only creates
   suggestions, which keeps "AI suggests, people decide".
+
+- 2026-10-23 — **Each brainstorm topic owns a board.** Topic edits reset its content instead of mixing
+  old context into a new question. Clear-ideas keeps research/strategies, and versioned AI writes prevent
+  cleared content from returning. Chat/meeting topics add tabs rather than silently replacing a board.
+
+
 - 2026-10-23 — **Schema defaults are `DEFAULT ALWAYS`.** A record created before a field existed holds NONE, and
   plain DEFAULT only fills it on CREATE, so every later UPDATE failed (500 approving an older idea suggestion).
   ALWAYS also fills NONE on UPDATE; `createdAt` stays as is. Reads don't fill NONE, so the schema also touches
   ideas/suggestions missing `researchSources` once on start, which backfills every late field.
+
 - 2026-10-23 — **Classify brainstorm goals before web search.** Product goals can justify similar-work
   research; non-product goals get context-based strategies. The mode and processed state are recorded in
   hidden check suggestions to prevent repeated or outdated cards.
@@ -287,6 +339,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   only when they match a search result. AI ideas remain pending suggestions, and voting starts only after
   a separate member confirmation.
 
+
 - 2026-10-23 — **The deadline chip is the date control.** Clicking the date used to jump to the week, while a
   calendar icon opened the picker and × cleared it, so the chip looked like a tag. The chip now sets the
   date. Clear is a separate label. With no date, the whole chip opens the picker. It sits in the calendar header.
@@ -304,6 +357,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-22 — **Calendar is a view, weeks start Monday.** Task due dates and the project deadline are already
   on the records, so the page adds no table or API. A due date is a local calendar day (`YYYY-MM-DD`). Voice
   meetings stay off this page; they are live calls, not scheduled events.
+
 - 2026-10-21 — **Voice via WebRTC mesh with WS signaling, no new dependency**: teams are <= 6, and a hosted SFU would add a vendor and key.
 - 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.
 - 2026-10-21 — **Meetings are capped at 60 minutes and live AI reads a bounded context** (running summary + new lines + project titles): cost stays bounded.
