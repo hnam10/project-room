@@ -86,7 +86,10 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 280px;
+  grid-template-columns: 220px minmax(0, 1fr) auto var(--ai-w, 280px);
+}
+.meeting-cols > .split-resizer {
+  height: 100%;
 }
 .meeting-cols > section {
   min-height: 0;
@@ -94,7 +97,7 @@
   flex-direction: column;
   padding: 14px;
 }
-.meeting-cols > section + section {
+.meeting-cols > section ~ section {
   border-left: 1px solid var(--line);
 }
 .meeting-cols h2 {
@@ -314,7 +317,10 @@
     grid-template-columns: 1fr;
     overflow-y: auto;
   }
-  .meeting-cols > section + section {
+  .meeting-cols > .split-resizer {
+    display: none;
+  }
+  .meeting-cols > section ~ section {
     border-left: 0;
     border-top: 1px solid var(--line);
   }

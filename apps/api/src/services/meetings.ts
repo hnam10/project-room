@@ -30,7 +30,7 @@ export async function startMeeting(projectId: string, memberId: string, input: M
     projectId,
     startedById: memberId,
     title: input.title ?? 'Team meeting',
-    language: input.language ?? 'ko-KR',
+    language: input.language ?? 'en-US',
     previousMeetingId: (await findLatestWithCarryOver(projectId))?.id ?? null,
   });
 }
