@@ -87,13 +87,14 @@ export function removeParticipant(meetingId: string, memberId: string): Promise<
 
 /**
  * live -> summarizing, guarded in the DB so a sweep and a manual end can't both win. Null when it lost the race.
- * Releases the project's live_meeting reservation in the same transaction.
+ * Releases the project's live_meeting reservation in the same transaction. With `onlyIfEmpty`, a member who joined
+ * after the caller's check keeps it live.
  */
-export async function beginSummarizing(meetingId: string): Promise<Meeting | null> {
+export async function beginSummarizing(meetingId: string, onlyIfEmpty = false): Promise<Meeting | null> {
   const [meeting] = await queryMany<Meeting>(
     `BEGIN;
-     LET $updated = (UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [] WHERE status = 'live' RETURN AFTER);
-     DELETE live_meeting WHERE meetingId = $id;
+     LET $updated = (UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [] WHERE status = 'live'${onlyIfEmpty ? ' AND array::len(participantIds) = 0' : ''} RETURN AFTER);
+     IF array::len($updated) > 0 { DELETE live_meeting WHERE meetingId = $id; };
      COMMIT;
      RETURN $updated;`,
     { id: rid('meeting', meetingId) },

@@ -77,7 +77,7 @@ apps/web/          React 19 + Vite + React Router
   src/pages/       one route per feature (Board, Chat, Brainstorm, Decisions, placeholders)
   src/features/    feature components: board/, chat/, brainstorm/, dock/
   src/components/  shared UI primitives (Icon, Avatar, Modal, Feedback = toast/confirm)
-  src/state/       session (current member), workspace (project data + realtime), chatWindow
+  src/state/       session (current member), workspace (project data + realtime), chatWindow, meetingCall
   src/api/         REST client + realtime hook
   src/styles/      plain CSS split by feature; tokens in base.css
 prototype/         the first static prototype; do not build on it

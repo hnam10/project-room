@@ -217,7 +217,11 @@ Deleting a file deletes the Agent Memory document too. "Ask the project" still a
   calendar header (`PATCH /api/projects/:projectId`): the chip sets the date, and the day is marked on
   the agenda. Opening a task still edits it in the task dialog.
 - State: `SessionProvider` (current member) → `WorkspaceProvider` (project snapshot, messages per channel,
-  realtime) → `ChatWindowProvider` (where the chat panel lives).
+  realtime) → `ChatWindowProvider` (where the chat panel lives) → `MeetingCallProvider` (the meeting call).
+- The meeting call (`state/meetingCall.tsx`) lives above the routed pages: mic, peers' audio, transcription and
+  the meeting socket keep running on any page, and off the meeting page a floating bar offers mute, leave and a
+  link back. A meeting ends when its last participant leaves; a dropped socket (closed tab, refresh) gets 30s
+  to rejoin first.
 - Chat window modes (`state/chatWindow.tsx`), persisted per browser:
   - `docked` — inside the dock under the board; drag the header out to float it;
   - `floating` — draggable/resizable inside the page; drop it on the dock to re-attach;

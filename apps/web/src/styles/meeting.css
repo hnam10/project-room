@@ -537,11 +537,35 @@
   background: var(--red);
   color: #fff;
 }
-.btn.end-call {
-  border-color: var(--red);
-  background: var(--red);
-  color: #fff;
+/* The call, off the meeting page: stays put while the member moves between pages. */
+.meeting-mini {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 10px 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-50%);
 }
-.btn.end-call:hover {
-  filter: brightness(0.92);
+.meeting-mini-title {
+  overflow: hidden;
+  max-width: 220px;
+  color: var(--ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meeting-mini-title:hover {
+  color: var(--accent);
+}
+.meeting-mini .call-btn {
+  width: 34px;
+  height: 34px;
 }

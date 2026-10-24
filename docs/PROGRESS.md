@@ -9,6 +9,11 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   set or move `dueDate` by dropping on a day (`PATCH` the task). The day highlights while the task is over it.
   Opening a task still uses the dialog. A drop on the task's current day does nothing.
 
+- 2026-10-24 — **The meeting follows you.** The call moved from `MeetingPage` to `MeetingCallProvider` in the
+  workspace layout, so changing pages keeps the mic, audio and transcript going; a floating bar (live, title,
+  mute, leave) shows off the meeting page. "End for everyone" is gone: the last participant leaving ends the
+  meeting and starts the summary, and a dropped last socket ends it after 30s unless someone rejoins (tab-close
+  leave call removed so a refresh doesn't end it).
 - 2026-10-23 — **OpenAI and Nebius split the model calls.** OpenAI handles `@AI`, Ask the project, chat
   brainstorm drafts, and the end-of-meeting summary. Nebius handles the open-question check, live meeting
   ticks, brainstorm classification, board facilitation, and research summaries. One key covers both jobs.
@@ -295,6 +300,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-24 — **An empty meeting ends itself; no "End for everyone".** A room nobody is in has nothing to keep
+  live. Explicit leave ends at once; a dropped socket waits 30s so a refresh or blip doesn't end the meeting.
 - 2026-10-23 — **Split model hosts by how often the call runs.** Nebius takes the frequent short calls
   (open-question check, live meeting ticks, brainstorm automation). OpenAI takes `@AI`, Ask the project,
   chat brainstorm drafts, and the meeting summary. Groq stays on Whisper only. A missing key falls back
