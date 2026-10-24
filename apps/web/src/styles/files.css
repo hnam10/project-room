@@ -1,6 +1,10 @@
 .files-page {
   overflow: auto;
 }
+.files-page .head-actions {
+  margin-left: auto;
+  width: auto;
+}
 .files-page .page-emoji {
   display: grid;
   place-items: center;
@@ -16,6 +20,17 @@
 }
 .files-page.dropping {
   background: var(--accent-weak);
+}
+.files-page .empty-state {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+}
+.files-page .empty-state p {
+  max-width: 36rem;
+  margin: 0;
+  text-wrap: balance;
 }
 .file-list {
   list-style: none;

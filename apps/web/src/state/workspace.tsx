@@ -1,4 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { Member, Message, Project, RealtimeEvent, RealtimeTable, WorkspaceSnapshot } from '@project-room/shared';
 import { api } from '../api/client';
 import { useRealtime, type ConnectionState } from '../api/realtime';
@@ -29,6 +40,28 @@ type Action =
   | { type: 'messagesLoaded'; channelId: string; messages: Message[] }
   | { type: 'project'; project: Project }
   | { type: 'change'; event: Pick<RealtimeEvent, 'table' | 'action' | 'record'> };
+
+/** Snapshot tables, plus messages. Meeting records are not restored from the snapshot. */
+function removalKey(table: string, id: string): string | null {
+  if (table !== 'message' && !(table in COLLECTION)) return null;
+  return `${table}:${id}`;
+}
+
+/** A snapshot requested before a delete can still contain that record. */
+function withoutRemoved(snapshot: WorkspaceSnapshot, removed: ReadonlySet<string>): WorkspaceSnapshot {
+  if (removed.size === 0) return snapshot;
+  const keep = <T extends { id: string }>(table: CollectionTable, items: T[]) =>
+    items.filter((item) => !removed.has(`${table}:${item.id}`));
+  return {
+    ...snapshot,
+    channels: keep('channel', snapshot.channels),
+    tasks: keep('task', snapshot.tasks),
+    ideas: keep('idea', snapshot.ideas),
+    decisions: keep('decision', snapshot.decisions),
+    suggestions: keep('suggestion', snapshot.suggestions),
+    files: keep('file', snapshot.files),
+  };
+}
 
 function upsert<T extends { id: string }>(list: T[], record: T, remove: boolean): T[] {
   const without = list.filter((item) => item.id !== record.id);
@@ -93,11 +126,23 @@ export function WorkspaceProvider({ projectId, children }: { projectId: string; 
   const { memberId } = useSession();
   const [state, dispatch] = useReducer(reducer, { snapshot: null, messages: {}, error: null });
   const [chosenChannelId, setActiveChannelId] = useState<string | null>(null);
+  // Ids removed locally (or by a live delete). A late snapshot or create must not restore them.
+  const removedKeys = useRef(new Set<string>());
+  const projectRef = useRef(projectId);
+  useLayoutEffect(() => {
+    projectRef.current = projectId;
+    const keys = removedKeys.current;
+    return () => keys.clear();
+  }, [projectId]);
 
   const reload = useCallback(() => {
+    const requested = projectId;
     api
-      .snapshot(projectId)
-      .then((snapshot) => dispatch({ type: 'loaded', snapshot }))
+      .snapshot(requested)
+      .then((snapshot) => {
+        if (snapshot.project.id !== projectRef.current) return;
+        dispatch({ type: 'loaded', snapshot: withoutRemoved(snapshot, removedKeys.current) });
+      })
       .catch((e: Error) => dispatch({ type: 'failed', error: e.message }));
   }, [projectId]);
 
@@ -114,7 +159,12 @@ export function WorkspaceProvider({ projectId, children }: { projectId: string; 
   const connection = useRealtime(
     projectId,
     memberId,
-    (event) => dispatch({ type: 'change', event }),
+    (event) => {
+      const key = removalKey(event.table, event.record.id);
+      if (key && event.action === 'delete') removedKeys.current.add(key);
+      else if (key && removedKeys.current.has(key)) return;
+      dispatch({ type: 'change', event });
+    },
     () => {
       reload();
       for (const channelId of Object.keys(state.messages)) void loadMessages(channelId);
@@ -137,8 +187,12 @@ export function WorkspaceProvider({ projectId, children }: { projectId: string; 
       loadMessages,
       activeChannelId,
       setActiveChannelId,
-      applyRecord: (table, record, removed = false) =>
-        dispatch({ type: 'change', event: { table, action: removed ? 'delete' : 'update', record } as RealtimeEvent }),
+      applyRecord: (table, record, removed = false) => {
+        const key = removalKey(table, record.id);
+        if (key && removed) removedKeys.current.add(key);
+        else if (key) removedKeys.current.delete(key);
+        dispatch({ type: 'change', event: { table, action: removed ? 'delete' : 'update', record } as RealtimeEvent });
+      },
       applyProject: (project) => dispatch({ type: 'project', project }),
       reload,
     }),
