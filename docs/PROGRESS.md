@@ -22,6 +22,11 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 - 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
   idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
 
+- 2026-10-23 — **OpenAI and Nebius split the model calls.** OpenAI handles `@AI`, Ask the project, chat
+  brainstorm drafts, and the end-of-meeting summary. Nebius handles the open-question check, live meeting
+  ticks, brainstorm classification, board facilitation, and research summaries. One key covers both jobs.
+  Meeting speech-to-text stays on Groq.
+
 - 2026-10-23 — **Simpler brainstorm header.** Removed the numbered workflow strip. Topic tabs and
   New topic appear only after a topic exists; the empty board uses Set topic as its single entry point.
 
@@ -294,6 +299,11 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-23 — **Each brainstorm topic owns a board.** Topic edits reset its content instead of mixing
   old context into a new question. Clear-ideas keeps research/strategies, and versioned AI writes prevent
   cleared content from returning. Chat/meeting topics add tabs rather than silently replacing a board.
+
+- 2026-10-23 — **Split model hosts by how often the call runs.** Nebius takes the frequent short calls
+  (open-question check, live meeting ticks, brainstorm automation). OpenAI takes `@AI`, Ask the project,
+  chat brainstorm drafts, and the meeting summary. Groq stays on Whisper only. A missing key falls back
+  to the host that is configured.
 
 - 2026-10-23 — **@AI reads a channel thread, then recalls older lines by full-text search.** The previous window stopped at the last AI reply and kept 12 messages, so the model could not follow the conversation. The latest 80 messages are always in the prompt. BM25 adds an older line that shares words with the question, including from another channel in the same project. File text comes from Agent Memory, not from sending the bytes to the chat model (scope `project/<id>`). "Ask the project" stays on approved decisions.
 - 2026-10-23 — **Dropped `@anthropic-ai/sdk`.** Structured output goes through the OpenAI-compatible client

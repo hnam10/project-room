@@ -46,16 +46,23 @@ export const config = {
   /** Clerk organization id to load the demo project into on startup, if that project doesn't exist yet. */
   seedOrgId: process.env.SEED_ORG_ID || null,
   /**
-   * Any OpenAI-compatible API. With a key the AI uses it; without one the labelled mock runs.
-   * AI_PROVIDER=mock forces the mock. @AI looks the project up through tools. Nebius Token Factory:
-   * OPENAI_BASE_URL=https://api.tokenfactory.nebius.com/v1 and OPENAI_MODEL=openai/gpt-oss-120b.
-   * Groq: https://api.groq.com/openai/v1. Hosts other than api.openai.com are sent max_tokens;
-   * OpenAI is sent max_completion_tokens. OPENAI_FAST_MODEL is the live meeting model.
+   * OpenAI for the longer calls: @AI (including chat brainstorm drafts), Ask the project, and the
+   * end-of-meeting summary. AI_PROVIDER=mock forces the mock even when a key is set. Without this key
+   * those jobs use Nebius when NEBIUS_API_KEY is set, otherwise the labelled mock.
+   * api.openai.com is sent max_completion_tokens; other hosts are sent max_tokens.
+   * OPENAI_FAST_MODEL is the live meeting model only when Nebius is not configured.
    */
   openaiApiKey: process.env.OPENAI_API_KEY || null,
   openaiBaseUrl: env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
   openaiModel: env('OPENAI_MODEL', 'gpt-4.1-mini'),
   openaiFastModel: env('OPENAI_FAST_MODEL', env('OPENAI_MODEL', 'gpt-4.1-mini')),
+  /**
+   * Nebius Token Factory for the frequent short calls: the open-question check, live meeting ticks,
+   * brainstorm classification, board facilitation, and research summaries.
+   */
+  nebiusApiKey: process.env.NEBIUS_API_KEY || null,
+  nebiusBaseUrl: env('NEBIUS_BASE_URL', 'https://api.tokenfactory.nebius.com/v1'),
+  nebiusModel: env('NEBIUS_MODEL', 'openai/gpt-oss-120b'),
   /** Whisper on Groq (free tier) transcribes meeting audio when set; otherwise browsers use the Web Speech API. */
   groqApiKey: process.env.GROQ_API_KEY || null,
   groqSttModel: env('GROQ_STT_MODEL', 'whisper-large-v3-turbo'),
