@@ -5,12 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
-
 - 2026-10-23 — **OpenAI and Nebius split the model calls.** OpenAI handles `@AI`, Ask the project, chat
   brainstorm drafts, and the end-of-meeting summary. Nebius handles the open-question check, live meeting
   ticks, brainstorm classification, board facilitation, and research summaries. One key covers both jobs.
   Meeting speech-to-text stays on Groq.
-
 
 - 2026-10-23 — **@AI reads the channel thread, and Agent Memory reads project files.** A mention always sees the
   latest 80 messages in that channel, including turns from before the last AI reply. Older lines in the same
@@ -29,7 +27,6 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   suggestions only. The mock still uses one-shot analysis.
 - 2026-10-23 — **File deletion and batch upload fixes.** Deletes enforce the project boundary in the write
   and retain metadata when disk removal fails so DELETE can be retried. Batch uploads continue after each failed file.
-
 
 - 2026-10-23 — **Simpler brainstorm header.** Removed the numbered workflow strip. Topic tabs and
   New topic appear only after a topic exists; the empty board uses Set topic as its single entry point.
@@ -150,7 +147,6 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   back to conversation context. A member must review/approve every AI draft, then explicitly confirm
   "Start voting" before teammates can vote.
 
-
 - 2026-10-21 — **AI Meeting Room** (Hansol). In-app voice meetings (WebRTC mesh, 60-minute cap) with a live
   transcript from each browser's speech recognition. Claude (fast model) joins read-only and proposes tickets,
   ideas and polls as suggestions; ending the meeting writes an AI summary and a "Notes for next time"
@@ -223,7 +219,6 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
-
 - The Files picker clears its live `FileList` before starting uploads; use drag and drop until that separate issue is fixed.
 
 - Brainstorm topic selection is a browser preference; each browser may work on a different topic.
@@ -233,7 +228,6 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   on Windows; the web production build succeeds independently.
 - Organization-switching checks pass individually, but `npm run check` still stops at the existing
   repository-wide formatting baseline (171 files after formatting the three changed web files).
-
 
 - Goal classification can be wrong or unclear, especially for mixed product and activity goals. Members can
   refine the problem and retry, but there is no explicit goal-type override yet.
@@ -297,7 +291,6 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
-
 - 2026-10-23 — **Split model hosts by how often the call runs.** Nebius takes the frequent short calls
   (open-question check, live meeting ticks, brainstorm automation). OpenAI takes `@AI`, Ask the project,
   chat brainstorm drafts, and the meeting summary. Groq stays on Whisper only. A missing key falls back
@@ -314,7 +307,6 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-23 — **Each brainstorm topic owns a board.** Topic edits reset its content instead of mixing
   old context into a new question. Clear-ideas keeps research/strategies, and versioned AI writes prevent
   cleared content from returning. Chat/meeting topics add tabs rather than silently replacing a board.
-
 
 - 2026-10-23 — **Schema defaults are `DEFAULT ALWAYS`.** A record created before a field existed holds NONE, and
   plain DEFAULT only fills it on CREATE, so every later UPDATE failed (500 approving an older idea suggestion).
@@ -338,7 +330,6 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   adds current web context without a client-side key or new dependency; model-returned URLs are accepted
   only when they match a search result. AI ideas remain pending suggestions, and voting starts only after
   a separate member confirmation.
-
 
 - 2026-10-23 — **The deadline chip is the date control.** Clicking the date used to jump to the week, while a
   calendar icon opened the picker and × cleared it, so the chip looked like a tag. The chip now sets the

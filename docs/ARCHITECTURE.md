@@ -14,21 +14,20 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 
 ## Data model (SurrealDB, `apps/api/src/db/schema.surql`)
 
-| Table        | Purpose                                                                                                                                                                             | Key links                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `member`     | A person                                                                                                                                                                            | —                                                             |
-| `project`    | Workspace; holds `memberIds` and the `taskCounter` for #numbers                                                                                                                     | `memberIds → member`                                          |
-| `channel`    | Chat channel                                                                                                                                                                        | `projectId`                                                   |
+| Table     | Purpose                                                         | Key links            |
+| --------- | --------------------------------------------------------------- | -------------------- |
+| `member`  | A person                                                        | —                    |
+| `project` | Workspace; holds `memberIds` and the `taskCounter` for #numbers | `memberIds → member` |
+| `channel` | Chat channel                                                    | `projectId`          |
 
-| `message`    | Chat message; `authorId` is a member id or `'ai'`. `fileId` points at a shared file when the message attaches one.                                                                  | `channelId`, `suggestionId`, `fileId`                         |
+| `message` | Chat message; `authorId` is a member id or `'ai'`. `fileId` points at a shared file when the message attaches one. | `channelId`, `suggestionId`, `fileId` |
 
-| `task`       | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from                                                                                                   | `assigneeId → member`                                         |
-| `idea`       | Central problem or brainstorm card; cards can be shortlisted and explicitly approved; voting starts only after a member opens it; source links and significant edits remain visible | `sourceSuggestionId`, `taskId` once converted                 |
-| `decision`   | Open question or recorded decision                                                                                                                                                  | `raisedById`, `decidedById`                                   |
-| `suggestion` | **Structured AI output** awaiting review, including `brainstorm_analysis`, idea drafts and task drafts; `status` = `pending` / `approved` / `dismissed`                             | `sourceMessageId`, `ideaId`, `originIdeaId`, `createdTaskIds` |
+| `task` | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from | `assigneeId → member` |
+| `idea` | Central problem or brainstorm card; cards can be shortlisted and explicitly approved; voting starts only after a member opens it; source links and significant edits remain visible | `sourceSuggestionId`, `taskId` once converted |
+| `decision` | Open question or recorded decision | `raisedById`, `decidedById` |
+| `suggestion` | **Structured AI output** awaiting review, including `brainstorm_analysis`, idea drafts and task drafts; `status` = `pending` / `approved` / `dismissed` | `sourceMessageId`, `ideaId`, `originIdeaId`, `createdTaskIds` |
 
-| `file`       | Metadata for a shared project file (name, size, type, uploader). The bytes are not in the database.                                                                                 | `uploadedById → member`                                       |
-
+| `file` | Metadata for a shared project file (name, size, type, uploader). The bytes are not in the database. | `uploadedById → member` |
 
 All records carry `projectId`; repositories always filter by it.
 
@@ -55,7 +54,6 @@ All records carry `projectId`; repositories always filter by it.
    creates tasks / ideas / logs a decision / assigns an owner (risk requires an explicit `assigneeId`).
 5. All of the above reach every open browser through realtime.
 
-
 The provider is chosen in `src/ai/routing.ts`. `OPENAI_API_KEY` handles the longer calls: `@AI`, Ask the
 project, chat brainstorm drafts, and the end-of-meeting summary. `NEBIUS_API_KEY` handles the frequent
 short calls: the open-question check, live meeting ticks, brainstorm classification, board facilitation,
@@ -80,7 +78,6 @@ through `POST /ideas/:id/shortlist`, and explicitly approve a shortlisted direct
 `POST /ideas/:id/approve`. `services/idea-change.ts` filters minor text edits; a significant edit clears
 approval, flags existing research as stale, and exposes a re-evaluation trigger. Saving the form groups edits
 before this check, rather than invoking the model for each keystroke.
-
 
 `BrainstormGuide` first prepares the selected topic: relevant web sources are summarized and a
 reviewable Strategy is proposed before idea entry is enabled. Missing keys, failed searches, and no
@@ -108,7 +105,6 @@ an idea or creates an AI-drafted idea. `originIdeaId` links a new draft to its p
 dismisses the related pending draft without making approval update that original idea. Approved directions may receive reviewable next-step tasks; the
 language is specific to the classified goal. Old generic problem, comparison, and inactivity cards are not
 shown.
-
 
 `repositories/brainstorm-topics.ts` resets boards in one transaction. Editing a topic's title/details
 removes all of its cards and suggestions and clears saved topic research. Deleting a topic also removes
@@ -159,6 +155,7 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
 - **Live AI:** new lines trigger `MeetingAi` (separate from `AiProvider`; Nebius when `NEBIUS_API_KEY` is set, otherwise the OpenAI fast model) which stores
 
   `brainstorm_topic` / `action_items` / `idea` / `poll` suggestions. A tick runs after 40 new words (at most every 20s) or 15 words then 8s of silence; a meeting is capped at 150 AI calls. Members approve them; AI never writes tasks, ideas or polls.
+
 - **Topic review:** a live meeting proposes at most one pending topic, separate from its ideas. The end summary
   can propose a topic from the full transcript if live analysis missed it. The topic appears in the meeting and
   Brainstorm views; idea drafts remain pending after the meeting and after topic approval.
@@ -231,7 +228,6 @@ Deleting a file deletes the Agent Memory document too. "Ask the project" still a
 
 ## Configuration (`apps/api/.env`)
 
-
 | Variable                                     | Default                     | Notes                                                           |
 | -------------------------------------------- | --------------------------- | --------------------------------------------------------------- |
 | `PORT`                                       | 4000                        | API port                                                        |
@@ -252,7 +248,6 @@ Deleting a file deletes the Agent Memory document too. "Ask the project" still a
 | `WEB_DIST`                                   | `apps/web/dist`             | built web app served by the API when it exists                  |
 | `FILES_DIR`                                  | `./data/files`              | uploaded bytes; `/data/files` in the Docker image               |
 | `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`                |
-
 
 To use a SurrealDB server instead of the embedded engine:
 `surreal start --user root --pass root rocksdb:./data/server.db`, then `SURREAL_URL=ws://127.0.0.1:8000`.
