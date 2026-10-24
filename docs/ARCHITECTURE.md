@@ -212,9 +212,10 @@ Deleting a file deletes the Agent Memory document too. "Ask the project" still a
   inside `WorkspaceLayout`; `/p/:projectId/popout/chat` is the standalone chat window.
 - Calendar (`features/calendar/`): tasks that have a due date, grouped into Monday-start weeks. This week
   is listed first. Each week is seven columns: the weekday sits above the date, and that day's tasks stack
-  underneath. Tasks with no due date stay in a list beside the weeks. The project deadline is a chip in the
+  underneath. Tasks with no due date stay in a list beside the weeks. Dragging a task onto a day sets or
+  moves its due date through the existing task update. The project deadline is a chip in the
   calendar header (`PATCH /api/projects/:projectId`): the chip sets the date, and the day is marked on
-  the agenda. Changing a task date goes through the existing task dialog.
+  the agenda. Opening a task still edits it in the task dialog.
 - State: `SessionProvider` (current member) → `WorkspaceProvider` (project snapshot, messages per channel,
   realtime) → `ChatWindowProvider` (where the chat panel lives).
 - Chat window modes (`state/chatWindow.tsx`), persisted per browser:
