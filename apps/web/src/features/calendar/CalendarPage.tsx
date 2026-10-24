@@ -54,7 +54,7 @@ function isWeekend(iso: string): boolean {
 
 export function CalendarPage() {
   const { project, tasks } = useSnapshot();
-  const { projectId, members, applyProject, applyRecord } = useWorkspace();
+  const { projectId, members, applyProject, applyRecord, isRecordRemoved } = useWorkspace();
   const { toast, toastError } = useFeedback();
   const [dialog, setDialog] = useState<TaskDialogState>(null);
   const [dropDay, setDropDay] = useState<string | null>(null);
@@ -63,11 +63,14 @@ export function CalendarPage() {
   const [cursor, setCursor] = useState(today);
   const deadline = project.dueDate;
   const deadlineSaving = useRef(false);
+  const pendingTaskUpdates = useRef(new Map<string, symbol>());
   const [savingDeadline, setSavingDeadline] = useState(false);
 
   useEffect(() => {
+    const pending = pendingTaskUpdates.current;
     document.title = 'Calendar · Project Room';
     return () => {
+      pending.clear();
       document.title = 'Project Room';
     };
   }, []);
@@ -118,15 +121,22 @@ export function CalendarPage() {
 
   async function assignDueDate(taskId: string, dueDate: string) {
     const task = tasks.find((item) => item.id === taskId);
-    if (!task || task.dueDate === dueDate) return;
+    if (!task || task.dueDate === dueDate || isRecordRemoved('task', taskId)) return;
+    const request = Symbol();
+    pendingTaskUpdates.current.set(task.id, request);
     const optimisticTask: Task = { ...task, dueDate };
     applyRecord('task', optimisticTask);
     try {
-      applyRecord('task', await api.updateTask(projectId, task.id, { dueDate }));
+      const saved = await api.updateTask(projectId, task.id, { dueDate });
+      if (pendingTaskUpdates.current.get(task.id) !== request || isRecordRemoved('task', task.id)) return;
+      applyRecord('task', saved);
       toast(`#${task.num} due ${formatShort(dueDate)}`);
     } catch (error) {
+      if (pendingTaskUpdates.current.get(task.id) !== request || isRecordRemoved('task', task.id)) return;
       applyRecord('task', task);
       toastError(error);
+    } finally {
+      if (pendingTaskUpdates.current.get(task.id) === request) pendingTaskUpdates.current.delete(task.id);
     }
   }
 

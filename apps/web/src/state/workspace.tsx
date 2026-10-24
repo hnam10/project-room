@@ -115,6 +115,8 @@ interface Workspace {
   setActiveChannelId: (channelId: string) => void;
   /** Applies a record returned by an API call without waiting for the realtime echo. */
   applyRecord: (table: RealtimeTable, record: { id: string }, removed?: boolean) => void;
+  /** Checks local and realtime deletion tombstones before applying a late response or rollback. */
+  isRecordRemoved: (table: RealtimeTable, id: string) => boolean;
   /** Replaces the project on the snapshot. The project table is not a realtime stream. */
   applyProject: (project: Project) => void;
   reload: () => void;
@@ -202,6 +204,10 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
         if (key && removed) removedKeys.current.add(key);
         else if (key) removedKeys.current.delete(key);
         dispatch({ type: 'change', event: { table, action: removed ? 'delete' : 'update', record } as RealtimeEvent });
+      },
+      isRecordRemoved: (table, id) => {
+        const key = removalKey(table, id);
+        return key !== null && removedKeys.current.has(key);
       },
       applyProject: (project) => dispatch({ type: 'project', project }),
       reload,
