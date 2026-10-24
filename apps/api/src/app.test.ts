@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import type { Decision, MemoryAnswer, ServerMessage, Suggestion, Task, WorkspaceSnapshot } from '@project-room/shared';
+import type { Decision, MemoryAnswer, Project, ServerMessage, Suggestion, Task, WorkspaceSnapshot } from '@project-room/shared';
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
@@ -67,6 +67,42 @@ describe('workspace API', () => {
   it('keeps other people out of the project', async () => {
     const { status } = await api('/projects/hackathon/snapshot', { member: 'stranger' });
     expect(status).toBe(403);
+  });
+
+  it('sets and clears the project deadline', async () => {
+    const before = await api<WorkspaceSnapshot>('/projects/hackathon/snapshot');
+    const denied = await api('/projects/hackathon', {
+      method: 'PATCH',
+      member: 'stranger',
+      body: JSON.stringify({ dueDate: '2026-12-01' }),
+    });
+    expect(denied.status).toBe(403);
+
+    const set = await api<Project>('/projects/hackathon', {
+      method: 'PATCH',
+      body: JSON.stringify({ dueDate: '2026-12-01' }),
+    });
+    expect(set.status).toBe(200);
+    expect(set.body.dueDate).toBe('2026-12-01');
+    expect(set.body.name).toBe('Hackathon 2026');
+
+    for (const dueDate of ['soon', '2026-02-30', '2026-02-29', '1900-02-29', '2026-04-31']) {
+      const bad = await api('/projects/hackathon', { method: 'PATCH', body: JSON.stringify({ dueDate }) });
+      expect(bad.status).toBe(400);
+    }
+    const unchanged = await api<WorkspaceSnapshot>('/projects/hackathon/snapshot');
+    expect(unchanged.body.project.dueDate).toBe('2026-12-01');
+
+    const cleared = await api<Project>('/projects/hackathon', { method: 'PATCH', body: JSON.stringify({ dueDate: null }) });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.dueDate).toBeNull();
+
+    const restored = await api<Project>('/projects/hackathon', {
+      method: 'PATCH',
+      body: JSON.stringify({ dueDate: before.body.project.dueDate }),
+    });
+    expect(restored.status).toBe(200);
+    expect(restored.body.dueDate).toBe(before.body.project.dueDate);
   });
 
   it('validates task input', async () => {
