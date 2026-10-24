@@ -5,7 +5,7 @@
  ─────────────────                    ─────────────                         ─────────
  pages/ + features/  ──REST /api──▶   http/routes ─▶ services ─▶ repositories ──▶ tables
         ▲                                   │                                   │
-        │                                   └──▶ ai/ (AiProvider: Claude or mock)   │
+        │                                   └──▶ ai/ (OpenAI-compatible, or mock) │
         └────────── WebSocket /ws ◀── realtime/hub ◀──── LIVE SELECT ◀──────────┘
 ```
 
@@ -19,7 +19,7 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 | `member`     | A person                                                                                                                                                                            | —                                                             |
 | `project`    | Workspace; holds `memberIds` and the `taskCounter` for #numbers                                                                                                                     | `memberIds → member`                                          |
 | `channel`    | Chat channel                                                                                                                                                                        | `projectId`                                                   |
-| `message`    | Chat message; `authorId` is a member id or `'ai'`                                                                                                                                   | `channelId`, `suggestionId`                                   |
+| `message`    | Chat message; `authorId` is a member id or `'ai'`. `fileId` points at a shared file when the message attaches one.                                                          | `channelId`, `suggestionId`, `fileId`         |
 | `task`       | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from                                                                                                   | `assigneeId → member`                                         |
 | `idea`       | Central problem or brainstorm card; cards can be shortlisted and explicitly approved; voting starts only after a member opens it; source links and significant edits remain visible | `sourceSuggestionId`, `taskId` once converted                 |
 | `decision`   | Open question or recorded decision                                                                                                                                                  | `raisedById`, `decidedById`                                   |
@@ -32,26 +32,35 @@ All records carry `projectId`; repositories always filter by it.
 
 1. `POST …/channels/:id/messages` stores the message and responds immediately.
 2. `services/ai-engine.ts` then runs on the message:
-   - `detectOpenQuestion` → a `decision` suggestion (shows in the AI Assistant tab, not in chat). With
-     Claude it only runs on messages that read like a question or an unsettled choice;
+   - `detectOpenQuestion` → a `decision` suggestion (shows in the AI Assistant tab, not in chat). It only
+     runs on messages that read like a question or an unsettled choice;
    - if the text mentions `@AI` plus brainstorm/idea/research language: `classifyBrainstorm` assesses the
      requested goal first. Product requests may use Tavily results; non-product requests use conversation
-     context only. `brainstorm` creates up to two editable `idea` or `Strategy` suggestions;
-   - for other `@AI` mentions: `analyzeConversation` over the messages since the AI last spoke returns
-     action items, decisions and risks, each with a `reason` and a verbatim `quote` → an `action_items`
-     suggestion (plus an AI chat message that renders it), and `decision` / `risk` suggestions in the panel.
+     context only. `brainstorm` creates a `brainstorm_topic` suggestion and up to two editable idea or strategy suggestions;
+   - for other `@AI` mentions: the latest 80 messages in that channel are the thread the model reads,
+     including turns from before the AI last spoke. Older lines in the same project are added when SurrealDB
+     full-text search (`message_text`, BM25) matches the question. With `OPENAI_API_KEY` set (including Nebius
+     Token Factory and Groq) `@AI` also calls project tools (`list_tasks`, `search_messages`, `list_decisions`, …),
+     answers in chat, and files `action_items`, `decision`, `risk` and `idea` suggestions. The mock still uses
+     one `analyzeConversation` call, and answers a question that has no new tasks from approved decisions.
+     An AI chat message renders the action items; the other kinds show in the panel.
 3. Members review: edit items (`PATCH /suggestions/:id`), `approve`, or `dismiss`.
 4. `services/suggestions.ts#approveSuggestion` is the only place AI output turns into real changes:
    creates tasks / ideas / logs a decision / assigns an owner (risk requires an explicit `assigneeId`).
 5. All of the above reach every open browser through realtime.
 
-The provider is chosen in `src/ai/index.ts`: Claude (`ai/anthropic.ts`) when `ANTHROPIC_API_KEY` is set,
-otherwise the mock (regex rules, nothing external, labelled in the UI). `AI_PROVIDER=mock` forces the mock.
-Claude calls use structured output (`client.messages.parse` with a zod schema). The result is then checked
-against real data: unknown member/task ids are dropped, and a `quote` is kept only if it appears verbatim in
-a message, so a hallucinated quote never reaches the UI. Brainstorm source URLs are kept only if Tavily
-returned them. Chat and search text are passed as data inside tags. `services/research.ts` owns the Tavily
-HTTP call; a missing or failed search never fabricates research and brainstorming falls back to chat context.
+The provider is chosen in `src/ai/index.ts`: an OpenAI-compatible API (`ai/openai.ts`, prompts in
+`ai/structured.ts`) when `OPENAI_API_KEY` is set, otherwise the mock (regex rules, nothing external,
+labelled in the UI). `AI_PROVIDER=mock` forces the mock. Point `OPENAI_BASE_URL` at Nebius Token Factory
+(`https://api.tokenfactory.nebius.com/v1`) or Groq. Hosts other than `api.openai.com` are sent
+`max_tokens`. Structured calls use `response_format: json_schema` with `strict: true`. The result is then
+checked against real data: unknown member/task ids are dropped, and a `quote` is kept only if it appears
+verbatim in a message the model was shown (the channel thread, a recalled line, a file passage, or a
+`search_messages` hit), so a hallucinated quote never reaches the UI. Brainstorm source URLs are kept only if Tavily
+returned them. Chat and search text are passed as data inside tags. Tool handlers live in
+`services/ai-engine.ts` and call repositories; the model never sees SurrealQL, and propose tools only create
+`suggestion` records. `services/research.ts` owns the Tavily HTTP call; a missing or failed search never
+fabricates research and brainstorming falls back to chat context.
 
 ## Brainstorm facilitator
 
@@ -142,6 +151,13 @@ come from the database, writes from any API instance (or a DB console) reach cli
 the display name in `x-file-name`, and the media type in `x-file-type`. `services/files.ts` writes the bytes under
 `FILES_DIR/<projectId>/<fileId>` and stores the record; downloads are always sent as attachments. A name is reduced to
 its last path segment before it is stored, and anything over 10 MB is rejected. Delete removes the record and the bytes.
+The chat attach button uses the same upload, then posts a message whose `fileId` is that record.
+When `AGENT_MEMORY_ENDPOINT`, `AGENT_MEMORY_API_KEY` and `AGENT_MEMORY_CONTEXT` are set, a PDF, image, or
+plain-text upload is also sent to SurrealDB Agent Memory under the scope `project/<projectId>` (`services/project-memory.ts`).
+The document id is stored on the file. On `@AI`, the engine asks Agent Memory for a few short passages, using the
+latest part of the channel thread as the search, and passes only those to the model; the file bytes are not.
+Word and PowerPoint files are stored for download and are not sent.
+Deleting a file deletes the Agent Memory document too. "Ask the project" still answers from approved decisions only.
 
 ## Auth (`apps/api/src/http/context.ts`, `apps/api/src/auth/clerk.ts`)
 
@@ -179,21 +195,22 @@ its last path segment before it is stored, and anything over 10 MB is rejected. 
 
 ## Configuration (`apps/api/.env`)
 
-| Variable                                     | Default                     | Notes                                                       |
-| -------------------------------------------- | --------------------------- | ----------------------------------------------------------- |
-| `PORT`                                       | 4000                        | API port                                                    |
-| `SURREAL_URL`                                | `surrealkv://./data/dev.db` | `mem://` for throwaway; `ws://host:8000` for a server       |
-| `SURREAL_NS` / `SURREAL_DB`                  | `project_room` / `dev`      |                                                             |
-| `SURREAL_USER` / `SURREAL_PASS`              | —                           | remote connections only                                     |
-| `SEED_ORG_ID`                                | —                           | Clerk org id: loads the demo project into it if it has none |
-| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`      | — / `claude-opus-5-5`       | key set = Claude, otherwise the labelled mock               |
-| `ANTHROPIC_FAST_MODEL`                       | `claude-haiku-5-5`          | model for frequent live-meeting calls                       |
-| `TAVILY_API_KEY`                             | —                           | optional web research for `@AI brainstorm ...`              |
-| `RTC_ICE_SERVERS`                            | Google STUN                 | JSON array of ICE servers for meeting audio (add TURN here) |
-| `AI_PROVIDER`                                | —                           | `mock` forces the mock even when a key is set               |
-| `WEB_DIST`                                   | `apps/web/dist`             | built web app served by the API when it exists              |
-| `FILES_DIR`                                  | `./data/files`              | uploaded bytes; `/data/files` in the Docker image           |
-| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`            |
+| Variable                                     | Default                     | Notes                                                          |
+| -------------------------------------------- | --------------------------- | -------------------------------------------------------------- |
+| `PORT`                                       | 4000                        | API port                                                       |
+| `SURREAL_URL`                                | `surrealkv://./data/dev.db` | `mem://` for throwaway; `ws://host:8000` for a server          |
+| `SURREAL_NS` / `SURREAL_DB`                  | `project_room` / `dev`      |                                                                |
+| `SURREAL_USER` / `SURREAL_PASS`              | —                           | remote connections only                                        |
+| `SEED_ORG_ID`                                | —                           | Clerk org id: loads the demo project into it if it has none    |
+| `OPENAI_API_KEY`                             | —                           | key set = OpenAI-compatible model, otherwise the labelled mock |
+| `OPENAI_BASE_URL`                            | `https://api.openai.com/v1` | Nebius or Groq can stand in                                    |
+| `OPENAI_MODEL` / `OPENAI_FAST_MODEL`         | `gpt-4.1-mini`              | chat model; fast model is the live meeting model               |
+| `TAVILY_API_KEY`                             | —                           | optional web research for `@AI brainstorm ...`                 |
+| `RTC_ICE_SERVERS`                            | Google STUN                 | JSON array of ICE servers for meeting audio (add TURN here)    |
+| `AI_PROVIDER`                                | —                           | `mock` forces the mock even when a key is set                  |
+| `WEB_DIST`                                   | `apps/web/dist`             | built web app served by the API when it exists                 |
+| `FILES_DIR`                                  | `./data/files`              | uploaded bytes; `/data/files` in the Docker image              |
+| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`               |
 
 To use a SurrealDB server instead of the embedded engine:
 `surreal start --user root --pass root rocksdb:./data/server.db`, then `SURREAL_URL=ws://127.0.0.1:8000`.

@@ -70,7 +70,7 @@ apps/api/          Express 5 + SurrealDB (embedded or remote) + WebSocket realti
   src/db/          connection, schema.surql (applied on start), seed, record-id helpers
   src/repositories/  one file per table; only place that writes SurrealQL
   src/services/    business rules (AI engine, suggestion approval)
-  src/ai/          AiProvider interface + providers (mock only, today)
+  src/ai/          AiProvider interface + OpenAI-compatible client and mock
   src/http/        project-membership middleware, error mapping, routes per feature
   src/realtime/    LIVE SELECT → WebSocket fan-out
 apps/web/          React 19 + Vite + React Router
@@ -137,8 +137,11 @@ exits first). Routes read the caller with `caller(res)` / `ctx(res)`; never read
 
 ## AI status
 
-`getAiProvider()` returns Claude (`src/ai/anthropic.ts`, structured output via `messages.parse` + zod) when
-`ANTHROPIC_API_KEY` is set, otherwise the labelled mock. Tests force the mock (`AI_PROVIDER=mock` in
-`vitest.config.ts`) so they never call the API. The model's output is a proposal: ids, tasks and quotes are
-validated against project data before a suggestion is stored. Questions about the project
-(`POST .../decisions/ask`) are answered from **approved decisions only**, never from the chat log.
+`getAiProvider()` returns the OpenAI-compatible client (`src/ai/openai.ts`, structured output via
+`response_format: json_schema` + zod) when `OPENAI_API_KEY` is set, otherwise the labelled mock. Point
+`OPENAI_BASE_URL` at Groq or Nebius Token Factory to use those hosts. Tests force the mock
+(`AI_PROVIDER=mock` in `vitest.config.ts`) so they never call the API. The model's output is a proposal:
+ids, tasks and quotes are validated against project data before a suggestion is stored. `@AI` reads the
+latest channel thread, older lines that match the question, and Agent Memory passages from uploaded files
+when `AGENT_MEMORY_*` is set. Questions about the
+project (`POST .../decisions/ask`) are answered from **approved decisions only**, never from the chat log.
