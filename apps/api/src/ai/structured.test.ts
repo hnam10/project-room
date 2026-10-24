@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Decision } from '@project-room/shared';
-import { createAnthropicProvider } from './anthropic.js';
+import { createStructuredProvider } from './structured.js';
 
 // The model is replaced by a fake: these tests check what we do with its output, not the model.
 
-function providerReturning(parsed: unknown, stop_reason = 'end_turn') {
-  const parse = vi.fn().mockResolvedValue({ stop_reason, parsed_output: parsed });
-  const provider = createAnthropicProvider('test-key', 'test-model', { messages: { parse } } as never);
+function providerReturning(output: unknown, error?: string) {
+  const parse = error
+    ? vi.fn().mockRejectedValue(new Error(error))
+    : vi.fn().mockResolvedValue({ output, usage: { inputTokens: 0, outputTokens: 0 } });
+  const provider = createStructuredProvider({ parse }, 'test-model');
   return { provider, parse };
 }
 
@@ -22,7 +24,7 @@ const tasks = [
   { id: 't18', num: 18, title: 'Landing page UI', status: 'todo', priority: 'medium' as const, assigneeId: null, dueDate: null },
 ];
 
-describe('Anthropic provider', () => {
+describe('structured provider', () => {
   it('summarizes supplied research and drops invented source URLs', async () => {
     const { provider, parse } = providerReturning({
       summaries: [
@@ -39,8 +41,9 @@ describe('Anthropic provider', () => {
     expect(summaries).toEqual([
       { url: 'https://example.com/planner', summary: 'A calendar that helps student groups coordinate due dates.' },
     ]);
-    expect(parse.mock.calls[0]![0].messages[0].content).toContain('<results>');
+    expect(parse.mock.calls[0]![0].content).toContain('<results>');
   });
+
   it('keeps real quotes and drops invented ones, unknown owners, duplicates and unknown tasks', async () => {
     const { provider, parse } = providerReturning({
       actionItems: [
@@ -84,8 +87,8 @@ describe('Anthropic provider', () => {
     // Structured output is requested, and the chat text is passed as data inside tags.
     const request = parse.mock.calls[0]![0];
     expect(request.model).toBe('test-model');
-    expect(request.output_config.format).toBeDefined();
-    expect(request.messages[0].content).toContain('<conversation>');
+    expect(request.schema).toBeDefined();
+    expect(request.content).toContain('<conversation>');
   });
 
   it('only asks the model about messages that read like open questions', async () => {
@@ -135,7 +138,7 @@ describe('Anthropic provider', () => {
         ideas: [],
       }),
     ).toBe('non_product');
-    expect(classified.parse.mock.calls[0]![0].messages[0].content).toContain('Do not guess that every brainstorm is a product');
+    expect(classified.parse.mock.calls[0]![0].content).toContain('Do not guess that every brainstorm is a product');
 
     const drafted = providerReturning({
       ideas: [
@@ -151,7 +154,7 @@ describe('Anthropic provider', () => {
     });
     const ideas = await drafted.provider.brainstorm({ messages, existingIdeas: [], research: [], mode: 'non_product' });
     expect(ideas.ideas[0]?.draft.theme).toBe('Strategy');
-    expect(drafted.parse.mock.calls[0]![0].messages[0].content).toContain('not to build a product');
+    expect(drafted.parse.mock.calls[0]![0].content).toContain('not to build a product');
 
     const meal = providerReturning({
       ideas: [
@@ -167,7 +170,7 @@ describe('Anthropic provider', () => {
     });
     const options = await meal.provider.brainstorm({ messages, existingIdeas: [], research: [], mode: 'non_product' });
     expect(options.ideas[0]?.draft.theme).toBe('Option');
-    expect(meal.parse.mock.calls[0]![0].messages[0].content).toContain('cuisine');
+    expect(meal.parse.mock.calls[0]![0].content).toContain('cuisine');
   });
 
   it('answers from the given decisions and ignores source ids it was not given', async () => {
@@ -182,7 +185,7 @@ describe('Anthropic provider', () => {
     const { provider, parse } = providerReturning({ answer: 'Fly.io, because it needs a disk.', sourceDecisionIds: ['d1', 'd404'] });
     const out = await provider.answerFromDecisions({ question: 'Where do we host?', decisions: [decided], members });
     expect(out.sourceDecisionIds).toEqual(['d1']);
-    const prompt: string = parse.mock.calls[0]![0].messages[0].content;
+    const prompt: string = parse.mock.calls[0]![0].content;
     expect(prompt).toContain('<decision id="d1"');
     expect(prompt).toContain('ONLY the approved decisions');
   });
@@ -195,7 +198,7 @@ describe('Anthropic provider', () => {
   });
 
   it('fails loudly when the model refuses', async () => {
-    const { provider } = providerReturning(null, 'refusal');
+    const { provider } = providerReturning(null, 'The model declined this request');
     await expect(provider.analyzeConversation({ messages, tasks, members })).rejects.toThrow(/declined/);
   });
 });

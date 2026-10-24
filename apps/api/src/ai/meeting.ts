@@ -10,9 +10,9 @@ import {
   type SuggestionStatus,
 } from '@project-room/shared';
 import { config } from '../config.js';
-import { createAnthropicMeetingAi } from './anthropic-meeting.js';
-import { createOpenAiClient } from './openai.js';
 import { mockMeetingAi } from './mock-meeting.js';
+import { createOpenAiClient } from './openai.js';
+import { createStructuredMeetingAi } from './structured-meeting.js';
 import type { MemberBrief } from './provider.js';
 
 // Live AI during a meeting. Like AiProvider, everything returned is a proposal; the caller stores it as a
@@ -214,18 +214,13 @@ export function validateSummary(raw: RawSummary, input: SummarizeInput): Summari
   };
 }
 
-// Same order as getAiProvider: OpenAI-compatible API, then Claude, then the labelled mock.
+// Same order as getAiProvider: an OpenAI-compatible API, otherwise the labelled mock.
 let meetingAi: MeetingAi | null = null;
 
 function pick(): MeetingAi {
-  if (config.forceMockAi) return mockMeetingAi;
-  if (config.openaiApiKey) {
-    const client = createOpenAiClient(config.openaiApiKey, config.openaiBaseUrl);
-    const ai = createAnthropicMeetingAi('', config.openaiFastModel, config.openaiModel, client);
-    return { ...ai, name: `openai:${config.openaiFastModel}` };
-  }
-  if (config.anthropicApiKey) return createAnthropicMeetingAi(config.anthropicApiKey, config.anthropicFastModel, config.anthropicModel);
-  return mockMeetingAi;
+  if (config.forceMockAi || !config.openaiApiKey) return mockMeetingAi;
+  const client = createOpenAiClient(config.openaiApiKey, config.openaiBaseUrl);
+  return createStructuredMeetingAi(client, config.openaiFastModel, config.openaiModel);
 }
 
 export function getMeetingAi(): MeetingAi {

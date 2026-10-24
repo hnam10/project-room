@@ -67,7 +67,7 @@ export function MeetingPage() {
           </span>
           <h1>Meeting room</h1>
           <p className="meeting-start-text">
-            Start a conversation about your project. AI listens and proposes ideas and tasks for you to review; nothing is added to the
+            Start a conversation about your project. AI listens and proposes tasks, ideas and polls for you to review; nothing is added to the
             board until you approve it. Teammates can join, and meetings last at most 60 minutes.
           </p>
           {snapshot?.members.length === 1 && snapshot.ideas.length === 0 && snapshot.tasks.length === 0 && (

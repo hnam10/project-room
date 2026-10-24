@@ -28,7 +28,7 @@ export function ConsentDialog(props: { open: boolean; action: 'start' | 'join'; 
           Chrome).
         </li>
         <li>The transcript is saved to this project and visible to its members.</li>
-        <li>Claude reads the transcript.</li>
+        <li>The AI reads the transcript.</li>
       </ul>
       <p className="modal-note">Joining means you accept this.</p>
     </Modal>

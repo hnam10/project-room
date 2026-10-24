@@ -53,6 +53,8 @@ export interface Message {
   createdAt: string;
   /** Set when an AI message carries a suggestion (e.g. extracted action items). */
   suggestionId: string | null;
+  /** Set when the message shares a project file. The bytes stay in the file store. */
+  fileId: string | null;
 }
 
 export interface Task {
@@ -196,6 +198,8 @@ export interface ProjectFile {
   contentType: string;
   uploadedById: string;
   createdAt: string;
+  /** SurrealDB Agent Memory document id, once that service has accepted the bytes. */
+  memoryDocumentId: string | null;
 }
 
 /** Everything the workspace UI needs for one project, in one request. */
