@@ -117,6 +117,37 @@ describe('meeting summary', () => {
     ]);
   });
 
+  it('proposes a topic from the full transcript when no live tick found one', async () => {
+    const started = await post('');
+    const id = started.body.id;
+    const line = (await post<{ id: string; text: string }>(`/${id}/lines`, 'alex', { text: 'How can we make campus meals cheaper?' })).body;
+    await beginSummarizing(id);
+    const ended = await summarize(
+      P,
+      id,
+      fakeAi(async () =>
+        result({
+          topic: {
+            title: 'How can we make campus meals cheaper?',
+            description: 'Explore affordable meals for students.',
+            reason: 'The team identified its brainstorm goal.',
+            quote: line.text,
+            sourceLineId: line.id,
+          },
+          actionItems: [],
+          carryOverItems: [],
+        }),
+      ),
+    );
+    expect(ended.status).toBe('ended');
+    const topic = (await suggestions()).find((s) => s.meetingId === id && s.kind === 'brainstorm_topic');
+    expect(topic).toMatchObject({
+      status: 'pending',
+      sourceLineId: line.id,
+      ideaDraft: { title: 'How can we make campus meals cheaper?' },
+    });
+  });
+
   it('only participants can end; /end returns summarizing and then the summary lands', async () => {
     const started = await post('');
     const id = started.body.id;

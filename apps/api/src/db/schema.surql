@@ -49,9 +49,20 @@ DEFINE TABLE OVERWRITE idea SCHEMAFULL;
 DEFINE FIELD OVERWRITE projectId   ON idea TYPE record<project>;
 DEFINE FIELD OVERWRITE title       ON idea TYPE string ASSERT string::len($value) > 0 AND string::len($value) <= 80;
 DEFINE FIELD OVERWRITE description ON idea TYPE string DEFAULT '';
-DEFINE FIELD OVERWRITE theme       ON idea TYPE string ASSERT $value IN ['Product', 'Engagement', 'Platform'];
+DEFINE FIELD OVERWRITE theme       ON idea TYPE string ASSERT $value IN ['Option', 'Product', 'Strategy', 'Engagement', 'Platform'];
+DEFINE FIELD OVERWRITE kind        ON idea TYPE string DEFAULT 'idea' ASSERT $value IN ['problem', 'idea'];
+DEFINE FIELD OVERWRITE shortlisted ON idea TYPE bool DEFAULT false;
+DEFINE FIELD OVERWRITE approved    ON idea TYPE bool DEFAULT false;
+DEFINE FIELD OVERWRITE researchStale ON idea TYPE bool DEFAULT false;
+DEFINE FIELD OVERWRITE significantChangeAt ON idea TYPE null | datetime DEFAULT null;
+DEFINE FIELD OVERWRITE updatedAt   ON idea TYPE datetime VALUE time::now();
 DEFINE FIELD OVERWRITE authorId    ON idea TYPE record<member>;
 DEFINE FIELD OVERWRITE voterIds    ON idea TYPE array<record<member>> DEFAULT [];
+DEFINE FIELD OVERWRITE votingOpen  ON idea TYPE bool DEFAULT false;
+DEFINE FIELD OVERWRITE sourceSuggestionId ON idea TYPE null | record<suggestion> DEFAULT null;
+DEFINE FIELD OVERWRITE researchSources ON idea TYPE array<object> DEFAULT [];
+DEFINE FIELD OVERWRITE researchSources.*.title ON idea TYPE string;
+DEFINE FIELD OVERWRITE researchSources.*.url   ON idea TYPE string;
 DEFINE FIELD OVERWRITE taskId      ON idea TYPE null | record<task> DEFAULT null;
 DEFINE FIELD OVERWRITE createdAt   ON idea TYPE datetime DEFAULT time::now() READONLY;
 
@@ -70,7 +81,7 @@ DEFINE FIELD OVERWRITE decidedAt   ON decision TYPE null | datetime DEFAULT null
 -- AI suggestions are structured data. They only change other tables when a member approves them.
 DEFINE TABLE OVERWRITE suggestion SCHEMAFULL;
 DEFINE FIELD OVERWRITE projectId        ON suggestion TYPE record<project>;
-DEFINE FIELD OVERWRITE kind             ON suggestion TYPE string ASSERT $value IN ['action_items', 'decision', 'risk', 'idea', 'poll', 'meeting_notes'];
+DEFINE FIELD OVERWRITE kind             ON suggestion TYPE string ASSERT $value IN ['action_items', 'decision', 'risk', 'idea', 'brainstorm_topic', 'poll', 'meeting_notes', 'brainstorm_analysis'];
 DEFINE FIELD OVERWRITE status           ON suggestion TYPE string ASSERT $value IN ['pending', 'approved', 'dismissed'];
 DEFINE FIELD OVERWRITE title            ON suggestion TYPE string;
 DEFINE FIELD OVERWRITE proposal         ON suggestion TYPE null | string DEFAULT null;
@@ -78,6 +89,9 @@ DEFINE FIELD OVERWRITE outcome          ON suggestion TYPE null | string DEFAULT
 DEFINE FIELD OVERWRITE reason           ON suggestion TYPE string;
 DEFINE FIELD OVERWRITE quote            ON suggestion TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE cite             ON suggestion TYPE null | string DEFAULT null;
+DEFINE FIELD OVERWRITE researchSources  ON suggestion TYPE array<object> DEFAULT [];
+DEFINE FIELD OVERWRITE researchSources.*.title ON suggestion TYPE string;
+DEFINE FIELD OVERWRITE researchSources.*.url   ON suggestion TYPE string;
 DEFINE FIELD OVERWRITE sourceMessageId  ON suggestion TYPE null | record<message> DEFAULT null;
 DEFINE FIELD OVERWRITE items            ON suggestion TYPE array<object> DEFAULT [];
 DEFINE FIELD OVERWRITE items.*.title      ON suggestion TYPE string;
@@ -90,6 +104,8 @@ DEFINE FIELD OVERWRITE taskId           ON suggestion TYPE null | record<task> D
 DEFINE FIELD OVERWRITE meetingId        ON suggestion TYPE null | record<meeting> DEFAULT null;
 DEFINE FIELD OVERWRITE sourceLineId     ON suggestion TYPE null | record<transcript_line> DEFAULT null;
 DEFINE FIELD OVERWRITE ideaId           ON suggestion TYPE null | record<idea> DEFAULT null;
+DEFINE FIELD OVERWRITE originIdeaId     ON suggestion TYPE null | record<idea> DEFAULT null;
+DEFINE FIELD OVERWRITE brainstormTrigger ON suggestion TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE ideaDraft        ON suggestion TYPE null | object FLEXIBLE DEFAULT null;
 DEFINE FIELD OVERWRITE pollDraft        ON suggestion TYPE null | object FLEXIBLE DEFAULT null;
 DEFINE FIELD OVERWRITE createdTaskIds   ON suggestion TYPE array<record<task>> DEFAULT [];

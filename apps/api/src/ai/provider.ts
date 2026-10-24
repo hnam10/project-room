@@ -1,10 +1,10 @@
-import type { ActionItem, Decision, Priority } from '@project-room/shared';
+import type { ActionItem, BrainstormTrigger, Decision, IdeaDraft, Priority, ResearchSource } from '@project-room/shared';
 
 // The contract every AI backend implements. The rest of the API only talks to this interface,
 // so swapping the mock for a real model is a change in src/ai/index.ts alone.
 //
 // Everything a provider returns is a *proposal*. The engine stores it as a suggestion, and only a
-// member's approval changes tasks or decisions (see services/suggestions.ts).
+// member's approval changes tasks, decisions or ideas (see services/suggestions.ts).
 
 export interface ConversationMessage {
   id: string;
@@ -60,6 +60,75 @@ export interface AnalyzeInput {
   members: MemberBrief[];
 }
 
+export interface ExistingIdeaBrief {
+  title: string;
+  description: string;
+}
+
+export interface BrainstormResearchResult extends ResearchSource {
+  content: string;
+}
+
+export interface ResearchSummaryInput {
+  idea: ExistingIdeaBrief;
+  results: BrainstormResearchResult[];
+}
+
+export interface ResearchSummary {
+  url: string;
+  summary: string;
+}
+
+export interface BrainstormInput {
+  messages: ConversationMessage[];
+  currentTopic?: ExistingIdeaBrief | null;
+  existingIdeas: ExistingIdeaBrief[];
+  research: BrainstormResearchResult[];
+  mode?: BrainstormMode;
+}
+
+export type BrainstormMode = 'product' | 'non_product' | 'unclear';
+
+export interface BrainstormContext {
+  problem: ExistingIdeaBrief | null;
+  ideas: ExistingIdeaBrief[];
+  request?: string;
+}
+
+export interface ProposedIdea {
+  draft: IdeaDraft;
+  reason: string;
+  quote: string | null;
+  /** URLs must point to results supplied in BrainstormInput; unknown URLs are discarded. */
+  sourceUrls: string[];
+}
+
+export interface ProposedBrainstormTopic {
+  title: string;
+  description: string;
+  reason: string;
+  quote: string | null;
+}
+
+export interface BrainstormResult {
+  topic: ProposedBrainstormTopic | null;
+  ideas: ProposedIdea[];
+}
+
+export interface FacilitateInput {
+  trigger: BrainstormTrigger;
+  problem: ExistingIdeaBrief | null;
+  ideas: ExistingIdeaBrief[];
+  research: BrainstormResearchResult[];
+  mode?: BrainstormMode;
+}
+
+export interface FacilitateResult {
+  summary: string;
+  ideas: ProposedIdea[];
+  tasks: ActionItem[];
+}
+
 export interface MemoryAnswerDraft {
   answer: string;
   /** Ids of the approved decisions the answer relies on. Empty when none covers the question. */
@@ -76,6 +145,18 @@ export interface AiProvider {
    * quote from the conversation. Must not repeat existing task titles.
    */
   analyzeConversation(input: AnalyzeInput): Promise<ConversationAnalysis>;
+
+  /** Proposes a reviewable board topic and at most two editable idea drafts, grounded in chat and optional web research. */
+  brainstorm(input: BrainstormInput): Promise<BrainstormResult>;
+
+  /** Briefly explains relevant existing work using only the supplied search results. */
+  summarizeResearch(input: ResearchSummaryInput): Promise<ResearchSummary[]>;
+
+  /** Assess whether the team's goal is a product, another kind of project, or still unclear. */
+  classifyBrainstorm(input: BrainstormContext): Promise<BrainstormMode>;
+
+  /** Produces reviewable guidance and, where useful, editable idea or task drafts for a brainstorm trigger. */
+  facilitateBrainstorm(input: FacilitateInput): Promise<FacilitateResult>;
 
   /** Cheap per-message check: does this message raise (or settle) a choice the team hasn't recorded? */
   detectOpenQuestion(message: ConversationMessage): Promise<ProposedDecision | null>;

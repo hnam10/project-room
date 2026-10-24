@@ -23,6 +23,7 @@ export interface MeetingTickInput {
   runningSummary: string;
   carryOver: string[];
   ideas: { id: string; title: string }[];
+  currentTopic?: { id: string; title: string } | null;
   taskTitles: string[];
   /** Titles of suggestions already made, so the AI doesn't repeat them. */
   alreadySuggested: string[];
@@ -30,6 +31,7 @@ export interface MeetingTickInput {
 }
 
 export interface MeetingTickResult {
+  topic?: MeetingTopic | null;
   actionItems: (ActionItem & { sourceLineId: string | null })[];
   /** ideaId is set when the AI proposes developing an existing idea, null for a new one. */
   ideas: { ideaId: string | null; draft: IdeaDraft; reason: string; quote: string | null; sourceLineId: string | null }[];
@@ -42,12 +44,14 @@ export interface SummarizeInput {
   lines: MeetingTickInput['lines'];
   carryOver: string[];
   ideas: { id: string; title: string }[];
+  currentTopic?: { id: string; title: string } | null;
   taskTitles: string[];
   suggestions: { title: string; status: SuggestionStatus }[];
   members: MemberBrief[];
 }
 
 export interface SummarizeResult {
+  topic?: MeetingTopic | null;
   summary: MeetingSummary;
   actionItems: ActionItem[];
   carryOverItems: string[];
@@ -61,8 +65,17 @@ export interface MeetingAi {
   summarizeMeeting(input: SummarizeInput): Promise<SummarizeResult>;
 }
 
+export interface MeetingTopic {
+  title: string;
+  description: string;
+  reason: string;
+  quote: string | null;
+  sourceLineId: string | null;
+}
+
 /** What a provider hands to validateTick: loosely typed, nothing trusted yet. */
 export interface RawTick {
+  topic?: { title: string; description: string; reason: string; quote: string | null } | null;
   actionItems: { title: string; assigneeId: string | null; priority: string; reason: string; quote: string | null }[];
   ideas: { ideaId: string | null; title: string; description: string; theme: string; reason: string; quote: string | null }[];
   polls: { question: string; options: string[]; reason: string; quote: string | null }[];
@@ -72,6 +85,7 @@ export interface RawTick {
 
 /** What a provider hands to validateSummary: loosely typed, nothing trusted yet. */
 export interface RawSummary {
+  topic?: RawTick['topic'];
   summary: MeetingSummary;
   actionItems: RawTick['actionItems'];
   carryOverItems: string[];
@@ -81,7 +95,7 @@ export interface RawSummary {
 const norm = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 const toPriority = (value: string): Priority => PRIORITIES.find((p) => p === value.trim().toLowerCase()) ?? 'medium';
 const toTheme = (value: string): IdeaTheme => IDEA_THEMES.find((t) => t.toLowerCase() === value.trim().toLowerCase()) ?? 'Product';
-const PREFIXES = /^(new idea|develop|poll):\s*/i;
+const PREFIXES = /^(new idea|develop|poll|brainstorm topic):\s*/i;
 const MAX_SUMMARY_WORDS = 150;
 
 export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTickResult {
@@ -103,6 +117,15 @@ export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTick
   };
 
   return {
+    topic:
+      raw.topic && fresh(raw.topic.title) && norm(raw.topic.title) !== norm(input.currentTopic?.title ?? '')
+        ? {
+            title: raw.topic.title.trim().slice(0, 80),
+            description: raw.topic.description.trim().slice(0, 240),
+            reason: raw.topic.reason.trim().slice(0, 400),
+            ...cite(raw.topic.quote),
+          }
+        : null,
     actionItems: raw.actionItems
       .filter((i) => fresh(i.title))
       .map((i) => ({
@@ -150,6 +173,21 @@ export function validateSummary(raw: RawSummary, input: SummarizeInput): Summari
   };
   const { summary } = raw;
   return {
+    topic:
+      raw.topic &&
+      norm(raw.topic.title) &&
+      norm(raw.topic.title) !== norm(input.currentTopic?.title ?? '') &&
+      !seen.has(norm(raw.topic.title))
+        ? {
+            title: raw.topic.title.trim().slice(0, 80),
+            description: raw.topic.description.trim().slice(0, 240),
+            reason: raw.topic.reason.trim().slice(0, 400),
+            quote: cite(raw.topic.quote),
+            sourceLineId:
+              input.lines.find((line) => raw.topic?.quote && norm(line.text).includes(norm(raw.topic.quote.replace(/^["“]|["”]$/g, ''))))
+                ?.id ?? null,
+          }
+        : null,
     summary: {
       overview: summary.overview.trim().split(/\s+/).slice(0, MAX_OVERVIEW_WORDS).join(' '),
       decisions: capList(summary.decisions, 10),

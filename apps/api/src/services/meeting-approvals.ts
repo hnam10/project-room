@@ -1,6 +1,7 @@
 import type { Suggestion } from '@project-room/shared';
 import { ConflictError } from '../db/records.js';
-import { createIdea, updateIdeaDescription } from '../repositories/ideas.js';
+import { createIdea, getIdea, updateIdea } from '../repositories/ideas.js';
+import { isSignificantIdeaChange } from './idea-change.js';
 import { getMeeting, setCarryOver } from '../repositories/meetings.js';
 import { createPoll } from '../repositories/polls.js';
 import { resolveSuggestion } from '../repositories/suggestions.js';
@@ -10,8 +11,36 @@ import { resolveSuggestion } from '../repositories/suggestions.js';
 export async function approveIdea(projectId: string, suggestion: Suggestion, memberId: string): Promise<Suggestion> {
   const draft = suggestion.ideaDraft;
   if (!draft) throw new ConflictError('Suggestion has no idea to add');
-  if (suggestion.ideaId) await updateIdeaDescription(projectId, suggestion.ideaId, draft.description);
-  else await createIdea(projectId, memberId, draft);
+  if (suggestion.ideaId) {
+    const before = await getIdea(projectId, suggestion.ideaId);
+    const patch = { description: draft.description };
+    await updateIdea(projectId, suggestion.ideaId, patch, isSignificantIdeaChange(before, patch));
+  } else await createIdea(projectId, memberId, draft, { suggestionId: suggestion.id, researchSources: suggestion.researchSources ?? [] });
+  return resolveSuggestion(suggestion.id, 'approved', memberId);
+}
+
+/** A chat brainstorm proposes its topic; only the member's approval creates or replaces the board topic. */
+export async function approveBrainstormTopic(projectId: string, suggestion: Suggestion, memberId: string): Promise<Suggestion> {
+  const draft = suggestion.ideaDraft;
+  if (!draft) throw new ConflictError('Suggestion has no brainstorm topic');
+  if (suggestion.ideaId) {
+    const before = await getIdea(projectId, suggestion.ideaId);
+    if (before.kind !== 'problem') throw new ConflictError('The suggested topic no longer points to a brainstorm topic');
+    const patch = { title: draft.title, description: draft.description.slice(0, 240) };
+    await updateIdea(projectId, before.id, patch, isSignificantIdeaChange(before, patch));
+  } else {
+    await createIdea(
+      projectId,
+      memberId,
+      {
+        title: draft.title,
+        description: draft.description.slice(0, 240),
+        theme: draft.theme,
+        kind: 'problem',
+      },
+      { suggestionId: suggestion.id, researchSources: [] },
+    );
+  }
   return resolveSuggestion(suggestion.id, 'approved', memberId);
 }
 

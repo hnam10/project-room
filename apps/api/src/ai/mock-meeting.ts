@@ -7,6 +7,7 @@ const ITEM = /(?:\bi'll|\bwe need to)\s+(.+?)(?:[.!?]|$)/i;
 const ITEM_KO = /(.+?)\s*(?:할게요|해야 해)/;
 const IDEA = /what if|how about|어때/i;
 const DISAGREE = /\bbut\b|\bdisagree\b|근데/i;
+const TOPIC = /(?:\b(?:brainstorm|ideas? for|how (?:can|should) we|what should we)\b|아이디어|어떻게)/i;
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -18,6 +19,17 @@ export const mockMeetingAi: MeetingAi = {
     const raw: RawTick = { actionItems: [], ideas: [], polls: [], runningSummary: '' };
     input.lines.forEach((line, i) => {
       const { text } = line;
+      if (!raw.topic && TOPIC.test(text)) {
+        raw.topic = {
+          title: text
+            .trim()
+            .replace(/[.!]+$/, '')
+            .slice(0, 80),
+          description: '',
+          reason: `${line.speakerName} framed the team's brainstorm goal.`,
+          quote: text,
+        };
+      }
       const item = text.match(ITEM) ?? text.match(ITEM_KO);
       if (item?.[1]) {
         raw.actionItems.push({
@@ -71,6 +83,7 @@ export const mockMeetingAi: MeetingAi = {
     const actionItems = tick.actionItems.map(({ sourceLineId: _s, include: _i, reason, ...item }) => ({ ...item, reason: reason ?? '' }));
     return validateSummary(
       {
+        topic: tick.topic,
         summary: {
           overview: turns.join(' '),
           decisions: texts.filter((t) => /decided|let's go with|정했/i.test(t)),

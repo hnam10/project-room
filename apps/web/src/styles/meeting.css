@@ -270,6 +270,24 @@
   font-size: 13px;
   line-height: 1.5;
 }
+.meeting-starters {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--accent-weak);
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.meeting-starters strong {
+  color: var(--ink);
+}
+.meeting-starters ul {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+.meeting-starters p {
+  margin: 6px 0 0;
+}
 .meeting-start input,
 .meeting-start select {
   width: 100%;

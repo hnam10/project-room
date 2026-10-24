@@ -1,4 +1,4 @@
-import type { ActionItem, Meeting } from '@project-room/shared';
+import type { ActionItem, Meeting, Suggestion } from '@project-room/shared';
 import { getMeetingAi, type MeetingAi, type SummarizeInput, type SummarizeResult } from '../ai/meeting.js';
 import { failSummary, finishSummary, getMeeting, listSummarizingMeetings } from '../repositories/meetings.js';
 import { listIdeas } from '../repositories/ideas.js';
@@ -7,6 +7,7 @@ import { createSuggestion, listSuggestions } from '../repositories/suggestions.j
 import { listTasks } from '../repositories/tasks.js';
 import { listLinesAfter } from '../repositories/transcripts.js';
 import { endExpiredMeetings } from './meetings.js';
+import { proposeMeetingTopic } from './meeting-topic.js';
 
 const MAX_LINES = 2000;
 const ATTEMPTS = 3;
@@ -27,6 +28,8 @@ export async function summarize(
   if (meeting.status !== 'summarizing') return meeting;
 
   let input: SummarizeInput;
+  let existingSuggestions: Suggestion[];
+  let lineCites: Map<string, string>;
   try {
     const project = await getProject(projectId);
     const [members, ideas, tasks, all, lines, previous] = await Promise.all([
@@ -38,10 +41,18 @@ export async function summarize(
       meeting.previousMeetingId ? getMeeting(projectId, meeting.previousMeetingId) : null,
     ]);
     const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? 'Someone';
+    existingSuggestions = all;
+    lineCites = new Map(
+      lines.map((line) => [
+        line.id,
+        `${nameOf(line.speakerId)} · Meeting · ${new Date(line.spokenAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+      ]),
+    );
     input = {
       lines: lines.map((l) => ({ id: l.id, speakerId: l.speakerId, speakerName: nameOf(l.speakerId), text: l.text })),
       carryOver: previous?.carryOver ?? [],
       ideas: ideas.map((i) => ({ id: i.id, title: i.title })),
+      currentTopic: ideas.find((idea) => idea.kind === 'problem') ?? null,
       taskTitles: tasks.map((t) => t.title),
       suggestions: all.filter((s) => s.meetingId === meetingId).map((s) => ({ title: s.title, status: s.status })),
       members: members.map((m) => ({ id: m.id, name: m.name, role: m.role })),
@@ -69,6 +80,15 @@ export async function summarize(
   // rerun and the rerun skips whichever suggestion already exists.
   try {
     const base = { meetingId };
+    await proposeMeetingTopic(
+      projectId,
+      meetingId,
+      result.topic,
+      input.currentTopic ?? null,
+      existingSuggestions,
+      lineCites.get(result.topic?.sourceLineId ?? '') ?? null,
+      `${meetingId}-summary-topic`,
+    );
     if (result.actionItems.length) {
       const n = result.actionItems.length;
       await createSuggestion(

@@ -30,6 +30,19 @@ const raw = (over: Partial<RawTick> = {}): RawTick => ({
 const idea = (over = {}) => ({ ideaId: null, title: 'T', description: '', theme: 'product', reason: 'r', quote: null, ...over });
 
 describe('validateTick', () => {
+  it('keeps a cited topic separate from ideas and drops repeats', () => {
+    const topic = {
+      title: 'How should we organize study groups?',
+      description: 'For students',
+      reason: 'The team asked.',
+      quote: 'What if we add a dark mode?',
+    };
+    const out = validateTick(raw({ topic, ideas: [idea({ title: 'Match by course' })] }), input);
+    expect(out.topic).toMatchObject({ title: topic.title, sourceLineId: 'l2' });
+    expect(out.ideas).toHaveLength(1);
+    expect(validateTick(raw({ topic }), { ...input, currentTopic: { id: 'p1', title: topic.title } }).topic).toBeNull();
+    expect(validateTick(raw({ topic }), { ...input, alreadySuggested: [`Brainstorm topic: ${topic.title}`] }).topic).toBeNull();
+  });
   it('drops unknown idea ids, member ids and quotes that are not in the input', () => {
     const out = validateTick(
       raw({
@@ -132,6 +145,7 @@ describe('Claude meeting AI', () => {
     expect(req.output_config.effort).toBe('low');
     expect(req).not.toHaveProperty('temperature');
     expect(req.messages[0].content).toContain('<transcript>');
+    expect(req.messages[0].content).toContain('<current_topic>');
     expect(req.messages[0].content).toContain("[l1] Alex: I'll set up the CI pipeline.");
     expect(out.usage).toEqual({ inputTokens: 12, outputTokens: 3 });
   });

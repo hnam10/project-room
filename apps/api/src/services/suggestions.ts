@@ -1,7 +1,8 @@
 import type { Suggestion } from '@project-room/shared';
 import { ConflictError } from '../db/records.js';
 import { createDecision } from '../repositories/decisions.js';
-import { approveIdea, approveMeetingNotes, approvePoll } from './meeting-approvals.js';
+import { attachIdeaResearch } from '../repositories/ideas.js';
+import { approveBrainstormTopic, approveIdea, approveMeetingNotes, approvePoll } from './meeting-approvals.js';
 import { getSuggestion, resolveSuggestion } from '../repositories/suggestions.js';
 import { createTask, getTask, updateTask } from '../repositories/tasks.js';
 
@@ -57,10 +58,18 @@ export async function approveSuggestion(
     }
     case 'idea':
       return approveIdea(projectId, suggestion, memberId);
+    case 'brainstorm_topic':
+      return approveBrainstormTopic(projectId, suggestion, memberId);
     case 'poll':
       return approvePoll(projectId, suggestion, memberId);
     case 'meeting_notes':
       return approveMeetingNotes(projectId, suggestion, memberId);
+    case 'brainstorm_analysis': {
+      if (suggestion.ideaId && suggestion.researchSources.length) {
+        await attachIdeaResearch(projectId, suggestion.ideaId, suggestion.researchSources);
+      }
+      return resolveSuggestion(suggestion.id, 'approved', memberId);
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ideaDraftSchema, pollDraftSchema } from './meeting.js';
-import { IDEA_THEMES, PRIORITIES, TASK_LABELS, TASK_STATUSES } from './domain.js';
+import { BRAINSTORM_TRIGGERS, IDEA_THEMES, PRIORITIES, TASK_LABELS, TASK_STATUSES } from './domain.js';
 
 // Request bodies accepted by the API. The web app uses the inferred types when calling it.
 
@@ -31,12 +31,35 @@ export const messageCreateSchema = z.object({
 });
 export type MessageCreateInput = z.input<typeof messageCreateSchema>;
 
+export const channelCreateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1)
+    .max(32)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+});
+export type ChannelCreateInput = z.input<typeof channelCreateSchema>;
+
 export const ideaCreateSchema = z.object({
   title: z.string().trim().min(1).max(80),
   description: z.string().trim().max(240).default(''),
-  theme: z.enum(IDEA_THEMES).default('Product'),
+  theme: z.enum(IDEA_THEMES).default('Option'),
+  kind: z.enum(['problem', 'idea']).default('idea'),
 });
 export type IdeaCreateInput = z.input<typeof ideaCreateSchema>;
+export const ideaUpdateSchema = z.object({
+  title: z.string().trim().min(1).max(80).optional(),
+  description: z.string().trim().max(240).optional(),
+  theme: z.enum(IDEA_THEMES).optional(),
+});
+export type IdeaUpdateInput = z.input<typeof ideaUpdateSchema>;
+export const brainstormActionSchema = z.object({
+  trigger: z.enum(BRAINSTORM_TRIGGERS),
+  ideaId: id.nullable().default(null),
+});
+export type BrainstormActionInput = z.input<typeof brainstormActionSchema>;
 
 export const decisionCreateSchema = z.object({
   title: z.string().trim().min(1).max(160),

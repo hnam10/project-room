@@ -1,4 +1,47 @@
 /* ---------- Board ---------- */
+.getting-started {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0 20px 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--accent-weak);
+}
+.getting-started-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  color: var(--accent);
+}
+.getting-started h2 {
+  margin: 3px 0 5px;
+  font-size: 17px;
+}
+.getting-started strong {
+  color: var(--accent);
+  font-size: 12px;
+}
+.getting-started p {
+  margin: 0;
+  max-width: 66ch;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.getting-started .btn {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+@media (max-width: 780px) {
+  .getting-started {
+    flex-wrap: wrap;
+  }
+  .getting-started .btn {
+    margin-left: 0;
+  }
+}
 .board {
   flex: 1 1 auto;
   min-height: 230px;
