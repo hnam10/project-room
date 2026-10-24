@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-23 — **Simpler brainstorm header.** Removed the numbered workflow strip. Topic tabs and
+  New topic appear only after a topic exists; the empty board uses Set topic as its single entry point.
+
 - 2026-10-23 — **Topic-based brainstorm boards.** Multiple topic tabs keep ideas, research, strategies
   and pending AI drafts separate. A topic is required; its initial preparation researches relevant sources
   and proposes a strategy before enabling idea entry. Missing research is reported honestly. Confirmed
