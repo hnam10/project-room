@@ -1,4 +1,4 @@
-import type { Meeting, MeetingCreateInput, MeetingDetail, Poll, TranscriptLine } from '@project-room/shared';
+import type { Meeting, MeetingCreateInput, MeetingDetail, Poll, TranscriptLine, TranscriptSource } from '@project-room/shared';
 import { p, request } from './client';
 
 const m = (projectId: string) => `${p(projectId)}/meetings`;
@@ -9,7 +9,8 @@ export const meetingsApi = {
   start: (projectId: string, input: MeetingCreateInput) => request<Meeting>('POST', m(projectId), input),
   join: (projectId: string, id: string) => request<Meeting>('POST', `${m(projectId)}/${id}/join`),
   leave: (projectId: string, id: string) => request<Meeting>('POST', `${m(projectId)}/${id}/leave`, undefined, { keepalive: true }),
-  postLine: (projectId: string, id: string, text: string) => request<TranscriptLine>('POST', `${m(projectId)}/${id}/lines`, { text }),
+  postLine: (projectId: string, id: string, text: string, source: TranscriptSource = 'voice') =>
+    request<TranscriptLine>('POST', `${m(projectId)}/${id}/lines`, { text, source }),
   /** A clip of the caller's mic; the server transcribes it. Resolves undefined (204) when it was silent. */
   postAudio: (projectId: string, id: string, clip: Blob) =>
     request<TranscriptLine | undefined>('POST', `${m(projectId)}/${id}/audio`, clip),

@@ -133,6 +133,18 @@ describe('live meeting pipeline', () => {
     expect(inputs).toHaveLength(1);
   });
 
+  it('a short chat line is enough for a run after a 2s pause; short speech is not', async () => {
+    const meeting = await getMeeting('hackathon', meetingId);
+    const { ai } = fakeAi(() => ({}));
+    await checkMeeting(meetingId, 1_000_000, ai); // flush words noted by earlier tests
+    noteLine(meeting, 'Jamie will build it', 2_000_000);
+    expect(shouldRun(triggerState(meetingId)!, 2_010_000)).toBe(false);
+    noteLine(meeting, 'Jamie will build it', 2_000_000, true);
+    expect(shouldRun(triggerState(meetingId)!, 2_001_000)).toBe(false);
+    expect(shouldRun(triggerState(meetingId)!, 2_002_000)).toBe(true);
+    await checkMeeting(meetingId, 2_010_000, ai); // leave no pending words for the next test
+  });
+
   it('keeps words noted while a tick is in flight', async () => {
     const meeting = await getMeeting('hackathon', meetingId);
     noteLine(meeting, Array(80).fill('word').join(' '), 1_000);
@@ -202,6 +214,31 @@ describe('live meeting pipeline', () => {
       },
     }));
     expect((await runLiveTick('hackathon', meetingId, revised.ai)).some((s) => s.kind === 'brainstorm_topic')).toBe(false);
+  });
+
+  it('reads typed chat lines like speech, tagged as chat', async () => {
+    const said = await speak('Let us ship login first');
+    const typed = (await post<TranscriptLine>(`/meetings/${meetingId}/lines`, { text: 'Google login link', source: 'chat' })).body;
+    expect(said.source).toBe('voice');
+    expect(typed.source).toBe('chat');
+    const { ai, inputs } = fakeAi(() => ({
+      actionItems: [
+        {
+          title: 'Add Google login',
+          assigneeId: null,
+          priority: 'medium',
+          include: true,
+          reason: 'linked',
+          quote: null,
+          sourceLineId: typed.id,
+        },
+      ],
+    }));
+    const [action] = await runLiveTick('hackathon', meetingId, ai);
+    const names = inputs[0]!.lines.map((l) => l.speakerName);
+    expect(names[0]).not.toMatch(/\(chat\)$/);
+    expect(names[1]).toMatch(/ \(chat\)$/);
+    expect(action?.cite).toMatch(/^.+ · Meeting chat · \d\d:\d\d$/);
   });
 
   it('POST /ai {enabled:false} stops ticks; only participants may toggle', async () => {

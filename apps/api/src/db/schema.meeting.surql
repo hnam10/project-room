@@ -33,6 +33,8 @@ DEFINE FIELD OVERWRITE projectId ON transcript_line TYPE record<project>;
 DEFINE FIELD OVERWRITE meetingId ON transcript_line TYPE record<meeting>;
 DEFINE FIELD OVERWRITE speakerId ON transcript_line TYPE record<member>;
 DEFINE FIELD OVERWRITE text      ON transcript_line TYPE string ASSERT string::len($value) > 0 AND string::len($value) <= 1000;
+-- 'chat' lines were typed in the meeting chat; the AI and the summary read them like speech.
+DEFINE FIELD OVERWRITE source    ON transcript_line TYPE string DEFAULT ALWAYS 'voice' ASSERT $value IN ['voice', 'chat'];
 DEFINE FIELD OVERWRITE spokenAt  ON transcript_line TYPE datetime DEFAULT time::now() READONLY;
 DEFINE INDEX OVERWRITE transcript_line_meeting_time ON transcript_line FIELDS meetingId, spokenAt;
 
