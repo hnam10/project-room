@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
+  idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
+
 - 2026-10-23 — **Research cards summarize related ideas.** Relevant Tavily results are summarized in
   short, source grounded descriptions instead of showing raw search snippets. Results without a reliable
   summary are omitted; earlier pending cards offer a Summarize source action. Direct AI idea drafts,
