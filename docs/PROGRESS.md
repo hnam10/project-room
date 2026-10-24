@@ -5,6 +5,11 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **The meeting follows you.** The call moved from `MeetingPage` to `MeetingCallProvider` in the
+  workspace layout, so changing pages keeps the mic, audio and transcript going; a floating bar (live, title,
+  mute, leave) shows off the meeting page. "End for everyone" is gone: the last participant leaving ends the
+  meeting and starts the summary, and a dropped last socket ends it after 30s unless someone rejoins (tab-close
+  leave call removed so a refresh doesn't end it).
 - 2026-10-23 — **Simpler brainstorm header.** Removed the numbered workflow strip. Topic tabs and
   New topic appear only after a topic exists; the empty board uses Set topic as its single entry point.
 
@@ -256,6 +261,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-24 — **An empty meeting ends itself; no "End for everyone".** A room nobody is in has nothing to keep
+  live. Explicit leave ends at once; a dropped socket waits 30s so a refresh or blip doesn't end the meeting.
 - 2026-10-23 — **Each brainstorm topic owns a board.** Topic edits reset its content instead of mixing
   old context into a new question. Clear-ideas keeps research/strategies, and versioned AI writes prevent
   cleared content from returning. Chat/meeting topics add tabs rather than silently replacing a board.
