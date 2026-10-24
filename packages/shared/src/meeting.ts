@@ -53,6 +53,8 @@ export interface TranscriptLine {
   meetingId: string;
   speakerId: string;
   text: string;
+  /** 'chat' when typed in the meeting chat; lines saved before chat existed have none and are speech. */
+  source?: TranscriptSource;
   spokenAt: string;
 }
 
@@ -119,7 +121,12 @@ export const meetingCreateSchema = z.object({
 });
 export type MeetingCreateInput = z.input<typeof meetingCreateSchema>;
 
-export const transcriptLineCreateSchema = z.object({ text: z.string().trim().min(1).max(1000) });
+export const TRANSCRIPT_SOURCES = ['voice', 'chat'] as const;
+export type TranscriptSource = (typeof TRANSCRIPT_SOURCES)[number];
+export const transcriptLineCreateSchema = z.object({
+  text: z.string().trim().min(1).max(1000),
+  source: z.enum(TRANSCRIPT_SOURCES).default('voice'),
+});
 export const meetingAiSchema = z.object({ enabled: z.boolean() });
 export const pollVoteSchema = z.object({ optionId: z.string().min(1).max(64) });
 

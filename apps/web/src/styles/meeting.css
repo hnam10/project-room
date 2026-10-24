@@ -207,6 +207,20 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
+.t-chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.t-chat .icon {
+  width: 12px;
+  height: 12px;
+}
+.meeting-chat {
+  margin: 10px 0 0;
+}
 .t-line time {
   color: var(--muted);
   font-size: 11px;

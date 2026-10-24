@@ -1,10 +1,22 @@
-import type { TranscriptLine } from '@project-room/shared';
+import type { TranscriptLine, TranscriptSource } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
 import { rid } from '../db/records.js';
 
-export async function createLine(projectId: string, meetingId: string, speakerId: string, text: string): Promise<TranscriptLine> {
+export async function createLine(
+  projectId: string,
+  meetingId: string,
+  speakerId: string,
+  text: string,
+  source: TranscriptSource = 'voice',
+): Promise<TranscriptLine> {
   const line = await queryOne<TranscriptLine>('CREATE ONLY transcript_line CONTENT $content', {
-    content: { projectId: rid('project', projectId), meetingId: rid('meeting', meetingId), speakerId: rid('member', speakerId), text },
+    content: {
+      projectId: rid('project', projectId),
+      meetingId: rid('meeting', meetingId),
+      speakerId: rid('member', speakerId),
+      text,
+      source,
+    },
   });
   if (!line) throw new Error('Transcript line creation returned nothing');
   return line;

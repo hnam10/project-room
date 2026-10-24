@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Meeting chat.** Participants can type in a live meeting. A message is stored as a
+  `transcript_line` with `source: 'chat'`, shows in the transcript with a chat tag, and the live AI and the
+  summary read it like speech (tagged "(chat)"; cites say "Meeting chat"). One chat line is enough for an AI
+  run after a 2s pause (speech still needs 15 words and 8s), so short typed requests get suggestions quickly.
 - 2026-10-24 — **Meeting and brainstorm UI polish.** The transcript / AI suggestions divider in a live meeting
   drags to resize (reuses the dock's `ResizeHandle`; double-click resets). Meetings are English-only: the
   Korean option and the language picker are gone and the default is `en-US`. The "Brainstorming ideas"
