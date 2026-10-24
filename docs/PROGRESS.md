@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
+  idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
+
 - 2026-10-23 — **Calendar review fixes.** Deadline controls wait for the pending save, including clear and error rollback.
   Week columns switch to day rows when the agenda is too narrow for task metadata, including beside the undated rail.
   Project and task due dates reject impossible calendar dates, with leap-year checks; clearing still uses null.

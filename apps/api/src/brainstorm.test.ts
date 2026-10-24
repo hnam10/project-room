@@ -3,7 +3,8 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RESEARCH_SUMMARY_REASON, hasResearchableDetail, type Idea, type Suggestion, type Task } from '@project-room/shared';
 import { createApp } from './app.js';
-import { closeDb, connectDb } from './db/client.js';
+import { closeDb, connectDb, getDb } from './db/client.js';
+import { rid } from './db/records.js';
 import { seedDemoData } from './db/seed.js';
 import { researchWeb } from './services/research.js';
 import { isCopiedResearch, similarWebResults } from './services/brainstorm.js';
@@ -186,6 +187,27 @@ describe('sourced brainstorm research', () => {
     expect(examples.body[0]?.title).toMatch(/^Similar work:/);
     expect(examples.body[0]?.status).toBe('pending');
   });
+
+  it.each(['Shared deadline calender', 'Automatic workload assignment'])(
+    'updates an older idea without research sources: %s',
+    async (title) => {
+      const created = await call<Idea>('POST', '/ideas', { title: 'Shared deadline calendar' });
+      // Simulate a record saved before researchSources existed, then restore the current field definition.
+      try {
+        await getDb().query('DEFINE FIELD OVERWRITE researchSources ON idea TYPE option<array<object>>').collect();
+        await getDb()
+          .query('UPDATE ONLY $id UNSET researchSources', { id: rid('idea', created.body.id) })
+          .collect();
+      } finally {
+        await getDb().query('DEFINE FIELD OVERWRITE researchSources ON idea TYPE array<object> DEFAULT ALWAYS []').collect();
+      }
+      expect((await call<Idea[]>('GET', '/ideas')).body.find((item) => item.id === created.body.id)).not.toHaveProperty('researchSources');
+
+      const updated = await call<Idea>('PATCH', `/ideas/${created.body.id}`, { title });
+      expect(updated.status).toBe(200);
+      expect(updated.body).toMatchObject({ title, researchSources: [], researchStale: false });
+    },
+  );
 
   it('deletes an idea, dismisses linked examples, and keeps its task', async () => {
     const created = await call<Idea>('POST', '/ideas', { title: 'Collaborative deadline reminder' });
