@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-23 — **Organization switching stays in sync.** URL-to-Clerk synchronization runs once per
+  project URL change above the signed-in gate, so the gate's transition cannot reactivate the previous
+  team. Project changes remount workspace data and UI together, discarding old messages and channel
+  selection. Checked round-trip switching and a direct project link in Edge; the selected team and
+  project agree. Lint, typecheck, all 177 tests, and the web production build passed.
+
 - 2026-10-23 — **Calendar review fixes.** Deadline controls wait for the pending save, including clear and error rollback.
   Week columns switch to day rows when the agenda is too narrow for task metadata, including beside the undated rail.
   Project and task due dates reject impossible calendar dates, with leap-year checks; clearing still uses null.
@@ -159,6 +165,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - [ ] Files page (needs storage decision: SurrealDB files vs. S3-compatible bucket).
 
 ## Known gaps
+
+- Organization-switching checks pass individually, but `npm run check` still stops at the existing
+  repository-wide formatting baseline (171 files after formatting the three changed web files).
 
 - Goal classification can be wrong or unclear, especially for mixed product and activity goals. Members can
   refine the problem and retry, but there is no explicit goal-type override yet.
