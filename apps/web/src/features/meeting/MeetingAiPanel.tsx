@@ -9,6 +9,7 @@ import { useSession } from '../../state/session';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 import { IdeaSuggestionCard } from './IdeaSuggestionCard';
 import { PollSuggestionCard } from './PollSuggestionCard';
+import { BrainstormTopicSuggestionCard } from '../brainstorm/BrainstormTopicSuggestionCard';
 
 /** Right column of the meeting: Claude's pending suggestions for this meeting and its polls. */
 export function MeetingAiPanel(props: {
@@ -41,6 +42,9 @@ export function MeetingAiPanel(props: {
     <>
       <h2>AI suggestions</h2>
       <div className="ai-panel">
+        {pending.some((suggestion) => suggestion.kind === 'brainstorm_topic') && (
+          <p className="meeting-note-small">Review the topic when ready. Idea suggestions stay available in Brainstorm while you choose.</p>
+        )}
         {me?.ai.isMock && (
           <div className="mock-note">
             <Icon name="sparkle" />
@@ -58,6 +62,8 @@ export function MeetingAiPanel(props: {
         {pending.map((s) =>
           s.kind === 'action_items' ? (
             <ActionItemsCard key={s.id} suggestion={s} />
+          ) : s.kind === 'brainstorm_topic' ? (
+            <BrainstormTopicSuggestionCard key={s.id} suggestion={s} />
           ) : s.kind === 'idea' ? (
             <IdeaSuggestionCard key={s.id} suggestion={s} />
           ) : s.kind === 'poll' ? (

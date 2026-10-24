@@ -4,6 +4,7 @@ import { suggestionUpdateSchema } from '@project-room/shared';
 import { ConflictError } from '../../db/records.js';
 import { getSuggestion, listSuggestions, updateSuggestionDrafts, updateSuggestionItems } from '../../repositories/suggestions.js';
 import { approveSuggestion, dismissSuggestion } from '../../services/suggestions.js';
+import { summarizeExistingResearch } from '../../services/brainstorm.js';
 import { ctx } from '../context.js';
 
 export const suggestionsRouter = Router({ mergeParams: true });
@@ -20,7 +21,7 @@ suggestionsRouter.patch('/:suggestionId', async (req, res) => {
   const suggestion = await getSuggestion(project.id, req.params.suggestionId);
   if (suggestion.status !== 'pending') throw new ConflictError(`Suggestion is already ${suggestion.status}`);
   const { items, ideaDraft, pollDraft } = suggestionUpdateSchema.parse(req.body);
-  if ((ideaDraft && suggestion.kind !== 'idea') || (pollDraft && suggestion.kind !== 'poll')) {
+  if ((ideaDraft && suggestion.kind !== 'idea' && suggestion.kind !== 'brainstorm_topic') || (pollDraft && suggestion.kind !== 'poll')) {
     res.status(400).json({ error: 'Draft does not match the suggestion kind' });
     return;
   }
@@ -49,4 +50,8 @@ suggestionsRouter.post('/:suggestionId/approve', async (req, res) => {
 suggestionsRouter.post('/:suggestionId/dismiss', async (req, res) => {
   const { project, memberId } = ctx(res);
   res.json(await dismissSuggestion(project.id, req.params.suggestionId, memberId));
+});
+
+suggestionsRouter.post('/:suggestionId/summarize-research', async (req, res) => {
+  res.json(await summarizeExistingResearch(ctx(res).project.id, req.params.suggestionId));
 });

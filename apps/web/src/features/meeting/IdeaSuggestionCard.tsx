@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IDEA_THEMES, type IdeaDraft, type IdeaTheme, type Suggestion } from '@project-room/shared';
+import { IDEA_THEME_CHOICES, type IdeaDraft, type IdeaTheme, type Suggestion } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
@@ -16,8 +16,11 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   const [busy, setBusy] = useState(false);
   const draft = suggestion.ideaDraft;
   const existing = suggestion.ideaId ? ideas.find((i) => i.id === suggestion.ideaId) : undefined;
-  const [form, setForm] = useState<IdeaDraft>(draft ?? { title: '', description: '', theme: IDEA_THEMES[0] });
+  const [form, setForm] = useState<IdeaDraft>(draft ?? { title: '', description: '', theme: IDEA_THEME_CHOICES[0] });
   if (!draft) return null;
+  const themeChoices: IdeaTheme[] = IDEA_THEME_CHOICES.some((choice) => choice === form.theme)
+    ? [...IDEA_THEME_CHOICES]
+    : [...IDEA_THEME_CHOICES, form.theme];
 
   const run = async (action: () => Promise<Suggestion>, message: string) => {
     setBusy(true);
@@ -94,9 +97,9 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
         </label>
         {!existing && (
           <label className="form-row">
-            Theme
+            Category
             <select value={form.theme} onChange={(e) => setForm({ ...form, theme: e.target.value as IdeaTheme })}>
-              {IDEA_THEMES.map((t) => (
+              {themeChoices.map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
