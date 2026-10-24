@@ -49,7 +49,7 @@ Configuration lives in `apps/api/.env` (copy `apps/api/.env.example`) and `apps/
   into one of your Clerk organizations.
 - **Deploy:** the [Dockerfile](Dockerfile) builds one image that serves the API and the web app; mount a
   volume at `/data` for the embedded database and uploaded files.
-- **Placeholders:** Overview, Team and Settings are labelled placeholders. The calendar shows task due dates by week and the project deadline. Files are uploaded project files.
+- **Placeholders:** Overview and Settings are labelled placeholders. Team membership will live on Settings; `/team` redirects there. The calendar shows task due dates by week and the project deadline. Files are uploaded project files.
 
 ## Docs
 
