@@ -1,7 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { PRIORITIES, type ActionItem, type Decision, type Priority } from '@project-room/shared';
 import { z } from 'zod';
+import type { OpenAiClient } from './openai.js';
 import type {
   AiProvider,
   AnalyzeInput,
@@ -19,9 +18,9 @@ import type {
   ResearchSummaryInput,
 } from './provider.js';
 
-// Claude as the project's AI. Every call returns structured output validated against a schema, and the
-// result is checked against the project's real data (member ids, task ids, quotes) before it is used.
-// Chat text is untrusted input: it is passed as data inside tags, never as instructions.
+// Structured suggestions over an OpenAI-compatible chat API. Every call returns JSON validated against a
+// schema, and the result is checked against the project's real data (member ids, task ids, quotes) before
+// it is used. Chat text is untrusted input: it is passed as data inside tags, never as instructions.
 
 const SYSTEM = `You are the AI assistant inside Project Room, a workspace for student and hackathon teams.
 You read team conversation and propose structured suggestions. People review and approve everything you
@@ -34,8 +33,8 @@ Rules:
   that support it, copied verbatim. Use null for the quote only if no single message supports it.
 - Never invent members, tasks or facts. Use only the ids you are given.`;
 
-// A plain string rather than z.enum: the SDK's zod helper moves `enum` into the schema description instead
-// of enforcing it, so the value is normalised in code (see toPriority).
+// A plain string rather than z.enum: some hosts move `enum` into the schema description instead of
+// enforcing it, so the value is normalised in code (see toPriority).
 const priority = z.string().describe(`One of: ${PRIORITIES.join(', ')}. Use high for anything tied to an imminent deadline`);
 const toPriority = (value: string): Priority => PRIORITIES.find((p) => p === value.trim().toLowerCase()) ?? 'medium';
 
@@ -136,23 +135,10 @@ function formatMembers(members: MemberBrief[]) {
 }
 
 /** `client` is injectable so tests can check our validation without calling the API. */
-export function createAnthropicProvider(
-  apiKey: string,
-  model: string,
-  client: Pick<Anthropic, 'messages'> = new Anthropic({ apiKey }),
-): AiProvider {
-  async function parse<T extends z.ZodType>(schema: T, content: string): Promise<z.infer<T>> {
-    const response = await client.messages.parse({
-      model,
-      max_tokens: 16000,
-      system: SYSTEM,
-      messages: [{ role: 'user', content }],
-      output_config: { format: zodOutputFormat(schema) },
-    });
-    if (response.stop_reason === 'refusal') throw new Error('The model declined this request');
-    if (response.stop_reason === 'max_tokens') throw new Error('The model’s answer was cut off');
-    if (!response.parsed_output) throw new Error('The model returned no structured output');
-    return response.parsed_output;
+export function createStructuredProvider(client: Pick<OpenAiClient, 'parse'>, model: string): AiProvider {
+  async function parse<T>(schema: z.ZodType<T>, content: string): Promise<T> {
+    const response = await client.parse({ model, maxTokens: 16000, system: SYSTEM, content, schema });
+    return response.output;
   }
 
   async function analyze({ messages, tasks, members }: AnalyzeInput): Promise<ConversationAnalysis> {
@@ -365,7 +351,7 @@ Return no idea drafts that duplicate existing titles. Keep the summary under 160
   }
 
   return {
-    name: `anthropic:${model}`,
+    name: `openai:${model}`,
     isMock: false,
     analyzeConversation: analyze,
     brainstorm,

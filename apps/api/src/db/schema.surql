@@ -29,8 +29,12 @@ DEFINE FIELD OVERWRITE channelId    ON message TYPE record<channel>;
 DEFINE FIELD OVERWRITE authorId     ON message TYPE string; -- member id, or 'ai'
 DEFINE FIELD OVERWRITE text         ON message TYPE string ASSERT string::len($value) > 0 AND string::len($value) <= 2000;
 DEFINE FIELD OVERWRITE suggestionId ON message TYPE null | record<suggestion> DEFAULT ALWAYS null;
+DEFINE FIELD OVERWRITE fileId       ON message TYPE null | record<file> DEFAULT ALWAYS null;
 DEFINE FIELD OVERWRITE createdAt    ON message TYPE datetime DEFAULT time::now() READONLY;
 DEFINE INDEX OVERWRITE message_channel_time ON message FIELDS channelId, createdAt;
+-- BM25 over every message in the project, so a mention can pull an older line that fell outside the thread.
+DEFINE ANALYZER OVERWRITE message_search TOKENIZERS class FILTERS lowercase, ascii;
+DEFINE INDEX OVERWRITE message_text ON message FIELDS text FULLTEXT ANALYZER message_search BM25;
 
 DEFINE TABLE OVERWRITE task SCHEMAFULL;
 DEFINE FIELD OVERWRITE projectId  ON task TYPE record<project>;
@@ -121,6 +125,7 @@ DEFINE FIELD OVERWRITE name          ON file TYPE string ASSERT string::len($val
 DEFINE FIELD OVERWRITE size          ON file TYPE int ASSERT $value > 0 AND $value <= 10485760;
 DEFINE FIELD OVERWRITE contentType   ON file TYPE string ASSERT string::len($value) > 0 AND string::len($value) <= 120;
 DEFINE FIELD OVERWRITE uploadedById  ON file TYPE record<member>;
+DEFINE FIELD OVERWRITE memoryDocumentId ON file TYPE null | string DEFAULT null ASSERT $value = NONE OR $value = NULL OR (string::len($value) > 0 AND string::len($value) <= 80);
 DEFINE FIELD OVERWRITE createdAt     ON file TYPE datetime DEFAULT time::now() READONLY;
 DEFINE INDEX OVERWRITE file_project_time ON file FIELDS projectId, createdAt;
 

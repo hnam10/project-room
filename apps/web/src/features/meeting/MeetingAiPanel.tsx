@@ -11,7 +11,7 @@ import { IdeaSuggestionCard } from './IdeaSuggestionCard';
 import { PollSuggestionCard } from './PollSuggestionCard';
 import { BrainstormTopicSuggestionCard } from '../brainstorm/BrainstormTopicSuggestionCard';
 
-/** Right column of the meeting: Claude's pending suggestions for this meeting and its polls. */
+/** Right column of the meeting: the AI's pending suggestions for this meeting and its polls. */
 export function MeetingAiPanel(props: {
   detail: MeetingDetail;
   joined: boolean;
@@ -48,12 +48,12 @@ export function MeetingAiPanel(props: {
         {me?.ai.isMock && (
           <div className="mock-note">
             <Icon name="sparkle" />
-            Mock AI — no ANTHROPIC_API_KEY is set, so suggestions come from simple local rules. Nothing changes until you confirm.
+            Mock AI — no OPENAI_API_KEY is set, so suggestions come from simple local rules. Nothing changes until you confirm.
           </div>
         )}
         {props.joined && live && (
           <button className="btn sm" onClick={() => void toggle()}>
-            {meeting.aiEnabled ? 'Remove Claude' : 'Invite Claude'}
+            {meeting.aiEnabled ? 'Remove AI' : 'Invite AI'}
           </button>
         )}
         {shownPolls.map((p) => (
@@ -73,8 +73,8 @@ export function MeetingAiPanel(props: {
         {!pending.length && !shownPolls.length && (
           <p className="empty-state">
             {meeting.aiEnabled
-              ? 'Claude is listening. Suggestions appear here as the team talks.'
-              : 'Claude was removed from this meeting.'}
+              ? 'The AI is listening. Suggestions appear here as the team talks.'
+              : 'The AI was removed from this meeting.'}
           </p>
         )}
       </div>

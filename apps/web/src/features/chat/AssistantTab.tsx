@@ -26,7 +26,7 @@ export function AssistantTab({ onOpenDecisions }: { onOpenDecisions: () => void 
       {me?.ai.isMock && (
         <div className="mock-note">
           <Icon name="sparkle" />
-          Mock AI — no ANTHROPIC_API_KEY is set, so suggestions come from simple local rules. Nothing changes until you confirm.
+          Mock AI — no OPENAI_API_KEY is set, so suggestions come from simple local rules. Nothing changes until you confirm.
         </div>
       )}
       {pending.length ? (

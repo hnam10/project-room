@@ -36,16 +36,21 @@ export const config = {
   webDist: process.env.WEB_DIST || null,
   /** Where uploaded file bytes are stored. Metadata stays in SurrealDB. */
   filesDir: env('FILES_DIR', './data/files'),
+  /**
+   * SurrealDB Agent Memory. All three are required before a PDF, image, or plain-text upload is indexed
+   * and before @AI can read passages from it. Unset means files stay download-only.
+   */
+  agentMemoryEndpoint: process.env.AGENT_MEMORY_ENDPOINT || null,
+  agentMemoryApiKey: process.env.AGENT_MEMORY_API_KEY || null,
+  agentMemoryContext: process.env.AGENT_MEMORY_CONTEXT || null,
   /** Clerk organization id to load the demo project into on startup, if that project doesn't exist yet. */
   seedOrgId: process.env.SEED_ORG_ID || null,
-  /** Claude is used whenever ANTHROPIC_API_KEY is set; without it the labelled mock runs. AI_PROVIDER=mock forces the mock. */
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
-  anthropicModel: env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
-  /** Cheaper, faster model for the live meeting AI that runs every few seconds. */
-  anthropicFastModel: env('ANTHROPIC_FAST_MODEL', 'claude-haiku-5-5'),
   /**
-   * Any OpenAI-compatible API, used instead of Claude when OPENAI_API_KEY is set. Point OPENAI_BASE_URL at
-   * https://api.groq.com/openai/v1 for Groq's free tier (e.g. OPENAI_MODEL=openai/gpt-oss-20b).
+   * Any OpenAI-compatible API. With a key the AI uses it; without one the labelled mock runs.
+   * AI_PROVIDER=mock forces the mock. @AI looks the project up through tools. Nebius Token Factory:
+   * OPENAI_BASE_URL=https://api.tokenfactory.nebius.com/v1 and OPENAI_MODEL=openai/gpt-oss-120b.
+   * Groq: https://api.groq.com/openai/v1. Hosts other than api.openai.com are sent max_tokens;
+   * OpenAI is sent max_completion_tokens. OPENAI_FAST_MODEL is the live meeting model.
    */
   openaiApiKey: process.env.OPENAI_API_KEY || null,
   openaiBaseUrl: env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),

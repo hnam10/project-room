@@ -178,7 +178,7 @@ export async function seedDemoData({ projectId = DEMO_PROJECT_ID }: { projectId?
             id: rid('decision', scoped('d3')),
             projectId: p,
             title: 'Which AI model powers suggestions',
-            outcome: 'Claude through the Anthropic API, behind our AiProvider interface',
+            outcome: 'An OpenAI-compatible API, behind our AiProvider interface',
             reason: 'Structured output gives every suggestion a reason and a quote, and the interface lets us swap models.',
             status: 'decided',
             raisedById: m('alex'),

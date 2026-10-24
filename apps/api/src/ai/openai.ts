@@ -1,43 +1,137 @@
-import type Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 
-// Any OpenAI-compatible chat API (OpenAI, or Groq's free tier via OPENAI_BASE_URL) behind the same
-// `messages.parse` shape the Claude providers use, so their prompts and validation are reused as-is.
+// Any OpenAI-compatible chat API (api.openai.com, Nebius Token Factory, Groq).
+// api.openai.com expects max_completion_tokens; the others expect max_tokens.
 
-interface ParseParams {
-  model: string;
-  max_tokens: number;
-  system: string;
-  messages: { role: 'user'; content: string }[];
-  output_config: { format: { schema: Record<string, unknown>; parse(content: string): unknown } };
+interface FunctionCall {
+  id: string;
+  name: string;
+  arguments: string;
+}
+
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string | null;
+  tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[];
+  tool_call_id?: string;
+}
+
+export interface ChatTool {
+  type: 'function';
+  function: { name: string; description: string; parameters: Record<string, unknown> };
 }
 
 interface ChatResponse {
-  choices: { message: { content: string | null; refusal?: string | null }; finish_reason: string }[];
+  choices: {
+    message: {
+      content: string | null;
+      refusal?: string | null;
+      tool_calls?: { id?: string; function?: { name?: string; arguments?: unknown } }[];
+    };
+    finish_reason: string;
+  }[];
   usage?: { prompt_tokens: number; completion_tokens: number };
 }
 
-export function createOpenAiClient(apiKey: string, baseUrl: string): Pick<Anthropic, 'messages'> {
-  async function parse({ model, max_tokens, system, messages, output_config }: ParseParams) {
-    const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+export interface StructuredRequest<T> {
+  model: string;
+  maxTokens: number;
+  system: string;
+  content: string;
+  schema: z.ZodType<T>;
+}
+
+export interface StructuredResult<T> {
+  output: T;
+  usage: { inputTokens: number; outputTokens: number };
+}
+
+/** Cheap models often wrap JSON in a fence even when a schema was requested. */
+function jsonText(content: string): string {
+  const trimmed = content.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/i);
+  return (fenced?.[1] ?? trimmed).trim();
+}
+
+function tokenLimit(baseUrl: string, maxTokens: number): Record<string, number> {
+  try {
+    if (new URL(baseUrl).host === 'api.openai.com') return { max_completion_tokens: maxTokens };
+  } catch {
+    // A base URL that is not a URL is not OpenAI, so use the field Nebius and Groq accept.
+  }
+  return { max_tokens: maxTokens };
+}
+
+/** JSON Schema for `response_format`. `$schema` is dropped because strict mode rejects it. */
+function responseSchema(schema: z.ZodType): Record<string, unknown> {
+  const json = z.toJSONSchema(schema) as Record<string, unknown>;
+  delete json.$schema;
+  return json;
+}
+
+export interface OpenAiClient {
+  parse<T>(input: StructuredRequest<T>): Promise<StructuredResult<T>>;
+  chat(input: { model: string; maxTokens: number; messages: ChatMessage[]; tools: ChatTool[] }): Promise<{
+    content: string | null;
+    toolCalls: FunctionCall[];
+  }>;
+}
+
+export function createOpenAiClient(apiKey: string, baseUrl: string): OpenAiClient {
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+
+  async function post(body: Record<string, unknown>): Promise<ChatResponse> {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model,
-        max_completion_tokens: max_tokens,
-        messages: [{ role: 'system', content: system }, ...messages],
-        response_format: { type: 'json_schema', json_schema: { name: 'output', schema: output_config.format.schema } },
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`AI request failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
-    const data = (await res.json()) as ChatResponse;
+    return (await res.json()) as ChatResponse;
+  }
+
+  async function parse<T>({ model, maxTokens, system, content, schema }: StructuredRequest<T>): Promise<StructuredResult<T>> {
+    const data = await post({
+      model,
+      ...tokenLimit(baseUrl, maxTokens),
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: { name: 'output', strict: true, schema: responseSchema(schema) },
+      },
+    });
     const choice = data.choices[0];
-    const content = choice?.message.content;
+    if (choice?.message.refusal) throw new Error('The model declined this request');
+    if (choice?.finish_reason === 'length') throw new Error('The model’s answer was cut off');
+    if (!choice?.message.content) throw new Error('The model returned no structured output');
     return {
-      stop_reason: choice?.message.refusal ? 'refusal' : choice?.finish_reason === 'length' ? 'max_tokens' : 'end_turn',
-      parsed_output: content ? output_config.format.parse(content) : null,
-      usage: { input_tokens: data.usage?.prompt_tokens ?? 0, output_tokens: data.usage?.completion_tokens ?? 0 },
+      output: schema.parse(JSON.parse(jsonText(choice.message.content))) as T,
+      usage: { inputTokens: data.usage?.prompt_tokens ?? 0, outputTokens: data.usage?.completion_tokens ?? 0 },
     };
   }
-  // The Claude providers only call messages.parse; the cast narrows our adapter to that shape.
-  return { messages: { parse } } as unknown as Pick<Anthropic, 'messages'>;
+
+  async function chat(input: { model: string; maxTokens: number; messages: ChatMessage[]; tools: ChatTool[] }) {
+    const data = await post({
+      model: input.model,
+      ...tokenLimit(baseUrl, input.maxTokens),
+      messages: input.messages,
+      tools: input.tools,
+      tool_choice: 'auto',
+    });
+    const choice = data.choices[0];
+    if (choice?.finish_reason === 'length') throw new Error('The model’s answer was cut off');
+    const toolCalls: FunctionCall[] = (choice?.message.tool_calls ?? [])
+      .map((call, index) => ({
+        id: call.id || `call_${index}`,
+        name: call.function?.name ?? '',
+        arguments: typeof call.function?.arguments === 'string' ? call.function.arguments : JSON.stringify(call.function?.arguments ?? {}),
+      }))
+      .filter((call) => call.name);
+    return { content: choice?.message.content ?? null, toolCalls };
+  }
+
+  return { parse, chat };
 }
