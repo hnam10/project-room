@@ -37,9 +37,10 @@ Configuration lives in `apps/api/.env` (copy `apps/api/.env.example`) and `apps/
 
 ## Status
 
-- **AI:** Claude when `ANTHROPIC_API_KEY` is set (structured action items, decisions and risks, each with a
-  reason and a quote; plus "Ask the project", answered from approved decisions only). Without a key a local
-  rule-based mock runs and is labelled as such in the UI.
+- **AI:** an OpenAI-compatible model when `OPENAI_API_KEY` is set (structured action items, decisions and
+  risks, each with a reason and a quote; plus "Ask the project", answered from approved decisions only).
+  `OPENAI_BASE_URL` can point at Groq or Nebius. Without a key a local rule-based mock runs and is labelled
+  as such in the UI.
 - **Brainstorm research:** optional Tavily web search with `TAVILY_API_KEY`. AI idea drafts keep clickable
   sources, require member approval, and stay closed to votes until a member confirms "Start voting".
 - **Login:** Clerk is required (`apps/api/.env` and `apps/web/.env.local`, see the `.env.example` files);

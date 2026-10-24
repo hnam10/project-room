@@ -41,6 +41,21 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   selection. Checked round-trip switching and a direct project link in Edge; the selected team and
   project agree. Lint, typecheck, all 177 tests, and the web production build passed.
 
+- 2026-10-23 — **@AI reads the channel thread, and Agent Memory reads project files.** A mention always sees the
+  latest 80 messages in that channel, including turns from before the last AI reply. Older lines in the same
+  project are added when their words match the question (full-text index `message_text`). With a model key,
+  `@AI` answers in chat from that thread. A PDF, image, or plain-text upload is sent to SurrealDB Agent Memory,
+  scoped to the project, and `@AI` receives a few short passages. The chat paperclip posts the same file into
+  the channel. Word and PowerPoint stay download-only. "Ask the project" still answers from approved decisions only.
+- 2026-10-23 — **Anthropic removed.** Suggestions, project memory and live meeting AI call the existing
+  OpenAI-compatible client (`src/ai/openai.ts`). No `OPENAI_API_KEY` falls back to the labelled mock.
+  The meeting UI no longer calls the listener Claude.
+- 2026-10-23 — **Concurrent meeting start.** A write conflict on the live-meeting reservation is a 409,
+  the same outcome as the reservation already existing.
+- 2026-10-23 — **Nebius-compatible AI client and a tool-using @AI.** OpenAI-compatible hosts other than
+  `api.openai.com` (Nebius Token Factory, Groq) are sent `max_tokens`, and structured calls set `strict: true`.
+  When `OPENAI_API_KEY` is set, `@AI` looks up tasks, decisions, ideas and messages through tools and files
+  suggestions only. The mock still uses one-shot analysis.
 - 2026-10-23 — **File deletion and batch upload fixes.** Deletes enforce the project boundary in the write
   and retain metadata when disk removal fails so DELETE can be retried. Batch uploads continue after each failed file.
 
@@ -191,8 +206,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - [ ] **Live URL** (needs a host account) — build and deploy the Dockerfile with a persistent volume at
       `/data`, set the env vars from `apps/api/.env.example`, `SEED_ORG_ID`, and the Clerk production keys.
 - [ ] **Summarize this channel** as a suggestion kind (Claude provider follow-up).
-- [ ] **SurrealDB Agent Memory** (Agent Memory prize) — project-scoped long-term memory: remember
-      messages/decisions, recall before suggesting, "Ask the project" with sources.
+- [ ] **SurrealDB Agent Memory** (Agent Memory prize) — file upload and `@AI` excerpts are in. Still open:
+      remember messages and decisions, recall that memory before suggesting, and "Ask the project" with those sources.
 - [ ] **Era eval harness** (Eon prize) — score action-item extraction against Era's simulated
       Slack/Jira ground truth; compare mock vs. Claude vs. Claude + memory.
 - [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
@@ -235,7 +250,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Meetings: no TURN relay, so peer connections may fail on strict networks (transcript and AI still work).
 - Meetings: live state, the AI trigger and the signaling relay are in-process (single API instance).
 - Meetings: trigger state (cooldowns, running summary, call counts) is in memory and resets on API restart.
-- Meetings: when Claude is re-invited it reads lines spoken while it was removed, and the end-of-meeting summary
+- Meetings: when the AI is re-invited it reads lines spoken while it was removed, and the end-of-meeting summary
   reads the full transcript (up to the line cap).
 - Meetings: no rate limit on `POST /meetings/:id/lines`.
 - Meetings: poll votes are read-modify-write, so two simultaneous votes can overwrite each other.
@@ -243,15 +258,14 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   with `network` behind VPNs/strict networks.
 - Meetings (Groq Whisper): fixed 6s clips can split a word at the boundary; no interim text while speaking; Groq's free
   tier has daily request limits (about one request per speaking participant every 6s). Not yet tried in a real browser.
-- With `OPENAI_API_KEY` set, the UI and consent dialog still say "Claude" although the transcript goes to the
-  OpenAI-compatible provider.
 - Meetings: no meeting or transcript deletion; mixed-language speech is transcribed in one language.
 - The web meeting UI has no automated tests and hasn't been tried in a real browser by the agents.
-- The Claude provider is covered by tests with a fake client (validation, prompts) but has not been run
+- `@AI` tool use runs when `OPENAI_API_KEY` is set. The mock still analyzes in one call.
+- The structured provider is covered by tests with a fake client (validation, prompts) but has not been run
   against the live API in CI; try it once with a real key (`@AI` in #general, then "Ask the project").
-- Claude is called synchronously on `@AI` and, for messages that look like a question, on post. The model
-  is `claude-opus-5-5` by default (`ANTHROPIC_MODEL` to change); a cheaper model for the per-message check
-  would cut cost. Refusal fallbacks (`server-side-fallback`) are not enabled; a refusal posts an error message.
+- The model is called synchronously on `@AI` and, for messages that look like a question, on post.
+  `OPENAI_MODEL` defaults to `gpt-4.1-mini`; `OPENAI_FAST_MODEL` is the live meeting model. A refusal posts
+  an error message.
 - Demo teammates (Alex, Jamie, Taylor, Morgan) are placeholder members with no login; real Clerk users are
   added to the project the first time they open it.
 - Existing local databases created before this change lack the new decision/suggestion fields until
@@ -264,11 +278,14 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   dev mode; lazy-load it if load time matters.
 - Clerk mode starts teams empty (only `#general`); the demo project stays dev-only.
 - Picture-in-Picture chat works in Chrome/Edge only; other browsers get the popup window fallback.
-- Messages load the latest 200 per channel; no pagination or search yet. Top-bar search only filters tasks.
+- Messages load the latest 200 per channel; no pagination. Top-bar search only filters tasks. `@AI` reads the latest 80 in the channel, plus older lines that share words with the question.
+- Word and PowerPoint uploads are not sent to Agent Memory. Export them as PDF first.
+- A file can take a little while to become searchable. `@AI` immediately after upload may not see it yet.
+- A question that shares no words with a message older than the 80-line thread will not bring that message back. SurrealDB Agent Memory still does not remember chat; it recalls uploaded files.
 - AI only reacts to new messages; it doesn't yet watch deadlines/workload on a schedule (the seeded
   "risk" suggestion shows the intended UX).
 - Mind Map and Notes tabs are placeholders.
-- Files have no in-browser preview or version history. Delete removes the record and the bytes.
+- Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
 
@@ -278,6 +295,13 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   old context into a new question. Clear-ideas keeps research/strategies, and versioned AI writes prevent
   cleared content from returning. Chat/meeting topics add tabs rather than silently replacing a board.
 
+- 2026-10-23 — **@AI reads a channel thread, then recalls older lines by full-text search.** The previous window stopped at the last AI reply and kept 12 messages, so the model could not follow the conversation. The latest 80 messages are always in the prompt. BM25 adds an older line that shares words with the question, including from another channel in the same project. File text comes from Agent Memory, not from sending the bytes to the chat model (scope `project/<id>`). "Ask the project" stays on approved decisions.
+- 2026-10-23 — **Dropped `@anthropic-ai/sdk`.** Structured output goes through the OpenAI-compatible client
+  (`response_format: json_schema` + zod). One chat API covers OpenAI, Groq and Nebius; `ANTHROPIC_*` is no
+  longer read.
+- 2026-10-23 — **@AI tools are named lookups, not SurrealQL** (Nebius / any OpenAI-compatible model): a cheaper
+  model stays accurate when the server reads the project and checks ids and quotes. propose_* only creates
+  suggestions, which keeps "AI suggests, people decide".
 - 2026-10-23 — **Schema defaults are `DEFAULT ALWAYS`.** A record created before a field existed holds NONE, and
   plain DEFAULT only fills it on CREATE, so every later UPDATE failed (500 approving an older idea suggestion).
   ALWAYS also fills NONE on UPDATE; `createdAt` stays as is. Reads don't fill NONE, so the schema also touches
