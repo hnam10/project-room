@@ -1,4 +1,4 @@
-import type { Channel, Decision, Idea, Message, Suggestion, Task } from './domain.js';
+import type { Channel, Decision, Idea, Message, ProjectFile, Suggestion, Task } from './domain.js';
 import type { ClientRtc, Meeting, Poll, ServerRtc, TranscriptLine } from './meeting.js';
 
 // Messages pushed from the API to browsers over the /ws socket.
@@ -13,6 +13,7 @@ export interface RealtimeRecords {
   meeting: Meeting;
   transcript_line: TranscriptLine;
   poll: Poll;
+  file: ProjectFile;
 }
 
 export type RealtimeTable = keyof RealtimeRecords;

@@ -1,11 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { IDEA_THEME_CHOICES, PRIORITIES } from '@project-room/shared';
 import { z } from 'zod';
 import { validateSummary, validateTick, type MeetingAi, type MeetingTickInput, type SummarizeInput } from './meeting.js';
+import type { OpenAiClient } from './openai.js';
 
-// Claude as the live meeting AI. Transcript text is untrusted: it goes in as tagged data, and the model's
-// output is checked against the meeting's real data by validateTick before anything is stored.
+// Live meeting AI over an OpenAI-compatible chat API. Transcript text is untrusted: it goes in as tagged
+// data, and the model's output is checked against the meeting's real data by validateTick before anything
+// is stored.
 
 const SYSTEM = `You are the AI assistant listening in on a team meeting in Project Room, a workspace for student and
 hackathon teams. Every few seconds you read the newest transcript lines and propose a brainstorm topic, action items, ideas and
@@ -25,7 +25,7 @@ Rules:
 - runningSummary: rewrite <summary> to include the new lines, under 150 words. It is internal context.
 Return empty arrays when nothing qualifies.`;
 
-// Plain strings rather than z.enum: the SDK's zod helper doesn't enforce enums, so validateTick normalises.
+// Plain strings rather than z.enum: some hosts don't enforce enums, so validateTick normalises.
 const TickSchema = z.object({
   topic: z
     .object({
@@ -153,54 +153,31 @@ ${input.lines
 }
 
 /** `client` is injectable so tests can check our validation without calling the API. */
-export function createAnthropicMeetingAi(
-  apiKey: string,
-  fastModel: string,
-  mainModel: string,
-  client: Pick<Anthropic, 'messages'> = new Anthropic({ apiKey }),
-): MeetingAi {
+export function createStructuredMeetingAi(client: Pick<OpenAiClient, 'parse'>, fastModel: string, mainModel: string): MeetingAi {
   return {
-    name: `anthropic:${fastModel}`,
+    name: `openai:${fastModel}`,
     isMock: false,
 
     async meetingTick(input) {
-      const response = await client.messages.parse({
+      const response = await client.parse({
         model: fastModel,
-        max_tokens: 4000,
+        maxTokens: 4000,
         system: SYSTEM,
-        messages: [{ role: 'user', content: tickPrompt(input) }],
-        output_config: { effort: 'low', format: zodOutputFormat(TickSchema) },
+        content: tickPrompt(input),
+        schema: TickSchema,
       });
-      if (response.stop_reason === 'refusal') throw new Error('The model declined this request');
-      if (response.stop_reason === 'max_tokens') throw new Error('The model’s answer was cut off');
-      if (!response.parsed_output) throw new Error('The model returned no structured output');
-      return validateTick(
-        {
-          ...response.parsed_output,
-          usage: { inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 },
-        },
-        input,
-      );
+      return validateTick({ ...response.output, usage: response.usage }, input);
     },
 
     async summarizeMeeting(input) {
-      const response = await client.messages.parse({
+      const response = await client.parse({
         model: mainModel,
-        max_tokens: 16000,
+        maxTokens: 16000,
         system: SUMMARY_SYSTEM,
-        messages: [{ role: 'user', content: summaryPrompt(input) }],
-        output_config: { effort: 'medium', format: zodOutputFormat(SummarySchema) },
+        content: summaryPrompt(input),
+        schema: SummarySchema,
       });
-      if (response.stop_reason === 'refusal') throw new Error('The model declined this request');
-      if (response.stop_reason === 'max_tokens') throw new Error('The model’s answer was cut off');
-      if (!response.parsed_output) throw new Error('The model returned no structured output');
-      return validateSummary(
-        {
-          ...response.parsed_output,
-          usage: { inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 },
-        },
-        input,
-      );
+      return validateSummary({ ...response.output, usage: response.usage }, input);
     },
   };
 }

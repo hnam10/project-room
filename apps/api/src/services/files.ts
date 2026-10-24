@@ -1,0 +1,89 @@
+import { randomUUID } from 'node:crypto';
+import { fileNameSchema, fileSizeSchema, type ProjectFile } from '@project-room/shared';
+import { createFile, deleteFileRecord, getFile, setMemoryDocumentId } from '../repositories/files.js';
+import { NotFoundError } from '../db/records.js';
+import { getProjectMemory, type ProjectMemory } from './project-memory.js';
+import { readStoredFile, removeStoredFile, writeStoredFile } from './file-store.js';
+
+/** Last path segment of a header value, so a name like `../../notes.txt` is stored as `notes.txt`. */
+export function fileNameFromHeader(value: string | undefined): string {
+  const raw = value?.trim() ?? '';
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    decoded = raw;
+  }
+  const base = decoded.replaceAll('\\', '/').split('/').pop() ?? '';
+  const cleaned = stripControlChars(base).trim();
+  return fileNameSchema.parse(cleaned);
+}
+
+function stripControlChars(value: string): string {
+  let out = '';
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    if (code >= 32 && code !== 127) out += char;
+  }
+  return out;
+}
+
+/** The type we store and send back. Anything that isn't a simple media type becomes a generic download. */
+export function contentTypeFromHeader(value: string | undefined): string {
+  const raw = (value ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
+  if (/^[\w.+-]+\/[\w.+-]+$/.test(raw) && raw.length <= 120) return raw;
+  return 'application/octet-stream';
+}
+
+export function contentDisposition(name: string): string {
+  const ascii = name.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_');
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+}
+
+/** Writes the bytes, then the metadata. A failed record does not leave a listed file. */
+export async function uploadFile(
+  projectId: string,
+  uploadedById: string,
+  input: { nameHeader: string | undefined; typeHeader: string | undefined; bytes: Buffer },
+  memory: ProjectMemory | null = getProjectMemory(),
+): Promise<ProjectFile> {
+  const name = fileNameFromHeader(input.nameHeader);
+  const size = fileSizeSchema.parse(input.bytes.length);
+  const contentType = contentTypeFromHeader(input.typeHeader);
+  const id = randomUUID();
+  await writeStoredFile(projectId, id, input.bytes);
+  let file: ProjectFile;
+  try {
+    file = await createFile(projectId, uploadedById, { id, name, size, contentType });
+  } catch (error) {
+    await removeStoredFile(projectId, id);
+    throw error;
+  }
+  if (!memory) return file;
+  try {
+    const documentId = await memory.rememberFile({ projectId, name, contentType, bytes: input.bytes });
+    if (!documentId) return file;
+    return await setMemoryDocumentId(projectId, file.id, documentId);
+  } catch (error) {
+    console.error('Could not send file to Agent Memory', file.id, error);
+    return file;
+  }
+}
+
+export async function openFile(projectId: string, fileId: string): Promise<{ file: ProjectFile; bytes: Buffer }> {
+  const file = await getFile(projectId, fileId);
+  const bytes = await readStoredFile(projectId, fileId);
+  if (!bytes) throw new NotFoundError('File');
+  return { file, bytes };
+}
+
+/**
+ * Removes the bytes first, keeping the record available for retry if disk removal fails.
+ * The Agent Memory copy is removed before the record, so a failed forget can be retried too.
+ */
+export async function deleteFile(projectId: string, fileId: string, memory: ProjectMemory | null = getProjectMemory()): Promise<void> {
+  const file = await getFile(projectId, fileId);
+  await removeStoredFile(projectId, fileId);
+  if (memory && file.memoryDocumentId) await memory.forgetFile(file.memoryDocumentId);
+  await deleteFileRecord(projectId, fileId);
+}

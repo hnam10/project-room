@@ -59,7 +59,9 @@ export async function createMeeting(input: {
     },
     { retryConflict: true },
   ).catch((error: unknown) => {
-    if (error instanceof Error && /already exists/i.test(error.message))
+    // A second start either hits the reservation ("already exists") or loses the commit race
+    // ("Write conflict"). Both mean a meeting is already live.
+    if (error instanceof Error && /already exists|write conflict/i.test(error.message))
       throw new ConflictError('A meeting is already live in this project');
     throw error;
   });

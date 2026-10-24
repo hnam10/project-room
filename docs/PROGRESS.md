@@ -10,6 +10,29 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   mute, leave) shows off the meeting page. "End for everyone" is gone: the last participant leaving ends the
   meeting and starts the summary, and a dropped last socket ends it after 30s unless someone rejoins (tab-close
   leave call removed so a refresh doesn't end it).
+- 2026-10-23 — **OpenAI and Nebius split the model calls.** OpenAI handles `@AI`, Ask the project, chat
+  brainstorm drafts, and the end-of-meeting summary. Nebius handles the open-question check, live meeting
+  ticks, brainstorm classification, board facilitation, and research summaries. One key covers both jobs.
+  Meeting speech-to-text stays on Groq.
+
+- 2026-10-23 — **@AI reads the channel thread, and Agent Memory reads project files.** A mention always sees the
+  latest 80 messages in that channel, including turns from before the last AI reply. Older lines in the same
+  project are added when their words match the question (full-text index `message_text`). With a model key,
+  `@AI` answers in chat from that thread. A PDF, image, or plain-text upload is sent to SurrealDB Agent Memory,
+  scoped to the project, and `@AI` receives a few short passages. The chat paperclip posts the same file into
+  the channel. Word and PowerPoint stay download-only. "Ask the project" still answers from approved decisions only.
+- 2026-10-23 — **Anthropic removed.** Suggestions, project memory and live meeting AI call the existing
+  OpenAI-compatible client (`src/ai/openai.ts`). No `OPENAI_API_KEY` falls back to the labelled mock.
+  The meeting UI no longer calls the listener Claude.
+- 2026-10-23 — **Concurrent meeting start.** A write conflict on the live-meeting reservation is a 409,
+  the same outcome as the reservation already existing.
+- 2026-10-23 — **Nebius-compatible AI client and a tool-using @AI.** OpenAI-compatible hosts other than
+  `api.openai.com` (Nebius Token Factory, Groq) are sent `max_tokens`, and structured calls set `strict: true`.
+  When `OPENAI_API_KEY` is set, `@AI` looks up tasks, decisions, ideas and messages through tools and files
+  suggestions only. The mock still uses one-shot analysis.
+- 2026-10-23 — **File deletion and batch upload fixes.** Deletes enforce the project boundary in the write
+  and retain metadata when disk removal fails so DELETE can be retried. Batch uploads continue after each failed file.
+
 - 2026-10-23 — **Simpler brainstorm header.** Removed the numbered workflow strip. Topic tabs and
   New topic appear only after a topic exists; the empty board uses Set topic as its single entry point.
 
@@ -68,6 +91,7 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 - 2026-10-22 — **Calendar page.** Tasks with a due date are grouped by week (Monday start), and the project
   deadline is marked on its day. A task opens in the existing dialog; a day can also start a new task
   already dated. Overdue uses the local calendar day, on the board as well as here, and done tasks are not overdue.
+
 - 2026-10-23 — **Research cards summarize related ideas.** Relevant Tavily results are summarized in
   short, source grounded descriptions instead of showing raw search snippets. Results without a reliable
   summary are omitted; earlier pending cards offer a Summarize source action. Direct AI idea drafts,
@@ -127,12 +151,17 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   validated result URLs as sources on the suggestion and approved card; without it, the AI clearly falls
   back to conversation context. A member must review/approve every AI draft, then explicitly confirm
   "Start voting" before teammates can vote.
+
 - 2026-10-21 — **AI Meeting Room** (Hansol). In-app voice meetings (WebRTC mesh, 60-minute cap) with a live
   transcript from each browser's speech recognition. Claude (fast model) joins read-only and proposes tickets,
   ideas and polls as suggestions; ending the meeting writes an AI summary and a "Notes for next time"
   checklist. Confirmed notes become the next meeting's "Last time" card. Spec:
   [superpowers/specs/2026-10-21-ai-meeting-room-design.md](superpowers/specs/2026-10-21-ai-meeting-room-design.md).
 
+- 2026-10-21 — **Files page.** Members can upload, download, and delete project files from the Files nav item.
+  Metadata is a `file` record (in the snapshot and over realtime); the bytes live on disk under `FILES_DIR`
+  (default `./data/files`, `/data/files` in the image). Uploads are capped at 10 MB and always download as
+  attachments. A file name is stored as its last path segment.
 - 2026-10-20 — **Claude provider, structured suggestions and project memory.** `ANTHROPIC_API_KEY` switches
   the AI from the mock to Claude (`src/ai/anthropic.ts`, `messages.parse` + zod). One `@AI` call returns
   action items, decisions and risks, each with a `reason` and a `quote`. Output is validated before use
@@ -181,18 +210,21 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - [ ] **Live URL** (needs a host account) — build and deploy the Dockerfile with a persistent volume at
       `/data`, set the env vars from `apps/api/.env.example`, `SEED_ORG_ID`, and the Clerk production keys.
 - [ ] **Summarize this channel** as a suggestion kind (Claude provider follow-up).
-- [ ] **SurrealDB Agent Memory** (Agent Memory prize) — project-scoped long-term memory: remember
-      messages/decisions, recall before suggesting, "Ask the project" with sources.
+- [ ] **SurrealDB Agent Memory** (Agent Memory prize) — file upload and `@AI` excerpts are in. Still open:
+      remember messages and decisions, recall that memory before suggesting, and "Ask the project" with those sources.
 - [ ] **Era eval harness** (Eon prize) — score action-item extraction against Era's simulated
       Slack/Jira ground truth; compare mock vs. Claude vs. Claude + memory.
 - [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
       chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
 - [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open decisions, workload per member.
+
 - [ ] **Brainstorm grouping** — themes as columns and a comparison view for proposals; starting a vote still needs confirmation.
+
 - [ ] **Web tests** — Playwright for: approve AI action items → task appears; drag task; detach chat.
-- [ ] Files page (needs storage decision: SurrealDB files vs. S3-compatible bucket).
 
 ## Known gaps
+
+- The Files picker clears its live `FileList` before starting uploads; use drag and drop until that separate issue is fixed.
 
 - Brainstorm topic selection is a browser preference; each browser may work on a different topic.
   Topic resets intentionally discard that board's drafts and cards; there is no board undo/history yet.
@@ -225,7 +257,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Meetings: no TURN relay, so peer connections may fail on strict networks (transcript and AI still work).
 - Meetings: live state, the AI trigger and the signaling relay are in-process (single API instance).
 - Meetings: trigger state (cooldowns, running summary, call counts) is in memory and resets on API restart.
-- Meetings: when Claude is re-invited it reads lines spoken while it was removed, and the end-of-meeting summary
+- Meetings: when the AI is re-invited it reads lines spoken while it was removed, and the end-of-meeting summary
   reads the full transcript (up to the line cap).
 - Meetings: no rate limit on `POST /meetings/:id/lines`.
 - Meetings: poll votes are read-modify-write, so two simultaneous votes can overwrite each other.
@@ -233,15 +265,14 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   with `network` behind VPNs/strict networks.
 - Meetings (Groq Whisper): fixed 6s clips can split a word at the boundary; no interim text while speaking; Groq's free
   tier has daily request limits (about one request per speaking participant every 6s). Not yet tried in a real browser.
-- With `OPENAI_API_KEY` set, the UI and consent dialog still say "Claude" although the transcript goes to the
-  OpenAI-compatible provider.
 - Meetings: no meeting or transcript deletion; mixed-language speech is transcribed in one language.
 - The web meeting UI has no automated tests and hasn't been tried in a real browser by the agents.
-- The Claude provider is covered by tests with a fake client (validation, prompts) but has not been run
+- `@AI` tool use runs when `OPENAI_API_KEY` is set. The mock still analyzes in one call.
+- The structured provider is covered by tests with a fake client (validation, prompts) but has not been run
   against the live API in CI; try it once with a real key (`@AI` in #general, then "Ask the project").
-- Claude is called synchronously on `@AI` and, for messages that look like a question, on post. The model
-  is `claude-opus-5-5` by default (`ANTHROPIC_MODEL` to change); a cheaper model for the per-message check
-  would cut cost. Refusal fallbacks (`server-side-fallback`) are not enabled; a refusal posts an error message.
+- The model is called synchronously on `@AI` and, for messages that look like a question, on post.
+  `OPENAI_MODEL` defaults to `gpt-4.1-mini`; `OPENAI_FAST_MODEL` is the live meeting model. A refusal posts
+  an error message.
 - Demo teammates (Alex, Jamie, Taylor, Morgan) are placeholder members with no login; real Clerk users are
   added to the project the first time they open it.
 - Existing local databases created before this change lack the new decision/suggestion fields until
@@ -254,15 +285,32 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   dev mode; lazy-load it if load time matters.
 - Clerk mode starts teams empty (only `#general`); the demo project stays dev-only.
 - Picture-in-Picture chat works in Chrome/Edge only; other browsers get the popup window fallback.
-- Messages load the latest 200 per channel; no pagination or search yet. Top-bar search only filters tasks.
+- Messages load the latest 200 per channel; no pagination. Top-bar search only filters tasks. `@AI` reads the latest 80 in the channel, plus older lines that share words with the question.
+- Word and PowerPoint uploads are not sent to Agent Memory. Export them as PDF first.
+- A file can take a little while to become searchable. `@AI` immediately after upload may not see it yet.
+- A question that shares no words with a message older than the 80-line thread will not bring that message back. SurrealDB Agent Memory still does not remember chat; it recalls uploaded files.
 - AI only reacts to new messages; it doesn't yet watch deadlines/workload on a schedule (the seeded
   "risk" suggestion shows the intended UX).
 - Mind Map and Notes tabs are placeholders.
+- Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
 
 - 2026-10-24 — **An empty meeting ends itself; no "End for everyone".** A room nobody is in has nothing to keep
   live. Explicit leave ends at once; a dropped socket waits 30s so a refresh or blip doesn't end the meeting.
+- 2026-10-23 — **Split model hosts by how often the call runs.** Nebius takes the frequent short calls
+  (open-question check, live meeting ticks, brainstorm automation). OpenAI takes `@AI`, Ask the project,
+  chat brainstorm drafts, and the meeting summary. Groq stays on Whisper only. A missing key falls back
+  to the host that is configured.
+
+- 2026-10-23 — **@AI reads a channel thread, then recalls older lines by full-text search.** The previous window stopped at the last AI reply and kept 12 messages, so the model could not follow the conversation. The latest 80 messages are always in the prompt. BM25 adds an older line that shares words with the question, including from another channel in the same project. File text comes from Agent Memory, not from sending the bytes to the chat model (scope `project/<id>`). "Ask the project" stays on approved decisions.
+- 2026-10-23 — **Dropped `@anthropic-ai/sdk`.** Structured output goes through the OpenAI-compatible client
+  (`response_format: json_schema` + zod). One chat API covers OpenAI, Groq and Nebius; `ANTHROPIC_*` is no
+  longer read.
+- 2026-10-23 — **@AI tools are named lookups, not SurrealQL** (Nebius / any OpenAI-compatible model): a cheaper
+  model stays accurate when the server reads the project and checks ids and quotes. propose_* only creates
+  suggestions, which keeps "AI suggests, people decide".
+
 - 2026-10-23 — **Each brainstorm topic owns a board.** Topic edits reset its content instead of mixing
   old context into a new question. Clear-ideas keeps research/strategies, and versioned AI writes prevent
   cleared content from returning. Chat/meeting topics add tabs rather than silently replacing a board.
@@ -271,23 +319,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   plain DEFAULT only fills it on CREATE, so every later UPDATE failed (500 approving an older idea suggestion).
   ALWAYS also fills NONE on UPDATE; `createdAt` stays as is. Reads don't fill NONE, so the schema also touches
   ideas/suggestions missing `researchSources` once on start, which backfills every late field.
-- 2026-10-23 — **The deadline chip is the date control.** Clicking the date used to jump to the week, while a
-  calendar icon opened the picker and × cleared it, so the chip looked like a tag. The chip now sets the
-  date. Clear is a separate label. With no date, the whole chip opens the picker. It sits in the calendar header.
-- 2026-10-23 — **No month view.** The week columns already list every week that has a task, so a second grid
-  repeated the same work. The Week / Month switch and its saved preference are gone.
-- 2026-10-23 — **Week view is seven vertical days; month view is the only month grid.** A horizontal day row was
-  hard to scan, and one week at a time copied the month's previous / next pattern. Each week is columns,
-  this week first, earlier weeks below. The deadline
-  stays a card under the title, because a date field next to Week / Month looked like a form control. It
-  still edits `project.dueDate` from the calendar.
-- 2026-10-23 — **Month view is one month plus a side list.** The side list holds tasks with no due date and tasks
-  on other months, so the grid can show empty days without hiding work.
-- 2026-10-23 — **The project deadline is edited on the calendar, not in settings.** Settings is still a placeholder.
-- 2026-10-23 — **Calendar layout is a per-browser preference, still with no new table.** Weeks start on Monday.
-- 2026-10-22 — **Calendar is a view, weeks start Monday.** Task due dates and the project deadline are already
-  on the records, so the page adds no table or API. A due date is a local calendar day (`YYYY-MM-DD`). Voice
-  meetings stay off this page; they are live calls, not scheduled events.
+
 - 2026-10-23 — **Classify brainstorm goals before web search.** Product goals can justify similar-work
   research; non-product goals get context-based strategies. The mode and processed state are recorded in
   hidden check suggestions to prevent repeated or outdated cards.
@@ -305,6 +337,25 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   adds current web context without a client-side key or new dependency; model-returned URLs are accepted
   only when they match a search result. AI ideas remain pending suggestions, and voting starts only after
   a separate member confirmation.
+
+- 2026-10-23 — **The deadline chip is the date control.** Clicking the date used to jump to the week, while a
+  calendar icon opened the picker and × cleared it, so the chip looked like a tag. The chip now sets the
+  date. Clear is a separate label. With no date, the whole chip opens the picker. It sits in the calendar header.
+- 2026-10-23 — **No month view.** The week columns already list every week that has a task, so a second grid
+  repeated the same work. The Week / Month switch and its saved preference are gone.
+- 2026-10-23 — **Week view is seven vertical days; month view is the only month grid.** A horizontal day row was
+  hard to scan, and one week at a time copied the month's previous / next pattern. Each week is columns,
+  this week first, earlier weeks below. The deadline
+  stays a card under the title, because a date field next to Week / Month looked like a form control. It
+  still edits `project.dueDate` from the calendar.
+- 2026-10-23 — **Month view is one month plus a side list.** The side list holds tasks with no due date and tasks
+  on other months, so the grid can show empty days without hiding work.
+- 2026-10-23 — **The project deadline is edited on the calendar, not in settings.** Settings is still a placeholder.
+- 2026-10-23 — **Calendar layout is a per-browser preference, still with no new table.** Weeks start on Monday.
+- 2026-10-22 — **Calendar is a view, weeks start Monday.** Task due dates and the project deadline are already
+  on the records, so the page adds no table or API. A due date is a local calendar day (`YYYY-MM-DD`). Voice
+  meetings stay off this page; they are live calls, not scheduled events.
+
 - 2026-10-21 — **Voice via WebRTC mesh with WS signaling, no new dependency**: teams are <= 6, and a hosted SFU would add a vendor and key.
 - 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.
 - 2026-10-21 — **Meetings are capped at 60 minutes and live AI reads a bounded context** (running summary + new lines + project titles): cost stays bounded.
@@ -315,6 +366,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - 2026-10-22 — **Meeting transcription via Whisper on Groq when `GROQ_API_KEY` is set** (replaces the 2026-10-21 browser-only choice): Chrome's speech service failed with `network` for the team; Groq's free tier costs nothing, works in any browser and keeps exact speaker labels (each client sends its own mic). Web Speech stays as the fallback.
 - 2026-10-22 — **OpenAI-compatible provider via a `messages.parse` adapter (`src/ai/openai.ts`), plain `fetch`**: lets the team test without Claude credits (OpenAI, or Groq's free tier via `OPENAI_BASE_URL`) while reusing the Claude prompts and validation; no new dependency.
 - 2026-10-21 — **`ANTHROPIC_FAST_MODEL`** (default `claude-haiku-5-5`) for frequent live calls; summaries stay on `ANTHROPIC_MODEL`.
+- 2026-10-21 — **File bytes on disk, metadata in SurrealDB** (no S3): team uploads are small, and the same
+  `/data` volume that keeps the embedded database keeps `FILES_DIR`. The snapshot and realtime carry only
+  the `file` record, so a download is a separate authenticated request.
 - 2026-10-20 — **Memory = approved decisions** (not a vector store over chat): answers must be traceable to
   something a member confirmed, which fits "AI suggests, people decide" and avoids answering from
   half-remembered chat. Decisions gained `outcome`/`reason`/`quote` so there is something to answer from.

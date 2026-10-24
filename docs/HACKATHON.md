@@ -31,8 +31,8 @@ small but real, and only do step 5 if there's time left.
 
 ## 2. Best Overall — the core loop with a real model
 
-- Built: `AiProvider` with Claude (`src/ai/anthropic.ts`, `ANTHROPIC_API_KEY`), structured output for
-  action items, decisions and risks, each with a reason and a verbatim quote. The mock runs only when the
+- Built: `AiProvider` over an OpenAI-compatible API (`src/ai/openai.ts`, `OPENAI_API_KEY`), structured output
+  for action items, decisions and risks, each with a reason and a verbatim quote. The mock runs only when the
   key is missing and stays labelled in the UI.
 - Built: "Ask the project" (`POST .../decisions/ask`) answers from approved decisions, not the chat log.
 - Still open: "summarize this channel" as a suggestion kind.
@@ -77,10 +77,10 @@ with exact answer keys, reachable over MCP/REST, graded by code instead of an LL
 
 Put them in `apps/api/.env` / `apps/web/.env.local` (git-ignored); never commit them.
 
-| Service      | Variables                                                                 |
-| ------------ | ------------------------------------------------------------------------- |
-| Clerk        | `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` |
-| Anthropic    | `ANTHROPIC_API_KEY`                                                       |
-| Agent Memory | `AGENT_MEMORY_ENDPOINT`, `AGENT_MEMORY_API_KEY`                           |
-| Era          | from the Era console setup (`.env` it generates)                          |
-| Expo         | Expo account for EAS (`eas login`)                                        |
+| Service           | Variables                                                                 |
+| ----------------- | ------------------------------------------------------------------------- |
+| Clerk             | `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` |
+| OpenAI-compatible | `OPENAI_API_KEY`, optional `OPENAI_BASE_URL` / `OPENAI_MODEL`             |
+| Agent Memory      | `AGENT_MEMORY_ENDPOINT`, `AGENT_MEMORY_API_KEY`                           |
+| Era               | from the Era console setup (`.env` it generates)                          |
+| Expo              | Expo account for EAS (`eas login`)                                        |

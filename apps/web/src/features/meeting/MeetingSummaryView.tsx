@@ -99,7 +99,7 @@ export function MeetingSummaryView(props: {
 
   return (
     <div className="meeting-summary">
-      {meeting.status === 'summarizing' && <p className="meeting-notice">Claude is writing the summary…</p>}
+      {meeting.status === 'summarizing' && <p className="meeting-notice">The AI is writing the summary…</p>}
       {meeting.summaryError && (
         <p className="meeting-notice">
           Summary failed — {meeting.summaryError}{' '}
