@@ -94,7 +94,7 @@ export async function updateIdea(projectId: string, ideaId: string, patch: IdeaU
       title: patch.title ?? previous.title,
       description: patch.description ?? previous.description,
       theme: patch.theme ?? previous.theme,
-      stale: previous.researchSources.length > 0,
+      stale: (previous.researchSources ?? []).length > 0,
     },
   );
   if (!idea) throw new NotFoundError('Idea');

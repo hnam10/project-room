@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
+  idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
+
 - 2026-10-23 — **Organization switching stays in sync.** URL-to-Clerk synchronization runs once per
   project URL change above the signed-in gate, so the gate's transition cannot reactivate the previous
   team. Project changes remount workspace data and UI together, discarding old messages and channel
