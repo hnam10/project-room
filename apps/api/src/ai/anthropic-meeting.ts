@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import { IDEA_THEMES, PRIORITIES } from '@project-room/shared';
+import { IDEA_THEME_CHOICES, PRIORITIES } from '@project-room/shared';
 import { z } from 'zod';
 import { validateSummary, validateTick, type MeetingAi, type MeetingTickInput, type SummarizeInput } from './meeting.js';
 
@@ -8,7 +8,7 @@ import { validateSummary, validateTick, type MeetingAi, type MeetingTickInput, t
 // output is checked against the meeting's real data by validateTick before anything is stored.
 
 const SYSTEM = `You are the AI assistant listening in on a team meeting in Project Room, a workspace for student and
-hackathon teams. Every few seconds you read the newest transcript lines and propose action items, ideas and
+hackathon teams. Every few seconds you read the newest transcript lines and propose a brainstorm topic, action items, ideas and
 polls. People review and approve everything, so be conservative: propose only what the transcript clearly
 supports, and nothing that is already in <already_suggested>, <tasks> or <ideas>.
 
@@ -19,11 +19,22 @@ Rules:
   Use null only if no single line supports it.
 - Never invent members, ideas or facts. Use only the ids you are given. To develop an existing idea, set its ideaId.
 - Propose a poll only when two or more people are choosing between concrete options (2 to 5 options).
+- topic: the team's specific question, problem, or goal for brainstorming, when the transcript clearly establishes one.
+  Propose it separately from direct ideas. Use null for general meeting talk, or when it matches <current_topic>.
+  Keep a topic proposal available for review; do not treat suggested ideas as an approved topic.
 - runningSummary: rewrite <summary> to include the new lines, under 150 words. It is internal context.
 Return empty arrays when nothing qualifies.`;
 
 // Plain strings rather than z.enum: the SDK's zod helper doesn't enforce enums, so validateTick normalises.
 const TickSchema = z.object({
+  topic: z
+    .object({
+      title: z.string().describe('A concise question or goal, at most 80 characters'),
+      description: z.string().describe('Context or constraints, at most 240 characters'),
+      reason: z.string(),
+      quote: z.string().nullable(),
+    })
+    .nullable(),
   actionItems: z.array(
     z.object({
       title: z.string().describe('A short imperative task title, at most 100 characters'),
@@ -38,7 +49,7 @@ const TickSchema = z.object({
       ideaId: z.string().nullable().describe('The id of an existing idea to develop, or null for a new idea'),
       title: z.string().describe('At most 80 characters'),
       description: z.string(),
-      theme: z.string().describe(`One of: ${IDEA_THEMES.join(', ')}`),
+      theme: z.string().describe(`One of: ${IDEA_THEME_CHOICES.join(', ')}. Use Option for a direct choice and Strategy for a plan`),
       reason: z.string(),
       quote: z.string().nullable(),
     }),
@@ -69,9 +80,12 @@ Rules:
   (null only if no single line supports it). Use only the member ids you are given; null if the owner is unclear.
 - carryOverItems: up to 10 short notes (each under 120 characters) for continuing next time, such as open
   questions and unfinished work. Take <carry_over> into account: drop what was resolved, keep what is still open.
+- topic: the specific brainstorm question, problem, or goal established by the transcript. Use null if none is clear,
+  if it matches <current_topic>, or if a matching brainstorm topic is already in <suggestions>.
 - Never invent members, facts or decisions.`;
 
 const SummarySchema = z.object({
+  topic: TickSchema.shape.topic,
   summary: z.object({
     overview: z.string(),
     decisions: z.array(z.string()),
@@ -91,6 +105,9 @@ ${list(input.members.map((m) => `${m.id}: ${m.name}${m.role ? ` (${m.role})` : '
 <ideas>
 ${list(input.ideas.map((i) => `${i.id}: ${i.title}`))}
 </ideas>
+<current_topic>
+${input.currentTopic?.title ?? '(none)'}
+</current_topic>
 <tasks>
 ${list(input.taskTitles)}
 </tasks>
@@ -115,6 +132,9 @@ ${list(input.members.map((m) => `${m.id}: ${m.name}${m.role ? ` (${m.role})` : '
 <ideas>
 ${list(input.ideas.map((i) => `${i.id}: ${i.title}`))}
 </ideas>
+<current_topic>
+${input.currentTopic?.title ?? '(none)'}
+</current_topic>
 <tasks>
 ${list(input.taskTitles)}
 </tasks>

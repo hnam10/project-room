@@ -5,6 +5,8 @@ import { Icon, type IconName } from '../../components/Icon';
 import { useFeedback } from '../../components/Feedback';
 import { useSession } from '../../state/session';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
+import { BrainstormAnalysisCard } from '../brainstorm/BrainstormAnalysisCard';
+import { isCurrentWebSuggestion } from '../brainstorm/similarWebSuggestion';
 
 const KINDS: Record<'decision' | 'risk', { label: string; icon: IconName; color: string }> = {
   decision: { label: 'Decision', icon: 'flag', color: '#a06c00' },
@@ -14,8 +16,10 @@ const KINDS: Record<'decision' | 'risk', { label: string; icon: IconName; color:
 /** The AI recommendations panel: proactive suggestions with their reasons, awaiting review. */
 export function AssistantTab({ onOpenDecisions }: { onOpenDecisions: () => void }) {
   const { me } = useSession();
-  const { suggestions } = useSnapshot();
-  const pending = suggestions.filter((s) => s.status === 'pending' && (s.kind === 'decision' || s.kind === 'risk'));
+  const { ideas, suggestions } = useSnapshot();
+  const pending = suggestions.filter(
+    (s) => s.status === 'pending' && (s.kind === 'decision' || s.kind === 'risk' || isCurrentWebSuggestion(s, ideas, suggestions)),
+  );
 
   return (
     <div className="list-pad">
@@ -26,7 +30,13 @@ export function AssistantTab({ onOpenDecisions }: { onOpenDecisions: () => void 
         </div>
       )}
       {pending.length ? (
-        pending.map((s) => <InsightCard key={s.id} suggestion={s} onOpenDecisions={onOpenDecisions} />)
+        pending.map((s) =>
+          s.kind === 'brainstorm_analysis' ? (
+            <BrainstormAnalysisCard key={s.id} suggestion={s} />
+          ) : (
+            <InsightCard key={s.id} suggestion={s} onOpenDecisions={onOpenDecisions} />
+          ),
+        )
       ) : (
         <div className="empty-state">You’re all caught up. New suggestions appear here as the team talks.</div>
       )}

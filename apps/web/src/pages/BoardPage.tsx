@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { Task } from '@project-room/shared';
 import { Icon } from '../components/Icon';
 import { Dock } from '../features/dock/Dock';
@@ -9,7 +9,7 @@ import type { GroupBy } from '../features/board/groups';
 import { useSnapshot } from '../state/workspace';
 
 export function BoardPage() {
-  const { project, tasks, members } = useSnapshot();
+  const { project, tasks, members, ideas } = useSnapshot();
   const [params] = useSearchParams();
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [assignee, setAssignee] = useState<string>('all');
@@ -71,6 +71,25 @@ export function BoardPage() {
           </button>
         </div>
       </section>
+
+      {members.length === 1 && tasks.length === 0 && ideas.length === 0 && (
+        <section className="getting-started" aria-labelledby="getting-started-title">
+          <span className="getting-started-icon">
+            <Icon name="sparkle" />
+          </span>
+          <div>
+            <strong>Start with your project idea</strong>
+            <h2 id="getting-started-title">Talk it through with AI in the Meeting Room</h2>
+            <p>
+              Describe the problem, who it helps, and possible solutions. AI listens and drafts ideas or tasks as you talk. Review and
+              approve each draft before it joins your project.
+            </p>
+          </div>
+          <Link className="btn primary" to="../meeting">
+            <Icon name="mic" /> Go to Meeting Room
+          </Link>
+        </section>
+      )}
 
       <TaskBoard
         boardRef={boardRef}

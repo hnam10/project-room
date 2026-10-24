@@ -33,4 +33,16 @@ describe('Clerk provisioning', () => {
     expect(project?.memberIds).toEqual(['user_1', 'user_2']);
     expect((await listMembers(project!.memberIds)).map((m) => m.name)).toEqual(['Mina', 'Joon']);
   });
+
+  it('provisions one project and channel when requests arrive together', async () => {
+    const org = { id: 'org_concurrent', name: 'Concurrent Team' };
+    await Promise.all(Array.from({ length: 12 }, () => ensureProject(org)));
+    expect(await getProject(org.id)).toMatchObject({ id: org.id, name: org.name });
+    expect((await listChannels(org.id)).map((channel) => channel.name)).toEqual(['general']);
+
+    const member = { id: 'user_concurrent', name: 'Mina', color: '#5b4ff0', role: '' };
+    await Promise.all(Array.from({ length: 12 }, () => upsertMember(member)));
+    await Promise.all(Array.from({ length: 12 }, () => addProjectMember(org.id, member.id)));
+    expect((await getProject(org.id))?.memberIds).toEqual([member.id]);
+  });
 });

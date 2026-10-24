@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
 import { useFeedback } from '../components/Feedback';
 import { AccountButton, ActiveTeamSync, InviteButton, TeamSwitcher } from '../features/account/ClerkAccount';
 import { DetachedChat } from '../features/dock/DetachedChat';
+import { ChannelDialog } from '../features/chat/ChannelDialog';
 import { ChatWindowProvider } from '../state/chatWindow';
 import { useSession } from '../state/session';
 import { WorkspaceProvider, useWorkspace } from '../state/workspace';
@@ -132,6 +134,7 @@ function Sidebar() {
   const { me } = useSession();
   const { toast } = useFeedback();
   const navigate = useNavigate();
+  const [creatingChannel, setCreatingChannel] = useState(false);
   const { channels } = snapshot!;
 
   return (
@@ -154,7 +157,7 @@ function Sidebar() {
 
       <div className="side-section">
         <span>Channels</span>
-        <button className="icon-btn small" aria-label="Add channel" onClick={() => toast('Creating channels isn’t built yet.')}>
+        <button className="icon-btn small" aria-label="Add channel" onClick={() => setCreatingChannel(true)}>
           <Icon name="plus" />
         </button>
       </div>
@@ -179,6 +182,7 @@ function Sidebar() {
         <AccountButton />
         {me?.member.name}
       </div>
+      <ChannelDialog open={creatingChannel} onClose={() => setCreatingChannel(false)} />
     </aside>
   );
 }

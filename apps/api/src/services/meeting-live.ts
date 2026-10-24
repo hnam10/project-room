@@ -8,6 +8,7 @@ import { listTasks } from '../repositories/tasks.js';
 import { listLinesAfter } from '../repositories/transcripts.js';
 import { onLine } from './meetings.js';
 import { shouldRun, type TriggerState } from './meeting-trigger.js';
+import { proposeMeetingTopic } from './meeting-topic.js';
 
 const MAX_LINES = 200;
 const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -34,6 +35,7 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
       runningSummary: meeting.runningSummary ?? '',
       carryOver: previous?.carryOver ?? [],
       ideas: ideas.map((i) => ({ id: i.id, title: i.title })),
+      currentTopic: ideas.find((idea) => idea.kind === 'problem') ?? null,
       taskTitles: tasks.map((t) => t.title),
       alreadySuggested: suggestions.filter((s) => s.meetingId === meetingId).map((s) => s.title),
       members: members.map((m) => ({ id: m.id, name: m.name, role: m.role })),
@@ -46,6 +48,16 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
     };
     const base = { meetingId };
     const created: Suggestion[] = [];
+
+    const topic = await proposeMeetingTopic(
+      projectId,
+      meetingId,
+      result.topic,
+      input.currentTopic ?? null,
+      suggestions,
+      cite(result.topic?.sourceLineId ?? null),
+    );
+    if (topic) created.push(topic);
 
     if (result.actionItems.length) {
       const items: ActionItem[] = result.actionItems.map(({ sourceLineId: _s, ...item }) => item);

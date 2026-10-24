@@ -1,8 +1,190 @@
 /* Brainstorm */
+.brainstorm-guide,
+.brainstorm-problem,
+.brainstorm-analysis {
+  margin: 14px 16px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.brainstorm-topic-draft {
+  margin: 14px 16px 0;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--accent);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.brainstorm-topic-draft h3 {
+  margin: 8px 0 4px;
+  font-size: 14px;
+}
+.brainstorm-topic-draft p,
+.brainstorm-topic-draft blockquote {
+  margin: 6px 0;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.brainstorm-topic-draft blockquote {
+  padding-left: 10px;
+  border-left: 2px solid var(--line-strong);
+}
+.brainstorm-topic-draft cite {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.brainstorm-topic-draft .action-buttons {
+  margin-top: 10px;
+}
+.brainstorm-support {
+  margin: 14px 16px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+.brainstorm-support-head h2 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 15px;
+}
+.brainstorm-support-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.brainstorm-support .brainstorm-guide {
+  margin: 12px 0 0;
+}
+.brainstorm-support .brainstorm-analysis-list {
+  margin: 12px 0 0;
+}
+.brainstorm-research,
+.brainstorm-strategies {
+  margin-top: 14px;
+}
+.brainstorm-research h3,
+.brainstorm-strategies h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.brainstorm-research .brainstorm-analysis-list {
+  margin-top: 0;
+}
+.brainstorm-research .ai-idea-draft {
+  grid-column: auto;
+}
+.brainstorm-strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 10px;
+}
+.brainstorm-strategy-grid .ai-idea-draft {
+  grid-column: auto;
+}
+.brainstorm-guide-head,
+.brainstorm-problem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.brainstorm-guide-head p,
+.brainstorm-problem p,
+.brainstorm-guide-step p,
+.brainstorm-analysis p {
+  margin: 4px 0;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.brainstorm-guide-head strong,
+.brainstorm-problem strong,
+.brainstorm-analysis strong {
+  color: var(--accent);
+  font-size: 12px;
+}
+.brainstorm-problem {
+  background: var(--accent-weak);
+}
+.brainstorm-problem-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.brainstorm-problem h3,
+.brainstorm-guide-step h3,
+.brainstorm-analysis h3 {
+  margin: 4px 0;
+  font-size: 14px;
+}
+.brainstorm-guide-list,
+.brainstorm-analysis-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 12px 16px 0;
+}
+.brainstorm-guide-list {
+  margin: 12px 0 0;
+}
+.brainstorm-guide-step {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.brainstorm-guide-step .btn {
+  margin-top: 8px;
+}
+.brainstorm-analysis-list .brainstorm-analysis {
+  margin: 0;
+}
+.brainstorm-analysis .idea-sources {
+  margin: 8px 0;
+}
+.brainstorm-analysis small {
+  color: var(--muted);
+}
+.brainstorm-source-link {
+  display: inline-block;
+  margin: 8px 0;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: underline;
+}
+.idea-stage-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.idea-stage-actions button {
+  color: var(--accent);
+  font-size: 11px;
+  text-decoration: underline;
+}
+.idea-stage-actions .idea-delete {
+  color: var(--red);
+}
+.idea-stage-actions strong,
+.idea-stale {
+  font-size: 11px;
+  color: #956020;
+}
+@media (max-width: 680px) {
+  .brainstorm-guide-head,
+  .brainstorm-problem {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
 .idea-head {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
   padding: 14px 16px 10px;
 }
 .idea-head h2 {
@@ -48,6 +230,15 @@
   color: var(--ink-2);
   font-size: 12.5px;
   flex: 1;
+}
+.idea-details {
+  flex: 1;
+}
+.idea-details button {
+  margin-top: 4px;
+  color: var(--accent);
+  font-size: 11px;
+  text-decoration: underline;
 }
 .idea-foot {
   display: flex;
@@ -123,4 +314,39 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.ai-idea-draft {
+  --paper: var(--surface);
+  border: 1.5px dashed var(--accent);
+  grid-column: span 2;
+}
+.ai-draft-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+}
+.ai-draft-label .icon {
+  width: 13px;
+  height: 13px;
+}
+.idea .ai-draft-reason {
+  color: var(--muted);
+}
+.idea-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  font-size: 11px;
+}
+.idea-sources a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.idea-foot button.start-vote {
+  color: var(--accent);
+  font-weight: 600;
 }

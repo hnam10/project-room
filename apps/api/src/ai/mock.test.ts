@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { Decision } from '@project-room/shared';
-import { answerFromDecisionsByRules, detectOpenQuestionByRules, extractActionItemsByRules } from './mock.js';
+import { answerFromDecisionsByRules, detectOpenQuestionByRules, extractActionItemsByRules, mockProvider } from './mock.js';
 
 const msg = (authorId: string, text: string) => ({ id: text, authorId, authorName: authorId, text });
 
 describe('mock AI rules', () => {
+  it('uses earlier chat as the topic when the AI request only says to brainstorm this', async () => {
+    const messages = [msg('alex', 'We need to choose a dinner cuisine for our team.'), msg('alex', '@AI brainstorm this')];
+    expect(await mockProvider.classifyBrainstorm({ problem: null, ideas: [], request: messages[0]!.text })).toBe('non_product');
+    const result = await mockProvider.brainstorm({ messages, existingIdeas: [], research: [], mode: 'non_product' });
+    expect(result.topic?.title).toBe('We need to choose a dinner cuisine for our team.');
+    expect(result.ideas[0]?.draft).toMatchObject({ title: 'Italian food', theme: 'Option' });
+  });
   it('turns commitments into tasks owned by the speaker', () => {
     const items = extractActionItemsByRules([msg('jamie', "I'll work on the password reset flow.")], []);
     expect(items).toHaveLength(1);

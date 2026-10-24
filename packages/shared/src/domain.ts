@@ -5,7 +5,9 @@ import type { IdeaDraft, PollDraft } from './meeting.js';
 export const TASK_STATUSES = ['todo', 'progress', 'review', 'done'] as const;
 export const PRIORITIES = ['high', 'medium', 'low'] as const;
 export const TASK_LABELS = ['feature', 'frontend', 'backend', 'design', 'docs', 'research', 'test', 'devops'] as const;
-export const IDEA_THEMES = ['Product', 'Engagement', 'Platform'] as const;
+// Engagement and Platform remain valid for ideas saved before the simpler categories were introduced.
+export const IDEA_THEMES = ['Option', 'Product', 'Strategy', 'Engagement', 'Platform'] as const;
+export const IDEA_THEME_CHOICES = ['Option', 'Product', 'Strategy'] as const;
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type Priority = (typeof PRIORITIES)[number];
@@ -73,10 +75,25 @@ export interface Idea {
   title: string;
   description: string;
   theme: IdeaTheme;
+  kind: 'problem' | 'idea';
+  shortlisted: boolean;
+  approved: boolean;
+  researchStale: boolean;
+  significantChangeAt: string | null;
+  updatedAt: string;
   authorId: string;
   voterIds: string[];
+  /** Voting stays closed until a member explicitly starts it. */
+  votingOpen: boolean;
+  sourceSuggestionId: string | null;
+  researchSources: ResearchSource[];
   taskId: string | null;
   createdAt: string;
+}
+
+export interface ResearchSource {
+  title: string;
+  url: string;
 }
 
 export type DecisionStatus = 'open' | 'decided';
@@ -98,7 +115,20 @@ export interface Decision {
   decidedAt: string | null;
 }
 
-export type SuggestionKind = 'action_items' | 'decision' | 'risk' | 'idea' | 'poll' | 'meeting_notes';
+export type SuggestionKind =
+  'action_items' | 'decision' | 'risk' | 'idea' | 'brainstorm_topic' | 'poll' | 'meeting_notes' | 'brainstorm_analysis';
+export const BRAINSTORM_TRIGGERS = [
+  'problem_created',
+  'first_idea',
+  'multiple_ideas',
+  'research_completed',
+  'idea_updated',
+  'discussion_inactive',
+  'ideas_shortlisted',
+  'idea_approved',
+  'manual',
+] as const;
+export type BrainstormTrigger = (typeof BRAINSTORM_TRIGGERS)[number];
 export type SuggestionStatus = 'pending' | 'approved' | 'dismissed';
 
 export interface ActionItem {
@@ -128,6 +158,8 @@ export interface Suggestion {
   /** Supporting context from the conversation, when there is any. */
   quote: string | null;
   cite: string | null;
+  /** Web pages used to ground an AI-proposed idea. Empty for conversation-only suggestions. */
+  researchSources: ResearchSource[];
   sourceMessageId: string | null;
   items: ActionItem[];
   /** Task this suggestion is about (e.g. a risk on an existing task). */
@@ -137,6 +169,9 @@ export interface Suggestion {
   meetingId: string | null;
   sourceLineId: string | null;
   ideaId: string | null;
+  /** Idea that prompted a new direction; approval still creates a separate idea. */
+  originIdeaId: string | null;
+  brainstormTrigger: BrainstormTrigger | null;
   ideaDraft: IdeaDraft | null;
   pollDraft: PollDraft | null;
   createdAt: string;
