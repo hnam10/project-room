@@ -115,7 +115,7 @@ export interface ServerRtc {
 
 export const meetingCreateSchema = z.object({
   title: z.string().trim().min(1).max(80).optional(),
-  language: z.string().trim().min(1).max(16).default('ko-KR'),
+  language: z.string().trim().min(1).max(16).default('en-US'),
 });
 export type MeetingCreateInput = z.input<typeof meetingCreateSchema>;
 
