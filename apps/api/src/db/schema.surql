@@ -113,3 +113,9 @@ DEFINE FIELD OVERWRITE pollDraft        ON suggestion TYPE null | object FLEXIBL
 DEFINE FIELD OVERWRITE createdTaskIds   ON suggestion TYPE array<record<task>> DEFAULT ALWAYS [];
 DEFINE FIELD OVERWRITE resolvedById     ON suggestion TYPE null | record<member> DEFAULT ALWAYS null;
 DEFINE FIELD OVERWRITE createdAt        ON suggestion TYPE datetime DEFAULT time::now() READONLY;
+
+-- Backfill records from before the brainstorming fields existed: touching them fills every NONE field
+-- with its DEFAULT ALWAYS, so readers can trust arrays like researchSources. A no-op once done.
+-- ponytail: keyed on researchSources (added with most late fields); add a WHERE for any field added later.
+UPDATE idea WHERE researchSources IS NONE;
+UPDATE suggestion WHERE researchSources IS NONE;

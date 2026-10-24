@@ -225,7 +225,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 - 2026-10-23 — **Schema defaults are `DEFAULT ALWAYS`.** A record created before a field existed holds NONE, and
   plain DEFAULT only fills it on CREATE, so every later UPDATE failed (500 approving an older idea suggestion).
-  ALWAYS also fills NONE on UPDATE, so old records repair themselves; `createdAt` stays as is.
+  ALWAYS also fills NONE on UPDATE; `createdAt` stays as is. Reads don't fill NONE, so the schema also touches
+  ideas/suggestions missing `researchSources` once on start, which backfills every late field.
 - 2026-10-23 — **Classify brainstorm goals before web search.** Product goals can justify similar-work
   research; non-product goals get context-based strategies. The mode and processed state are recorded in
   hidden check suggestions to prevent repeated or outdated cards.
