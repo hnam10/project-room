@@ -142,6 +142,9 @@ export async function seedDemoData({ projectId = DEMO_PROJECT_ID }: { projectId?
           theme,
           authorId: m(author),
           voterIds: voters.map(m),
+          votingOpen: true,
+          sourceSuggestionId: null,
+          researchSources: [],
           createdAt: day(-2, `09:0${i}`),
         })),
         decisions: [

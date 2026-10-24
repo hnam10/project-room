@@ -57,6 +57,7 @@ export async function createMeeting(input: {
         previousMeetingId: input.previousMeetingId ? rid('meeting', input.previousMeetingId) : null,
       },
     },
+    { retryConflict: true },
   ).catch((error: unknown) => {
     if (error instanceof Error && /already exists/i.test(error.message))
       throw new ConflictError('A meeting is already live in this project');

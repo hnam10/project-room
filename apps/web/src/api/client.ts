@@ -1,7 +1,11 @@
 import type {
   Decision,
+  BrainstormActionInput,
+  Channel,
+  ChannelCreateInput,
   Idea,
   IdeaCreateInput,
+  IdeaUpdateInput,
   Member,
   MemoryAnswer,
   Message,
@@ -69,9 +73,19 @@ export const api = {
   messages: (projectId: string, channelId: string) => request<Message[]>('GET', `${p(projectId)}/channels/${channelId}/messages`),
   sendMessage: (projectId: string, channelId: string, text: string) =>
     request<Message>('POST', `${p(projectId)}/channels/${channelId}/messages`, { text }),
+  createChannel: (projectId: string, input: ChannelCreateInput) => request<Channel>('POST', `${p(projectId)}/channels`, input),
 
   createIdea: (projectId: string, input: IdeaCreateInput) => request<Idea>('POST', `${p(projectId)}/ideas`, input),
+  updateIdea: (projectId: string, ideaId: string, patch: IdeaUpdateInput) =>
+    request<Idea>('PATCH', `${p(projectId)}/ideas/${ideaId}`, patch),
+  deleteIdea: (projectId: string, ideaId: string) => request<void>('DELETE', `${p(projectId)}/ideas/${ideaId}`),
+  shortlistIdea: (projectId: string, ideaId: string, shortlisted: boolean) =>
+    request<Idea>('POST', `${p(projectId)}/ideas/${ideaId}/shortlist`, { shortlisted }),
+  approveIdea: (projectId: string, ideaId: string) => request<Idea>('POST', `${p(projectId)}/ideas/${ideaId}/approve`),
+  runBrainstormAction: (projectId: string, input: BrainstormActionInput) =>
+    request<Suggestion[]>('POST', `${p(projectId)}/ideas/actions`, input),
   voteIdea: (projectId: string, ideaId: string) => request<Idea>('POST', `${p(projectId)}/ideas/${ideaId}/vote`),
+  startIdeaVote: (projectId: string, ideaId: string) => request<Idea>('POST', `${p(projectId)}/ideas/${ideaId}/start-vote`),
   convertIdea: (projectId: string, ideaId: string) =>
     request<{ idea: Idea; task: Task }>('POST', `${p(projectId)}/ideas/${ideaId}/convert`),
 
@@ -85,4 +99,6 @@ export const api = {
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/approve`, options),
   dismissSuggestion: (projectId: string, suggestionId: string) =>
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/dismiss`),
+  summarizeResearchSuggestion: (projectId: string, suggestionId: string) =>
+    request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/summarize-research`),
 };

@@ -34,7 +34,7 @@ function RemoteAudio({ stream, onBlocked }: { stream: MediaStream; onBlocked: ()
 }
 
 export function MeetingPage() {
-  const { projectId } = useWorkspace();
+  const { projectId, snapshot } = useWorkspace();
   const { memberId } = useSession();
   const { toast, toastError, confirm } = useFeedback();
   const { current, loaded, reload, applyPoll, setCurrent, dismiss, select, recent, sendSignal, onSignal } = useMeeting(projectId);
@@ -195,9 +195,20 @@ export function MeetingPage() {
           </span>
           <h1>Meeting room</h1>
           <p className="meeting-start-text">
-            No meeting is live. Start one and teammates can join from here. Claude listens along and suggests tasks, ideas and polls.
-            Meetings last at most 60 minutes.
+            Start a conversation about your project. AI listens and proposes ideas and tasks for you to review; nothing is added to the
+            board until you approve it. Teammates can join, and meetings last at most 60 minutes.
           </p>
+          {snapshot?.members.length === 1 && snapshot.ideas.length === 0 && snapshot.tasks.length === 0 && (
+            <div className="meeting-starters">
+              <strong>Not sure where to start? Try saying:</strong>
+              <ul>
+                <li>“The problem I want to solve is…”</li>
+                <li>“The people who need this are…”</li>
+                <li>“One possible solution is…”</li>
+              </ul>
+              <p>Speak in complete thoughts so the transcript gives AI enough context to suggest a useful idea or task.</p>
+            </div>
+          )}
           <label>
             Title (optional)
             <input value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Weekly sync" />

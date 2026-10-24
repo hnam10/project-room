@@ -5,6 +5,66 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-23 — **Research cards summarize related ideas.** Relevant Tavily results are summarized in
+  short, source grounded descriptions instead of showing raw search snippets. Results without a reliable
+  summary are omitted; earlier pending cards offer a Summarize source action. Direct AI idea drafts,
+  including those with source links, stay in the Ideas section at the bottom, below guidance, research,
+  and strategies.
+- 2026-10-23 — **Voice meetings propose brainstorm topics.** Live transcript analysis can suggest a
+  separate topic draft, and the end-of-meeting summary can find one if the live pass missed it. Members
+  edit, approve, or dismiss the topic in the meeting or Brainstorm board. Meeting idea suggestions stay
+  pending and visible in Brainstorm while the topic is chosen; approving the topic does not clear them.
+- 2026-10-23 — **Chat brainstorms propose the board topic.** An `@AI brainstorm` request now yields a
+  separate, editable topic suggestion alongside any idea drafts. Approving it creates the Brainstorm
+  topic or updates the existing topic; dismissing it leaves the board unchanged. The chat reply directs
+  members to review both. A later brainstorm can propose a new topic without deleting earlier ideas.
+- 2026-10-23 — **Broader brainstorm categories.** New direct choices use `Option` (including everyday
+  questions such as what to eat), things to build use `Product`, and approaches use `Strategy`.
+  Previously saved Engagement and Platform cards remain readable and editable. AI can propose a concrete
+  meal option without web research or follow-up task drafts. The upper section labels sourced examples
+  and sourced AI drafts as Research; approving a sourced draft still creates a direct idea.
+- 2026-10-23 — **Brainstorm board separates planning from direct ideas.** Guidance, sourced research,
+  reviewable strategy drafts, saved strategies, and next-step drafts appear above the idea grid. The idea
+  grid and its theme filter show direct ideas and direct AI idea drafts only; strategy review and card
+  actions remain available in the upper section.
+- 2026-10-23 — **Problem-aware brainstorming.** The AI classifies a specific central problem or chat
+  brainstorm as product, non-product, or unclear before choosing an action. Product problems can yield an
+  editable concept with related web sources and existing product ideas can surface similar work. Events,
+  campaigns, and other non-product goals yield reviewable ideas or strategies with no automatic web search.
+  Strategies have their own theme; approved strategies get relevant next steps rather than MVP language.
+  Automatic exploration runs once per meaningful problem or idea state and old product-search cards are
+  hidden when a newer non-product assessment makes them irrelevant.
+- 2026-10-23 — **Sourced brainstorm examples replace generic guidance.** Specific product ideas trigger a
+  bounded Tavily search on creation or major edit. At most two relevant, distinct web results per idea
+  appear with their original links; automatic searches pause while two examples await review. No result or
+  unavailable search produces no card. Members may save a
+  source to an idea. Generic problem, comparison, and inactivity prose no longer fills the board; MVP
+  task drafts still follow an approved idea. Old unsourced automatic guidance is hidden from the board.
+- 2026-10-23 — **Compact brainstorm details.** Idea cards, AI idea drafts, and AI guidance show
+  short previews with Read more/Show less controls; the full text is preserved for review and editing.
+- 2026-10-23 — **Ideas can be deleted.** Members can delete an idea or the central problem after a
+  confirmation. Pending AI suggestions linked to it are dismissed; converted tasks and other ideas remain.
+  The brainstorm board updates immediately, and a new central problem can be defined afterward.
+- 2026-10-23 — **Concurrent Clerk project provisioning retries SurrealDB write conflicts.** Creating a
+  project and its general channel now happens in one transaction; simultaneous requests safely retry the
+  whole transaction. Member upserts and membership updates retry their single writes as well.
+- 2026-10-23 — **Solo starting path and brainstorm facilitator (original trigger behavior, revised above).** An empty solo task board points to the
+  Meeting Room and gives a starting script. The brainstorm board now has a central problem, editable ideas,
+  shortlist and explicit idea approval. Nine state-based triggers offer clarifying questions, market research,
+  connections, improvements, re-evaluation after major edits, an inactivity nudge, comparison, MVP tasks,
+  and a manual AI request. The eight automatic actions run while the brainstorm board is open; output
+  remains a pending suggestion until reviewed and also appears in the AI Assistant panel.
+  Approved research attaches source links to the idea. Major edits clear idea approval and flag old research.
+- 2026-10-23 — **Project text channels.** Completed the previously unfinished create-channel path, including
+  project-scoped validation, realtime updates, sidebar dialog, and selection of the new channel while keeping
+  the current workspace page.
+
+- 2026-10-22 — **AI-guided brainstorming and confirmed voting.** `@AI brainstorm …` turns recent chat into
+  one or two editable idea suggestions. With `TAVILY_API_KEY`, the server searches the web and keeps only
+  validated result URLs as sources on the suggestion and approved card; without it, the AI clearly falls
+  back to conversation context. A member must review/approve every AI draft, then explicitly confirm
+  "Start voting" before teammates can vote.
+
 - 2026-10-21 — **AI Meeting Room** (Hansol). In-app voice meetings (WebRTC mesh, 60-minute cap) with a live
   transcript from each browser's speech recognition. Claude (fast model) joins read-only and proposes tickets,
   ideas and polls as suggestions; ending the meeting writes an AI summary and a "Notes for next time"
@@ -65,17 +125,34 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
       Slack/Jira ground truth; compare mock vs. Claude vs. Claude + memory.
 - [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
       chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
-- [ ] **Create channels** (buttons currently show "isn't built yet"; projects and invites come from Clerk).
 - [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open decisions, workload per member.
 - [ ] **Calendar page** — tasks with due dates by week; project deadline.
-- [ ] **Brainstorm grouping** — themes as columns, compare proposals, "start a vote" (needs confirmation).
+- [ ] **Brainstorm grouping** — themes as columns and a comparison view for proposals.
 - [ ] **Web tests** — Playwright for: approve AI action items → task appears; drag task; detach chat.
 - [ ] Files page (needs storage decision: SurrealDB files vs. S3-compatible bucket).
 
 ## Known gaps
 
-- Meeting page has no sidebar link yet (reachable at /p/<id>/meeting); add one line in WorkspaceLayout after
-  feat/task-search merges.
+- Goal classification can be wrong or unclear, especially for mixed product and activity goals. Members can
+  refine the problem and retry, but there is no explicit goal-type override yet.
+- Product similar-work search runs while the brainstorm board is open, uses search snippets rather than full page
+  content, and relies on conservative word overlap for relevance. Useful semantic matches can be missed.
+  There is no automatic voice response from the Meeting Room AI.
+- Meaningful idea edits use a conservative text-change heuristic. Ambiguous semantic changes can be missed;
+  members can manually search the latest specific idea. Research stores approved source links, not a full
+  research-node history or comparison matrix.
+- The solo board entry, Meeting Room starting prompts, and Brainstorm problem form were checked in Edge.
+  The problem-aware strategy draft and suppression of older unrelated web cards were also checked there.
+  The sourced web-result approval flow still needs an interactive check in a disposable project.
+- The chat-to-topic flow passed API and realtime tests, and the Brainstorm page loaded in Edge. A fresh
+  topic card was not exercised in the browser because the available project holds existing user data.
+- Voice meeting topic creation, summary fallback, and persistence of pending ideas passed API tests.
+  The local browser check reached Clerk sign-in, so the new meeting topic card was not exercised interactively.
+- Research summaries and the placement of sourced idea drafts passed API tests and a web build. The local
+  browser check reached Clerk sign-in, so the revised Brainstorm cards were not exercised interactively.
+- Local `npm run check` still stops at the repository-wide Prettier baseline (103 unrelated files).
+  The full suite passed 110 tests. Meeting start now retries a write conflict that made its concurrency
+  test fail intermittently on earlier runs.
 - Meetings: no TURN relay, so peer connections may fail on strict networks (transcript and AI still work).
 - Meetings: live state, the AI trigger and the signaling relay are in-process (single API instance).
 - Meetings: trigger state (cooldowns, running summary, call counts) is in memory and resets on API restart.
@@ -100,6 +177,7 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
   added to the project the first time they open it.
 - Existing local databases created before this change lack the new decision/suggestion fields until
   reseeded (`npm run db:seed -- --org <id>`).
+- Web research needs `TAVILY_API_KEY`; without it, brainstorm suggestions use only the recent conversation.
 - Clerk mode: people who leave a Clerk team lose access (their tokens no longer carry that org) but
   stay in the project's member list until webhooks are added. Not yet tested against a real Clerk
   instance in CI; the API tests run in dev mode.
@@ -113,6 +191,24 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Mind Map and Notes tabs are placeholders.
 
 ## Decision log
+
+- 2026-10-23 — **Classify brainstorm goals before web search.** Product goals can justify similar-work
+  research; non-product goals get context-based strategies. The mode and processed state are recorded in
+  hidden check suggestions to prevent repeated or outdated cards.
+- 2026-10-23 — **Retry only replay-safe provisioning writes on structured SurrealDB conflicts.** Clerk can
+  issue parallel first-load requests; a transaction protects project plus channel creation, while the SDK
+  retries those conflicts with bounded backoff.
+- 2026-10-23 — **Automatic brainstorm triggers run AI while the board is open; manual requests need a click.**
+  The server suppresses repeats for the same board state. AI stores analysis, ideas, and tasks as pending
+  suggestions; only member approval attaches research or creates board records.
+- 2026-10-23 — **A central problem is an idea record with `kind = problem`; shortlist and approval are explicit
+  fields on ordinary ideas.** This reuses project-scoped realtime storage and keeps the first workflow step
+  distinct from candidate solutions without adding another table.
+
+- 2026-10-22 — **Tavily search is optional and sources survive approval**: a plain server-side `fetch`
+  adds current web context without a client-side key or new dependency; model-returned URLs are accepted
+  only when they match a search result. AI ideas remain pending suggestions, and voting starts only after
+  a separate member confirmation.
 
 - 2026-10-21 — **Voice via WebRTC mesh with WS signaling, no new dependency**: teams are <= 6, and a hosted SFU would add a vendor and key.
 - 2026-10-21 — **Each participant transcribes their own mic with the browser speech API**: exact speaker labels, no speech-to-text vendor or cost.

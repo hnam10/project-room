@@ -8,6 +8,7 @@ import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { getMeeting } from './repositories/meetings.js';
 import { listSuggestions } from './repositories/suggestions.js';
+import { listIdeas } from './repositories/ideas.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
 import { shouldRun } from './services/meeting-trigger.js';
 import { checkMeeting, noteLine, runLiveTick, triggerState } from './services/meeting-live.js';
@@ -147,6 +148,58 @@ describe('live meeting pipeline', () => {
     const state = triggerState(meetingId)!;
     expect(state.newWords).toBe(40);
     expect(shouldRun(state, 25_000)).toBe(true);
+  });
+
+  it('keeps meeting ideas pending while a reviewable topic is chosen', async () => {
+    const line = await speak('How should we help students find study groups?');
+    const { ai } = fakeAi(() => ({
+      topic: {
+        title: 'How should students find study groups?',
+        description: 'Help students connect with suitable groups.',
+        reason: 'The team framed a problem to brainstorm.',
+        quote: line.text,
+        sourceLineId: line.id,
+      },
+      ideas: [
+        {
+          ideaId: null,
+          draft: { title: 'Match by course', description: 'Show groups taking the same course.', theme: 'Option' },
+          reason: 'One way to address the problem.',
+          quote: line.text,
+          sourceLineId: line.id,
+        },
+      ],
+    }));
+    const created = await runLiveTick('hackathon', meetingId, ai);
+    const topic = created.find((s) => s.kind === 'brainstorm_topic')!;
+    const idea = created.find((s) => s.kind === 'idea')!;
+    expect(topic).toMatchObject({
+      status: 'pending',
+      meetingId,
+      sourceLineId: line.id,
+      ideaDraft: { title: 'How should students find study groups?' },
+    });
+    expect(idea.status).toBe('pending');
+    expect((await listIdeas('hackathon')).filter((item) => item.kind === 'problem')).toHaveLength(0);
+
+    await speak('We can keep exploring study group options.');
+    expect((await runLiveTick('hackathon', meetingId, ai)).some((s) => s.kind === 'brainstorm_topic')).toBe(false);
+    const approved = await post(`/suggestions/${topic.id}/approve`);
+    expect(approved.status).toBe(200);
+    expect((await listIdeas('hackathon')).find((item) => item.kind === 'problem')?.title).toBe('How should students find study groups?');
+    expect((await listSuggestions('hackathon')).find((s) => s.id === idea.id)?.status).toBe('pending');
+
+    await speak('Could the topic instead be mentoring?');
+    const revised = fakeAi(() => ({
+      topic: {
+        title: 'How should we organize mentoring?',
+        description: '',
+        reason: 'The team changed direction.',
+        quote: null,
+        sourceLineId: null,
+      },
+    }));
+    expect((await runLiveTick('hackathon', meetingId, revised.ai)).some((s) => s.kind === 'brainstorm_topic')).toBe(false);
   });
 
   it('POST /ai {enabled:false} stops ticks; only participants may toggle', async () => {

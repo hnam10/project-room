@@ -52,6 +52,8 @@ export const config = {
   /** Whisper on Groq (free tier) transcribes meeting audio when set; otherwise browsers use the Web Speech API. */
   groqApiKey: process.env.GROQ_API_KEY || null,
   groqSttModel: env('GROQ_STT_MODEL', 'whisper-large-v3-turbo'),
+  /** Tavily grounds brainstorm suggestions in current web results. Without it, brainstorming uses chat context only. */
+  tavilyApiKey: process.env.TAVILY_API_KEY || null,
   /** WebRTC ICE servers handed to meeting clients (STUN/TURN). */
   rtcIceServers: iceServers(),
   forceMockAi: process.env.AI_PROVIDER === 'mock',

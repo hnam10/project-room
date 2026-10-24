@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import type { Decision, MemoryAnswer, ServerMessage, Suggestion, Task, WorkspaceSnapshot } from '@project-room/shared';
+import type { Decision, Idea, MemoryAnswer, ServerMessage, Suggestion, Task, WorkspaceSnapshot } from '@project-room/shared';
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
@@ -117,6 +117,76 @@ describe('workspace API', () => {
 
     const again = await api(`/projects/hackathon/suggestions/${suggestion.id}/approve`, { method: 'POST', body: '{}' });
     expect(again.status).toBe(409);
+    live.ws.close();
+  });
+
+  it('turns an AI-guided chat brainstorm into a reviewed idea, then explicitly opens voting', async () => {
+    const live = listen('hackathon');
+    await live.ready;
+
+    await api('/projects/hackathon/channels/hackathon-general/messages', {
+      method: 'POST',
+      body: JSON.stringify({ text: '@AI brainstorm ways to reduce food waste on campus' }),
+    });
+
+    const event = (await live.waitFor(
+      (candidate) => candidate.type === 'change' && candidate.table === 'suggestion' && candidate.record.kind === 'idea',
+    )) as Extract<ServerMessage, { table: 'suggestion' }>;
+    const suggestion = event.record;
+    expect(suggestion.status).toBe('pending');
+    expect(suggestion.ideaDraft?.title.toLowerCase()).toContain('reduce food waste');
+    expect(suggestion.ideaDraft?.theme).toBe('Strategy');
+    expect(suggestion.researchSources).toEqual([]);
+
+    const topicSuggestion = (await api<Suggestion[]>('/projects/hackathon/suggestions')).body.find(
+      (item) => item.kind === 'brainstorm_topic' && item.status === 'pending',
+    );
+    expect(topicSuggestion?.ideaDraft?.title.toLowerCase()).toContain('reduce food waste');
+    expect(topicSuggestion?.ideaId).toBeNull();
+    expect((await api<Idea[]>('/projects/hackathon/ideas')).body.some((candidate) => candidate.kind === 'problem')).toBe(false);
+    await api(`/projects/hackathon/suggestions/${topicSuggestion!.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ideaDraft: { ...topicSuggestion!.ideaDraft, description: 'Focus on campus dining surplus.' } }),
+    });
+    expect(
+      (await api<Suggestion>(`/projects/hackathon/suggestions/${topicSuggestion!.id}/approve`, { method: 'POST', body: '{}' })).body.status,
+    ).toBe('approved');
+    const topic = (await api<Idea[]>('/projects/hackathon/ideas')).body.find((candidate) => candidate.kind === 'problem');
+    expect(topic).toMatchObject({ description: 'Focus on campus dining surplus.' });
+
+    const before = await api<Idea[]>('/projects/hackathon/ideas');
+    expect(before.body.some((idea) => idea.title === suggestion.ideaDraft?.title)).toBe(false);
+
+    const approved = await api<Suggestion>(`/projects/hackathon/suggestions/${suggestion.id}/approve`, { method: 'POST', body: '{}' });
+    expect(approved.body.status).toBe('approved');
+    const ideas = await api<Idea[]>('/projects/hackathon/ideas');
+    const idea = ideas.body.find((candidate) => candidate.title === suggestion.ideaDraft?.title);
+    expect(idea?.votingOpen).toBe(false);
+    expect(idea?.sourceSuggestionId).toBe(suggestion.id);
+
+    expect((await api(`/projects/hackathon/ideas/${idea!.id}/vote`, { method: 'POST' })).status).toBe(409);
+    const opened = await api<Idea>(`/projects/hackathon/ideas/${idea!.id}/start-vote`, { method: 'POST' });
+    expect(opened.body.votingOpen).toBe(true);
+    const voted = await api<Idea>(`/projects/hackathon/ideas/${idea!.id}/vote`, { method: 'POST' });
+    expect(voted.body.voterIds).toContain('alex');
+
+    await live.waitFor((candidate) => candidate.type === 'change' && candidate.table === 'message' && candidate.record.authorId === 'ai');
+    await api('/projects/hackathon/channels/hackathon-general/messages', {
+      method: 'POST',
+      body: JSON.stringify({ text: '@AI brainstorm what should we eat for dinner?' }),
+    });
+    const updatedTopic = (await live.waitFor(
+      (candidate) =>
+        candidate.type === 'change' &&
+        candidate.table === 'suggestion' &&
+        candidate.record.kind === 'brainstorm_topic' &&
+        candidate.record.title.toLowerCase().includes('dinner'),
+    )) as Extract<ServerMessage, { table: 'suggestion' }>;
+    expect(updatedTopic.record.ideaId).toBe(topic?.id);
+    await api(`/projects/hackathon/suggestions/${updatedTopic.record.id}/approve`, { method: 'POST', body: '{}' });
+    const topics = (await api<Idea[]>('/projects/hackathon/ideas')).body.filter((candidate) => candidate.kind === 'problem');
+    expect(topics).toHaveLength(1);
+    expect(topics[0]).toMatchObject({ id: topic?.id, title: expect.stringContaining('dinner') });
     live.ws.close();
   });
 

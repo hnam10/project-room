@@ -23,6 +23,24 @@ const tasks = [
 ];
 
 describe('Anthropic provider', () => {
+  it('summarizes supplied research and drops invented source URLs', async () => {
+    const { provider, parse } = providerReturning({
+      summaries: [
+        { url: 'https://example.com/planner', summary: 'A calendar that helps student groups coordinate due dates.' },
+        { url: 'https://unknown.example', summary: 'Unknown claim' },
+      ],
+    });
+    const summaries = await provider.summarizeResearch({
+      idea: { title: 'Group assignment calendar', description: 'Help students track deadlines.' },
+      results: [
+        { title: 'Student planner', url: 'https://example.com/planner', content: 'Groups share assignment deadlines in a calendar.' },
+      ],
+    });
+    expect(summaries).toEqual([
+      { url: 'https://example.com/planner', summary: 'A calendar that helps student groups coordinate due dates.' },
+    ]);
+    expect(parse.mock.calls[0]![0].messages[0].content).toContain('<results>');
+  });
   it('keeps real quotes and drops invented ones, unknown owners, duplicates and unknown tasks', async () => {
     const { provider, parse } = providerReturning({
       actionItems: [
@@ -76,6 +94,80 @@ describe('Anthropic provider', () => {
     expect(parse).not.toHaveBeenCalled();
     await provider.detectOpenQuestion({ id: 'm', authorId: 'a', authorName: 'A', text: 'Should we use Postgres?' });
     expect(parse).toHaveBeenCalledOnce();
+  });
+
+  it('keeps brainstorm citations only when they came from the supplied research', async () => {
+    const { provider } = providerReturning({
+      topic: {
+        title: 'Reduce campus food waste',
+        description: 'Help students redirect surplus food.',
+        reason: 'The team discussed food waste.',
+        quote: 'Landing page UI still has no owner',
+      },
+      ideas: [
+        {
+          title: 'Campus surplus exchange',
+          description: 'Match dining halls with student groups before food is discarded.',
+          theme: 'Engagement',
+          reason: 'It gives the team a concrete, testable intervention.',
+          quote: 'Landing page UI still has no owner',
+          sourceUrls: ['https://example.com/research', 'https://invented.example/source'],
+        },
+      ],
+    });
+    const result = await provider.brainstorm({
+      messages,
+      existingIdeas: [],
+      research: [{ title: 'Food waste study', url: 'https://example.com/research', content: 'Campus dining waste can be redirected.' }],
+    });
+
+    expect(result.topic).toMatchObject({ title: 'Reduce campus food waste', quote: 'Landing page UI still has no owner' });
+    expect(result.ideas[0]?.draft.theme).toBe('Product');
+    expect(result.ideas[0]?.quote).toBe('Landing page UI still has no owner');
+    expect(result.ideas[0]?.sourceUrls).toEqual(['https://example.com/research']);
+  });
+
+  it('classifies the goal before research and distinguishes direct options from strategies', async () => {
+    const classified = providerReturning({ mode: 'non_product' });
+    expect(
+      await classified.provider.classifyBrainstorm({
+        problem: { title: 'Promote student film night', description: 'Plan an event that brings more students together.' },
+        ideas: [],
+      }),
+    ).toBe('non_product');
+    expect(classified.parse.mock.calls[0]![0].messages[0].content).toContain('Do not guess that every brainstorm is a product');
+
+    const drafted = providerReturning({
+      ideas: [
+        {
+          title: 'Invite student hosts',
+          description: 'Let clubs host short introductions before each film.',
+          theme: 'Strategy',
+          reason: 'Clubs can bring their members.',
+          quote: null,
+          sourceUrls: [],
+        },
+      ],
+    });
+    const ideas = await drafted.provider.brainstorm({ messages, existingIdeas: [], research: [], mode: 'non_product' });
+    expect(ideas.ideas[0]?.draft.theme).toBe('Strategy');
+    expect(drafted.parse.mock.calls[0]![0].messages[0].content).toContain('not to build a product');
+
+    const meal = providerReturning({
+      ideas: [
+        {
+          title: 'Italian food',
+          description: 'Try pasta or pizza for dinner.',
+          theme: 'Option',
+          reason: 'The team asked what to eat.',
+          quote: null,
+          sourceUrls: [],
+        },
+      ],
+    });
+    const options = await meal.provider.brainstorm({ messages, existingIdeas: [], research: [], mode: 'non_product' });
+    expect(options.ideas[0]?.draft.theme).toBe('Option');
+    expect(meal.parse.mock.calls[0]![0].messages[0].content).toContain('cuisine');
   });
 
   it('answers from the given decisions and ignores source ids it was not given', async () => {

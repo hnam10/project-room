@@ -1,6 +1,6 @@
-import type { Channel, Member, Project } from '@project-room/shared';
+import type { Channel, ChannelCreateInput, Member, Project } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
-import { rid } from '../db/records.js';
+import { ConflictError, rid } from '../db/records.js';
 
 const PROJECT_FIELDS = 'id, name, description, emoji, color, dueDate, memberIds';
 
@@ -35,30 +35,51 @@ export function getChannel(projectId: string, channelId: string): Promise<Channe
   });
 }
 
+export async function createChannel(projectId: string, input: ChannelCreateInput): Promise<Channel> {
+  const name = input.name.trim().toLowerCase();
+  if ((await listChannels(projectId)).some((channel) => channel.name === name)) throw new ConflictError('Channel name already exists');
+  const channel = await queryOne<Channel>('CREATE ONLY channel CONTENT $content', {
+    content: { projectId: rid('project', projectId), name },
+  });
+  if (!channel) throw new Error('Channel creation returned nothing');
+  return channel;
+}
+
 /** Creates or refreshes a member's profile (used for members whose identity comes from Clerk). */
 export function upsertMember(member: Member): Promise<Member | null> {
-  return queryOne<Member>('UPSERT ONLY $id MERGE $data', {
-    id: rid('member', member.id),
-    data: { name: member.name, color: member.color, role: member.role },
-  });
+  return queryOne<Member>(
+    'UPSERT ONLY $id MERGE $data',
+    {
+      id: rid('member', member.id),
+      data: { name: member.name, color: member.color, role: member.role },
+    },
+    { retryConflict: true },
+  );
 }
 
 /** Creates a project with a #general channel if it doesn't exist yet. Safe to call repeatedly. */
 export async function ensureProject(project: Pick<Project, 'id' | 'name'>): Promise<void> {
   const id = rid('project', project.id);
   await queryOne(
-    `IF !record::exists($id) {
+    `BEGIN;
+     IF !record::exists($id) {
        UPSERT $id MERGE { name: $name };
        UPSERT $channel MERGE { projectId: $id, name: 'general' };
-     }`,
+     };
+     COMMIT;`,
     { id, name: project.name, channel: rid('channel', `${project.id}-general`) },
+    { retryConflict: true },
   );
 }
 
 /** Adds a member to a project (no-op when already a member). */
 export function addProjectMember(projectId: string, memberId: string): Promise<unknown> {
-  return queryOne('UPDATE ONLY $id SET memberIds = array::union(memberIds, [$member])', {
-    id: rid('project', projectId),
-    member: rid('member', memberId),
-  });
+  return queryOne(
+    'UPDATE ONLY $id SET memberIds = array::union(memberIds, [$member])',
+    {
+      id: rid('project', projectId),
+      member: rid('member', memberId),
+    },
+    { retryConflict: true },
+  );
 }

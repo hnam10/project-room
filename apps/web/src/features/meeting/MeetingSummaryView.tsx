@@ -9,6 +9,7 @@ import { useSnapshot, useWorkspace } from '../../state/workspace';
 import { ActionItemsCard } from '../chat/ActionItemsCard';
 import { PollCard } from '../polls/PollCard';
 import { IdeaSuggestionCard } from './IdeaSuggestionCard';
+import { BrainstormTopicSuggestionCard } from '../brainstorm/BrainstormTopicSuggestionCard';
 import { PollSuggestionCard } from './PollSuggestionCard';
 import { TranscriptView } from './TranscriptView';
 
@@ -144,9 +145,14 @@ export function MeetingSummaryView(props: {
       {polls.map((p) => (
         <PollCard key={p.id} poll={p} onChange={props.applyPoll} />
       ))}
+      {others.some((suggestion) => suggestion.kind === 'brainstorm_topic') && (
+        <p className="meeting-note-small">The topic and idea suggestions remain available in Brainstorm until reviewed.</p>
+      )}
       {others.map((s) =>
         s.kind === 'action_items' ? (
           <ActionItemsCard key={s.id} suggestion={s} />
+        ) : s.kind === 'brainstorm_topic' ? (
+          <BrainstormTopicSuggestionCard key={s.id} suggestion={s} />
         ) : s.kind === 'idea' ? (
           <IdeaSuggestionCard key={s.id} suggestion={s} />
         ) : s.kind === 'poll' ? (
