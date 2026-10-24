@@ -9,9 +9,8 @@ import {
   type Priority,
   type SuggestionStatus,
 } from '@project-room/shared';
-import { config } from '../config.js';
 import { mockMeetingAi } from './mock-meeting.js';
-import { createOpenAiClient } from './openai.js';
+import { providerName, routedModels, type RoutedModel } from './routing.js';
 import { createStructuredMeetingAi } from './structured-meeting.js';
 import type { MemberBrief } from './provider.js';
 
@@ -214,13 +213,28 @@ export function validateSummary(raw: RawSummary, input: SummarizeInput): Summari
   };
 }
 
-// Same order as getAiProvider: an OpenAI-compatible API, otherwise the labelled mock.
+// Same hosts as getAiProvider: Nebius for live ticks, OpenAI for the end summary, otherwise the mock.
 let meetingAi: MeetingAi | null = null;
 
+export function composeMeetingAi(heavy: RoutedModel, frequent: RoutedModel): MeetingAi {
+  const name = providerName(heavy, frequent);
+  if (frequent.client === heavy.client) {
+    return { ...createStructuredMeetingAi(heavy.client, frequent.fastModel, heavy.model), name };
+  }
+  const live = createStructuredMeetingAi(frequent.client, frequent.model, frequent.model);
+  const summary = createStructuredMeetingAi(heavy.client, heavy.model, heavy.model);
+  return {
+    name,
+    isMock: false,
+    meetingTick: (input) => live.meetingTick(input),
+    summarizeMeeting: (input) => summary.summarizeMeeting(input),
+  };
+}
+
 function pick(): MeetingAi {
-  if (config.forceMockAi || !config.openaiApiKey) return mockMeetingAi;
-  const client = createOpenAiClient(config.openaiApiKey, config.openaiBaseUrl);
-  return createStructuredMeetingAi(client, config.openaiFastModel, config.openaiModel);
+  const hosts = routedModels();
+  if (!hosts) return mockMeetingAi;
+  return composeMeetingAi(hosts.heavy, hosts.frequent);
 }
 
 export function getMeetingAi(): MeetingAi {
