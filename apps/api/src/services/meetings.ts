@@ -46,15 +46,36 @@ export async function joinMeeting(projectId: string, meetingId: string, memberId
   return addParticipant(meetingId, memberId);
 }
 
+/** Leaving as the last participant ends the meeting, so an empty room never stays live. */
 export async function leaveMeeting(projectId: string, meetingId: string, memberId: string): Promise<Meeting> {
-  await getMeeting(projectId, meetingId);
-  return removeParticipant(meetingId, memberId);
+  const before = await getMeeting(projectId, meetingId);
+  // Only a real departure may end it: a repeat or stray leave during a drop's grace period must not.
+  if (!before.participantIds.includes(memberId)) return before;
+  const meeting = await removeParticipant(meetingId, memberId);
+  return (await endIfEmpty(meeting)) ?? meeting;
 }
 
-/** A member's last socket closed: take them out of the project's live call, if they were in it. */
-export async function dropFromLiveMeeting(projectId: string, memberId: string): Promise<void> {
+/**
+ * A member's last socket closed (closed tab, refresh, lost network): take them out of the project's live call. If that
+ * emptied it, end it after `graceMs` unless someone joined again, so a refresh doesn't end the meeting.
+ */
+export async function dropFromLiveMeeting(projectId: string, memberId: string, graceMs = DROP_GRACE_MS): Promise<void> {
   const meeting = await findLiveMeeting(projectId);
-  if (meeting?.participantIds.includes(memberId)) await removeParticipant(meeting.id, memberId);
+  if (!meeting?.participantIds.includes(memberId)) return;
+  if ((await removeParticipant(meeting.id, memberId)).participantIds.length) return;
+  // ponytail: in-process timer; a restart in the window leaves it to the 60-minute clock.
+  await new Promise((resolve) => setTimeout(resolve, graceMs));
+  await endIfEmpty(await getMeeting(projectId, meeting.id));
+}
+
+const DROP_GRACE_MS = 30_000;
+
+/** Ends a live meeting nobody is in and starts its summary; null when it wasn't ended here. */
+async function endIfEmpty(meeting: Meeting): Promise<Meeting | null> {
+  if (meeting.status !== 'live' || meeting.participantIds.length) return null;
+  const summarizing = await beginSummarizing(meeting.id, true); // null: someone joined, or another end won
+  if (summarizing) summarizeInBackground(summarizing);
+  return summarizing;
 }
 
 /** Transcribes one clip of the caller's mic and stores it as their line; null when the clip was silent. */

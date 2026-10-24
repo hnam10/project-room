@@ -7,7 +7,8 @@ import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { addProjectMember, ensureProject } from './repositories/projects.js';
-import { endExpiredMeetings } from './services/meetings.js';
+import { beginSummarizing } from './repositories/meetings.js';
+import { dropFromLiveMeeting, endExpiredMeetings } from './services/meetings.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
 
 let server: Server;
@@ -139,5 +140,37 @@ describe('meetings API', () => {
     const ended = await post(`/${started.body.id}/end`, 'alex');
     expect(ended.body).toMatchObject({ status: 'summarizing', participantIds: [] });
     expect(ended.body.endedAt).toBeTruthy();
+  });
+
+  it('ends the meeting when the last participant leaves', async () => {
+    const { body } = await post('', 'alex');
+    await post(`/${body.id}/join`, 'jamie');
+    expect((await post(`/${body.id}/leave`, 'jamie')).body).toMatchObject({ status: 'live', participantIds: ['alex'] });
+    expect((await post(`/${body.id}/leave`, 'alex')).body).toMatchObject({ status: 'summarizing', participantIds: [] });
+  });
+
+  it('a dropped last participant ends the meeting after the grace period unless someone rejoins', async () => {
+    const { body } = await post('', 'alex');
+    const dropping = dropFromLiveMeeting('hackathon', 'alex', 300);
+    // Wait until the drop removed alex; the grace period is still running.
+    for (let i = 0; (await api<MeetingDetail>(`${M}/${body.id}`)).body.meeting.participantIds.length; i++) {
+      if (i > 50) throw new Error('alex was never removed');
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    // A stray leave from someone not in the call must not end the empty meeting early.
+    expect((await post(`/${body.id}/leave`, 'jamie')).body).toMatchObject({ status: 'live', participantIds: [] });
+    await post(`/${body.id}/join`, 'alex'); // a refresh rejoins
+    await dropping;
+    expect((await api<MeetingDetail>(`${M}/${body.id}`)).body.meeting.status).toBe('live');
+    await dropFromLiveMeeting('hackathon', 'alex', 0);
+    expect((await api<MeetingDetail>(`${M}/${body.id}`)).body.meeting.status).not.toBe('live');
+  });
+
+  it('an empty-only end leaves a meeting someone joined live and reserved', async () => {
+    const { body } = await post('', 'alex');
+    expect(await beginSummarizing(body.id, true)).toBeNull();
+    expect((await api<MeetingDetail>(`${M}/${body.id}`)).body.meeting).toMatchObject({ status: 'live', participantIds: ['alex'] });
+    expect((await post('', 'jamie')).status).toBe(409); // the live reservation is still held
+    await post(`/${body.id}/leave`, 'alex');
   });
 });

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ApiError } from '../api/client';
+import { useRef, useState } from 'react';
 import { meetingsApi } from '../api/meetings';
 import { useFeedback } from '../components/Feedback';
 import { Icon } from '../components/Icon';
@@ -11,148 +10,29 @@ import { LastTimeCard } from '../features/meeting/LastTimeCard';
 import { MeetingSummaryView } from '../features/meeting/MeetingSummaryView';
 import { MeetingTimer } from '../features/meeting/MeetingTimer';
 import { Participants } from '../features/meeting/Participants';
-import { splitLine } from '../features/meeting/splitLine';
 import { TranscriptView } from '../features/meeting/TranscriptView';
-import { useMeeting } from '../features/meeting/useMeeting';
-import { useMeshAudio } from '../features/meeting/useMeshAudio';
-import { useClipTranscriber } from '../features/meeting/useClipTranscriber';
-import { useTranscriber } from '../features/meeting/useTranscriber';
-import { useSession } from '../state/session';
+import { playBlockedAudio, useMeetingCall } from '../state/meetingCall';
 import { useWorkspace } from '../state/workspace';
 
 const AI_MIN_W = 240;
 const TRANSCRIPT_MIN_W = 320;
 
-function RemoteAudio({ stream, onBlocked }: { stream: MediaStream; onBlocked: () => void }) {
-  const ref = useRef<HTMLAudioElement>(null);
-  const blocked = useRef(onBlocked);
-  useEffect(() => {
-    blocked.current = onBlocked;
-  });
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.srcObject = stream;
-    el.play().catch(() => blocked.current());
-  }, [stream]);
-  return <audio ref={ref} autoPlay />;
-}
-
 export function MeetingPage() {
   const { projectId, snapshot } = useWorkspace();
-  const { memberId } = useSession();
-  const { toast, toastError, confirm } = useFeedback();
-  const { current, loaded, reload, applyPoll, setCurrent, dismiss, select, recent, sendSignal, onSignal } = useMeeting(projectId);
+  const { toastError } = useFeedback();
+  const call = useMeetingCall();
+  const { current, loaded, reload, applyPoll, setCurrent, dismiss, select, recent, live, joined, stopped, muted } = call;
+  const meeting = current?.meeting;
   const [consent, setConsent] = useState<'start' | 'join' | null>(null);
   const [title, setTitle] = useState('');
   const [aiWidth, setAiWidth] = useState<number | null>(null);
   const cols = useRef<HTMLDivElement>(null);
-  const [stoppedId, setStoppedId] = useState<string | null>(null);
-  const [muted, setMuted] = useState(false);
-  const [ice, setIce] = useState<{ meetingId: string; servers: RTCIceServer[]; serverStt: boolean } | null>(null);
 
-  const meeting = current?.meeting;
-  const live = meeting?.status === 'live';
-  const joined = !!meeting && live && meeting.participantIds.includes(memberId);
-  const meetingId = meeting?.id;
-  const stopped = stoppedId === meetingId;
-
-  // Post each final result, split to the server's 1000-char limit, in order.
-  const queue = useRef(Promise.resolve());
-  const post = useCallback(
-    (text: string) => {
-      if (!meetingId) return;
-      queue.current = queue.current.then(async () => {
-        for (const chunk of splitLine(text)) {
-          try {
-            await meetingsApi.postLine(projectId, meetingId, chunk);
-          } catch (e) {
-            // 409: the meeting ended or expired. Stop transcribing.
-            if (e instanceof ApiError && e.status === 409) setStoppedId(meetingId);
-            else toastError(e);
-            return;
-          }
-        }
-      });
-    },
-    [projectId, meetingId, toastError],
-  );
   // Keeps both the transcript and the AI column readable (the first column is 220px).
   const resizeAi = (px: number) => {
     const width = cols.current?.getBoundingClientRect().width ?? 0;
     if (width) setAiWidth(Math.round(Math.max(AI_MIN_W, Math.min(px, width - 220 - TRANSCRIPT_MIN_W))));
   };
-  const iceReady = ice?.meetingId === meetingId;
-  const serverStt = iceReady && !!ice?.serverStt;
-  const browser = useTranscriber({
-    language: meeting?.language ?? 'en-US',
-    enabled: joined && !stopped && !muted && iceReady && !serverStt,
-    onFinal: post,
-  });
-
-  // ICE servers once per meeting join.
-  useEffect(() => {
-    if (!joined || !meetingId) return;
-    let cancelled = false;
-    meetingsApi
-      .rtcConfig(projectId)
-      .then((c) => ({ servers: c.iceServers as RTCIceServer[], serverStt: c.transcription === 'server' }))
-      .catch(() => ({ servers: [] as RTCIceServer[], serverStt: false }))
-      .then((c) => !cancelled && setIce({ meetingId, ...c }));
-    return () => {
-      cancelled = true;
-      setIce(null);
-    };
-  }, [joined, projectId, meetingId]);
-
-  const { peers, localStream, remoteStreams, micError } = useMeshAudio({
-    enabled: joined && !stopped && iceReady,
-    meetingId,
-    me: memberId,
-    participantIds: meeting?.participantIds ?? [],
-    iceServers: ice?.servers ?? [],
-    sendSignal,
-    onSignal,
-    muted,
-  });
-  const sendClip = useCallback(
-    async (clip: Blob) => {
-      if (!meetingId) return;
-      try {
-        await meetingsApi.postAudio(projectId, meetingId, clip);
-      } catch (e) {
-        // 409: the meeting ended or expired. Stop transcribing.
-        if (e instanceof ApiError && e.status === 409) setStoppedId(meetingId);
-        else throw e;
-      }
-    },
-    [projectId, meetingId],
-  );
-  const clips = useClipTranscriber({ stream: localStream, enabled: joined && !stopped && !muted && serverStt, send: sendClip });
-  const supported = serverStt || browser.supported;
-  const listening = serverStt ? clips.listening : browser.listening;
-  const error = serverStt ? clips.error : browser.error;
-  const interim = serverStt ? '' : browser.interim;
-  const audioFailed = [...peers].some(([id, state]) => state === 'failed' && (meeting?.participantIds ?? []).includes(id));
-  const [blocked, setBlocked] = useState(false);
-  const audioBox = useRef<HTMLDivElement>(null);
-
-  const count = meeting?.participantIds.length ?? 0;
-  const warned = useRef<string | null>(null);
-  useEffect(() => {
-    if (joined && count > 6 && warned.current !== meetingId) {
-      warned.current = meetingId ?? null;
-      toast('More than 6 people are in this call — audio may stutter.');
-    }
-  }, [joined, count, meetingId, toast]);
-
-  // Best-effort leave when the tab closes.
-  useEffect(() => {
-    if (!joined || !meetingId) return;
-    const onHide = () => void meetingsApi.leave(projectId, meetingId).catch(() => {});
-    window.addEventListener('pagehide', onHide);
-    return () => window.removeEventListener('pagehide', onHide);
-  }, [joined, projectId, meetingId]);
 
   const accept = async () => {
     const action = consent;
@@ -161,32 +41,13 @@ export function MeetingPage() {
       const m =
         action === 'start'
           ? await meetingsApi.start(projectId, { title: title.trim() || undefined })
-          : await meetingsApi.join(projectId, meetingId!);
+          : await meetingsApi.join(projectId, meeting!.id);
       if (action === 'start') await reload();
       else setCurrent((prev) => (prev ? { ...prev, meeting: m } : prev));
     } catch (e) {
       toastError(e);
       void reload().catch(() => {});
     }
-  };
-
-  const leave = async () => {
-    try {
-      await meetingsApi.leave(projectId, meetingId!);
-    } catch (e) {
-      toastError(e);
-    }
-    await reload().catch(() => {});
-  };
-
-  const end = async () => {
-    if (!(await confirm({ title: 'End the meeting', text: 'End the meeting for everyone?', okLabel: 'End meeting' }))) return;
-    try {
-      await meetingsApi.end(projectId, meetingId!);
-    } catch (e) {
-      toastError(e);
-    }
-    await reload().catch(() => {});
   };
 
   if (!loaded) return <div className="meeting-page empty-state">Loading…</div>;
@@ -248,15 +109,7 @@ export function MeetingPage() {
             <h1>{meeting.title}</h1>
             {live && <span className="live-badge">Live</span>}
             {live ? (
-              <MeetingTimer
-                meetingId={meeting.id}
-                startedAt={meeting.startedAt}
-                endsAt={meeting.endsAt}
-                onExpire={() => {
-                  setStoppedId(meeting.id);
-                  void reload().catch(() => {});
-                }}
-              />
+              <MeetingTimer meetingId={meeting.id} startedAt={meeting.startedAt} endsAt={meeting.endsAt} onExpire={call.expire} />
             ) : (
               <span className="meeting-timer">{meeting.status === 'summarizing' ? 'Summarizing' : 'Ended'}</span>
             )}
@@ -273,38 +126,34 @@ export function MeetingPage() {
             <div ref={cols} className="meeting-cols" style={aiWidth ? ({ '--ai-w': `${aiWidth}px` } as React.CSSProperties) : undefined}>
               <section>
                 <h2>In the call</h2>
-                {joined && micError && <p className="meeting-notice">Microphone unavailable — others can’t hear you.</p>}
-                {joined && audioFailed && (
+                {joined && call.micError && <p className="meeting-notice">Microphone unavailable — others can’t hear you.</p>}
+                {joined && call.audioFailed && (
                   <p className="meeting-notice">Can’t connect audio on this network — the transcript and AI still work.</p>
                 )}
-                {joined && blocked && (
+                {joined && call.blocked && (
                   <button
                     className="btn"
                     onClick={() => {
-                      audioBox.current?.querySelectorAll('audio').forEach((a) => void a.play().catch(() => {}));
-                      setBlocked(false);
+                      playBlockedAudio();
+                      call.setBlocked(false);
                     }}
                   >
                     Click to enable audio
                   </button>
                 )}
-                <div ref={audioBox} hidden>
-                  {joined &&
-                    [...remoteStreams].map(([id, stream]) => <RemoteAudio key={id} stream={stream} onBlocked={() => setBlocked(true)} />)}
-                </div>
-                <Participants meeting={meeting} localStream={localStream} remoteStreams={remoteStreams} muted={muted} />
+                <Participants meeting={meeting} localStream={call.localStream} remoteStreams={call.remoteStreams} muted={muted} />
               </section>
               <section>
-                <h2>Transcript{listening ? ' · listening' : ''}</h2>
+                <h2>Transcript{call.listening ? ' · listening' : ''}</h2>
                 {meeting.previousMeetingId && <LastTimeCard projectId={projectId} previousId={meeting.previousMeetingId} />}
-                {joined && error && <p className="meeting-notice">{error}</p>}
-                {joined && !supported && (
+                {joined && call.error && <p className="meeting-notice">{call.error}</p>}
+                {joined && !call.supported && (
                   <p className="meeting-notice">
                     Your speech isn’t transcribed in this browser. Use Chrome to be heard; you can still read along.
                   </p>
                 )}
                 {joined && stopped && <p className="meeting-notice">The meeting has ended, so transcribing stopped.</p>}
-                <TranscriptView lines={current.lines} interim={joined ? interim : ''} />
+                <TranscriptView lines={current.lines} interim={joined ? call.interim : ''} />
                 {joined && !stopped && <MeetingChat meetingId={meeting.id} />}
               </section>
               <ResizeHandle
@@ -328,15 +177,12 @@ export function MeetingPage() {
                     aria-pressed={muted}
                     aria-label={muted ? 'Unmute' : 'Mute'}
                     title={muted ? 'Unmute' : 'Mute'}
-                    onClick={() => setMuted((m) => !m)}
+                    onClick={() => call.setMuted((m) => !m)}
                   >
                     <Icon name={muted ? 'micOff' : 'mic'} />
                   </button>
-                  <button className="btn" onClick={() => void leave()}>
+                  <button className="btn" onClick={() => void call.leave()}>
                     Leave
-                  </button>
-                  <button className="btn end-call" onClick={() => void end()}>
-                    End for everyone
                   </button>
                 </>
               ) : (
