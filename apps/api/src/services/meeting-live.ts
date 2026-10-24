@@ -51,21 +51,27 @@ async function sharedFileExcerpts(
   try {
     const shared = await listMeetingFiles(projectId, meetingId);
     if (!shared.length) return [];
-    const names = shared.map((f) => f.name);
+    // A deleted file drops out here.
+    const files = (await Promise.all(shared.map((s) => getFile(projectId, s.fileId).catch(() => null)))).filter((f) => !!f);
     const whole: FileExcerpt[] = [];
+    const readWhole = new Set<string>();
     if (fullText) {
-      for (const { fileId, name } of shared.slice(-FULL_TEXT_FILES)) {
-        const file = await getFile(projectId, fileId).catch(() => null);
-        const type = file && memoryMediaType(file.name, file.contentType);
+      for (const file of files.slice(-FULL_TEXT_FILES)) {
+        const type = memoryMediaType(file.name, file.contentType);
         if (!type || !(type.startsWith('text/') || type === 'application/json')) continue;
-        const bytes = await readStoredFile(projectId, fileId);
-        if (bytes) whole.push({ name, text: bytes.toString('utf8').slice(0, FULL_TEXT_CHARS) });
+        const bytes = await readStoredFile(projectId, file.id);
+        if (!bytes) continue;
+        whole.push({ name: file.name, text: bytes.toString('utf8').slice(0, FULL_TEXT_CHARS) });
+        readWhole.add(file.id);
       }
     }
-    if (!memory) return whole;
-    const excerpts = await memory.excerpts(projectId, [...names, ...lines.map((l) => l.text)].join('\n'));
-    // The search covers every project file; keep the ones shared in this meeting and not already read whole.
-    return [...whole, ...excerpts.filter((e) => names.includes(e.name) && !whole.some((w) => w.name === e.name))];
+    // Names can repeat across project files, so passages are matched by Agent Memory document id.
+    const documentIds = new Set(files.filter((f) => !readWhole.has(f.id) && f.memoryDocumentId).map((f) => f.memoryDocumentId));
+    if (!memory || !documentIds.size) return whole;
+    const query = [...files.map((f) => f.name), ...lines.map((l) => l.text)].join('\n');
+    // The search covers every project file; keep passages from this meeting's files only.
+    const excerpts = await memory.excerpts(projectId, query);
+    return [...whole, ...excerpts.filter((e) => e.documentId && documentIds.has(e.documentId))];
   } catch (error) {
     console.error(`Could not read meeting files for ${meetingId}`, error);
     return [];

@@ -48,7 +48,7 @@ export function projectScope(projectId: string): string | null {
 }
 
 /** Keeps the passages short enough to send on to the chat model. */
-export function clipExcerpts(hits: { name: string; text: string }[]): FileExcerpt[] {
+export function clipExcerpts(hits: FileExcerpt[]): FileExcerpt[] {
   const excerpts: FileExcerpt[] = [];
   const seen = new Set<string>();
   for (const hit of hits) {
@@ -58,7 +58,7 @@ export function clipExcerpts(hits: { name: string; text: string }[]): FileExcerp
     const key = `${hit.name}\n${text}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    excerpts.push({ name: hit.name || 'file', text });
+    excerpts.push({ name: hit.name || 'file', text, ...(hit.documentId ? { documentId: hit.documentId } : {}) });
   }
   return excerpts;
 }
@@ -79,7 +79,7 @@ interface MemoryOptions {
 
 interface QueryHit {
   chunk?: { text?: unknown };
-  document?: { title?: unknown };
+  document?: { id?: unknown; title?: unknown };
 }
 
 export function createProjectMemory(options: MemoryOptions): ProjectMemory {
@@ -145,8 +145,9 @@ export function createProjectMemory(options: MemoryOptions): ProjectMemory {
       const hits = (body.results ?? []).flatMap((hit) => {
         const text = hit.chunk?.text;
         const name = hit.document?.title;
+        const documentId = hit.document?.id;
         if (typeof text !== 'string') return [];
-        return [{ name: typeof name === 'string' ? name : 'file', text }];
+        return [{ name: typeof name === 'string' ? name : 'file', text, ...(typeof documentId === 'string' ? { documentId } : {}) }];
       });
       return clipExcerpts(hits);
     },

@@ -79,11 +79,11 @@ describe('project memory', () => {
       expect(body.lens).toEqual([['project/org_abc']]);
       expect(body.query).toContain('@AI what is due');
       return jsonResponse(200, {
-        results: [{ chunk: { text: 'The report is due Friday.' }, document: { title: 'rubric.pdf' } }],
+        results: [{ chunk: { text: 'The report is due Friday.' }, document: { id: 'doc_1', title: 'rubric.pdf' } }],
       });
     });
     await expect(memory.excerpts('org_abc', '@AI what is due')).resolves.toEqual([
-      { name: 'rubric.pdf', text: 'The report is due Friday.' },
+      { name: 'rubric.pdf', text: 'The report is due Friday.', documentId: 'doc_1' },
     ]);
   });
 

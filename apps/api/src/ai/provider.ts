@@ -20,6 +20,8 @@ export interface ConversationMessage {
 export interface FileExcerpt {
   name: string;
   text: string;
+  /** The Agent Memory document the passage came from, when the search returned it. */
+  documentId?: string;
 }
 
 /** An existing task, so the AI can avoid duplicates and point at the ones that are at risk. */

@@ -6,6 +6,7 @@ import type { MeetingAi, MeetingTickInput, MeetingTickResult } from './ai/meetin
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
+import { setMemoryDocumentId } from './repositories/files.js';
 import { getMeeting } from './repositories/meetings.js';
 import { listSuggestions } from './repositories/suggestions.js';
 import { listIdeas } from './repositories/ideas.js';
@@ -268,15 +269,17 @@ describe('live meeting pipeline', () => {
       excerpts: async (_projectId, query) => {
         queries.push(query);
         return [
-          { name: 'plan.txt', text: 'Login ships first.' },
-          { name: 'other.txt', text: 'Not shared in this meeting.' },
+          { name: 'plan.txt', text: 'Login ships first.', documentId: 'doc-plan' },
+          // Same name, different project file that was never shared in this meeting.
+          { name: 'plan.txt', text: 'Not shared in this meeting.', documentId: 'doc-other' },
         ];
       },
     };
+    await setMemoryDocumentId('hackathon', file.id, 'doc-plan');
     const { ai, inputs } = fakeAi(() => ({}));
     await runLiveTick('hackathon', meetingId, ai, memory);
     expect(queries[0]).toContain('plan.txt');
-    expect(inputs[0]!.files).toEqual([{ name: 'plan.txt', text: 'Login ships first.' }]);
+    expect(inputs[0]!.files).toEqual([{ name: 'plan.txt', text: 'Login ships first.', documentId: 'doc-plan' }]);
     expect(inputs[0]!.lines.at(-1)!.text).toBe('(shared a file) plan.txt');
   });
 
