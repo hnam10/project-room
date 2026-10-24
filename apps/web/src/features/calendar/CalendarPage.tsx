@@ -119,7 +119,8 @@ export function CalendarPage() {
   async function assignDueDate(taskId: string, dueDate: string) {
     const task = tasks.find((item) => item.id === taskId);
     if (!task || task.dueDate === dueDate) return;
-    applyRecord('task', { ...task, dueDate });
+    const optimisticTask: Task = { ...task, dueDate };
+    applyRecord('task', optimisticTask);
     try {
       applyRecord('task', await api.updateTask(projectId, task.id, { dueDate }));
       toast(`#${task.num} due ${formatShort(dueDate)}`);
