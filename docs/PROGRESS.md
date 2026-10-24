@@ -10,6 +10,8 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   team. Project changes remount workspace data and UI together, discarding old messages and channel
   selection. Checked round-trip switching and a direct project link in Edge; the selected team and
   project agree. Lint, typecheck, all 177 tests, and the web production build passed.
+- 2026-10-24 — **Older ideas remain editable.** Missing research sources are treated as empty before an
+  idea update, allowing schema defaults to fill them; significant edits still flag populated sources as stale.
 
 - 2026-10-23 — **Calendar review fixes.** Deadline controls wait for the pending save, including clear and error rollback.
   Week columns switch to day rows when the agenda is too narrow for task metadata, including beside the undated rail.
@@ -228,6 +230,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-23 — **Schema defaults are `DEFAULT ALWAYS`.** A record created before a field existed holds NONE, and
+  plain DEFAULT only fills it on CREATE, so every later UPDATE failed (500 approving an older idea suggestion).
+  ALWAYS also fills NONE on UPDATE; `createdAt` stays as is. Reads don't fill NONE, so the schema also touches
+  ideas/suggestions missing `researchSources` once on start, which backfills every late field.
 - 2026-10-23 — **The deadline chip is the date control.** Clicking the date used to jump to the week, while a
   calendar icon opened the picker and × cleared it, so the chip looked like a tag. The chip now sets the
   date. Clear is a separate label. With no date, the whole chip opens the picker. It sits in the calendar header.
