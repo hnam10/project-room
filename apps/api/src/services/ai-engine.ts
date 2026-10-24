@@ -375,7 +375,7 @@ async function replyToMention(projectId: string, channelId: string, channelName:
   await say(text, suggestion.id);
 }
 
-function projectLookup(projectId: string, members: Map<string, Member>): ProjectLookup {
+export function projectLookup(projectId: string, members: Map<string, Member>): ProjectLookup {
   const nameOf = (authorId: string) => members.get(authorId)?.name ?? (authorId === AI_AUTHOR ? 'AI' : 'Unknown');
   return {
     async listMembers() {

@@ -47,8 +47,8 @@ meetingsRouter.post('/:id/leave', async (req, res) => {
 
 meetingsRouter.post('/:id/lines', async (req, res) => {
   const { project, memberId } = ctx(res);
-  const { text, source } = transcriptLineCreateSchema.parse(req.body);
-  res.status(201).json(await addLine(project.id, req.params.id, memberId, text, source));
+  const { text, source, fileId } = transcriptLineCreateSchema.parse(req.body);
+  res.status(201).json(await addLine(project.id, req.params.id, memberId, text, source, fileId));
 });
 
 // A few seconds of the caller's mic (webm/ogg/mp4), transcribed on the server. 204 when it was silent.

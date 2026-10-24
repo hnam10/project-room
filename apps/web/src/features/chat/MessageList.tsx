@@ -9,7 +9,7 @@ import { ActionItemsCard } from './ActionItemsCard';
 const MENTION = /(@(?:AI|team|alex|jamie|taylor|morgan)\b)/gi;
 const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-function FileChip({ projectId, fileId, name }: { projectId: string; fileId: string; name: string }) {
+export function FileChip({ projectId, fileId, name }: { projectId: string; fileId: string; name: string }) {
   const { toastError } = useFeedback();
   const save = async () => {
     try {

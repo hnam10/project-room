@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import type { TranscriptLine } from '@project-room/shared';
+import { AI_AUTHOR, type TranscriptLine } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { useWorkspace } from '../../state/workspace';
+import { FileChip } from '../chat/MessageList';
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 /** Transcript with auto-scroll; `interim` is the caller's own in-progress speech (grey, local only). */
 export function TranscriptView({ lines, interim }: { lines: TranscriptLine[]; interim: string }) {
-  const { members } = useWorkspace();
+  const { projectId, members } = useWorkspace();
+  const text = (l: TranscriptLine) => (l.fileId ? <FileChip projectId={projectId} fileId={l.fileId} name={l.text} /> : l.text);
   const box = useRef<HTMLDivElement>(null);
   const [pinned, setPinned] = useState(true);
 
@@ -29,23 +31,23 @@ export function TranscriptView({ lines, interim }: { lines: TranscriptLine[]; in
       >
         {lines.length === 0 && !interim && <p className="empty-state">Nothing said yet. Speak or type and your words appear here.</p>}
         {lines.map((l, i) =>
-          // Consecutive lines from the same speaker, all spoken or all typed, read as one turn.
-          lines[i - 1]?.speakerId === l.speakerId && (lines[i - 1]?.source === 'chat') === (l.source === 'chat') ? (
+          // Consecutive lines from the same speaker and source (spoken, typed, or an @AI reply) read as one turn.
+          lines[i - 1]?.speakerId === l.speakerId && (lines[i - 1]?.source ?? 'voice') === (l.source ?? 'voice') ? (
             <p className="t-more" key={l.id} title={time(l.spokenAt)}>
-              {l.text}
+              {text(l)}
             </p>
           ) : (
             <div className="t-line" key={l.id}>
-              <Avatar member={members.get(l.speakerId)} />
+              {l.source === 'ai' ? <Avatar id={AI_AUTHOR} /> : <Avatar member={members.get(l.speakerId)} />}
               <div>
-                <b>{members.get(l.speakerId)?.name ?? 'Unknown'}</b>{' '}
+                <b>{l.source === 'ai' ? 'AI' : (members.get(l.speakerId)?.name ?? 'Unknown')}</b>{' '}
                 {l.source === 'chat' && (
                   <span className="t-chat">
                     <Icon name="message" /> chat
                   </span>
                 )}{' '}
                 <time>{time(l.spokenAt)}</time>
-                <p>{l.text}</p>
+                <p>{text(l)}</p>
               </div>
             </div>
           ),

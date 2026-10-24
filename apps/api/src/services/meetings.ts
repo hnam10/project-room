@@ -11,6 +11,7 @@ import {
   restartSummarizing,
   removeParticipant,
 } from '../repositories/meetings.js';
+import { getFile } from '../repositories/files.js';
 import { createLine } from '../repositories/transcripts.js';
 import type { MeetingAi } from '../ai/meeting.js';
 import { transcribe } from '../ai/transcribe.js';
@@ -92,10 +93,14 @@ export async function addLine(
   memberId: string,
   text: string,
   source: TranscriptSource = 'voice',
+  fileId: string | null = null,
 ): Promise<TranscriptLine> {
   const meeting = await liveMeeting(projectId, meetingId);
   if (!meeting.participantIds.includes(memberId)) throw new ForbiddenError('Join the meeting to speak in it');
-  const line = await createLine(projectId, meetingId, memberId, text, source);
+  // getFile filters by project, so a file id from another project is a 404.
+  const line = fileId
+    ? await createLine(projectId, meetingId, memberId, (await getFile(projectId, fileId)).name, source, fileId)
+    : await createLine(projectId, meetingId, memberId, text, source);
   for (const listener of lineListeners) {
     try {
       listener(meeting, line);

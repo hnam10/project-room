@@ -9,8 +9,8 @@ export const meetingsApi = {
   start: (projectId: string, input: MeetingCreateInput) => request<Meeting>('POST', m(projectId), input),
   join: (projectId: string, id: string) => request<Meeting>('POST', `${m(projectId)}/${id}/join`),
   leave: (projectId: string, id: string) => request<Meeting>('POST', `${m(projectId)}/${id}/leave`, undefined, { keepalive: true }),
-  postLine: (projectId: string, id: string, text: string, source: TranscriptSource = 'voice') =>
-    request<TranscriptLine>('POST', `${m(projectId)}/${id}/lines`, { text, source }),
+  postLine: (projectId: string, id: string, text: string, source: TranscriptSource = 'voice', fileId?: string) =>
+    request<TranscriptLine>('POST', `${m(projectId)}/${id}/lines`, { text, source, fileId }),
   /** A clip of the caller's mic; the server transcribes it. Resolves undefined (204) when it was silent. */
   postAudio: (projectId: string, id: string, clip: Blob) =>
     request<TranscriptLine | undefined>('POST', `${m(projectId)}/${id}/audio`, clip),

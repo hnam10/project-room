@@ -55,6 +55,8 @@ export interface TranscriptLine {
   text: string;
   /** 'chat' when typed in the meeting chat; lines saved before chat existed have none and are speech. */
   source?: TranscriptSource;
+  /** A file shared in the meeting chat; `text` is its name. */
+  fileId?: string | null;
   spokenAt: string;
 }
 
@@ -121,12 +123,17 @@ export const meetingCreateSchema = z.object({
 });
 export type MeetingCreateInput = z.input<typeof meetingCreateSchema>;
 
-export const TRANSCRIPT_SOURCES = ['voice', 'chat'] as const;
+/** 'ai' lines are @AI replies in the meeting chat; their speakerId is the member who asked. */
+export const TRANSCRIPT_SOURCES = ['voice', 'chat', 'ai'] as const;
 export type TranscriptSource = (typeof TRANSCRIPT_SOURCES)[number];
-export const transcriptLineCreateSchema = z.object({
-  text: z.string().trim().min(1).max(1000),
-  source: z.enum(TRANSCRIPT_SOURCES).default('voice'),
-});
+export const transcriptLineCreateSchema = z
+  .object({
+    text: z.string().trim().min(1).max(1000),
+    source: z.enum(['voice', 'chat']).default('voice'),
+    /** A file shared in the meeting chat; the server stores its name as the text. */
+    fileId: z.string().min(1).max(64).optional(),
+  })
+  .refine((line) => !line.fileId || line.source === 'chat', { message: 'Only meeting chat lines can carry a file', path: ['fileId'] });
 export const meetingAiSchema = z.object({ enabled: z.boolean() });
 export const pollVoteSchema = z.object({ optionId: z.string().min(1).max(64) });
 
@@ -140,3 +147,17 @@ export const pollDraftSchema = z.object({
   question: z.string().trim().min(1).max(160),
   options: z.array(z.string().trim().min(1).max(80)).min(2).max(5),
 });
+
+/** Splits text into chunks of at most `max` chars, cutting at the last space before `max` (hard cut if none). */
+export function splitLine(text: string, max = 1000): string[] {
+  const out: string[] = [];
+  let rest = text.trim();
+  while (rest.length > max) {
+    const cut = rest.lastIndexOf(' ', max);
+    const at = cut > 0 ? cut : max;
+    out.push(rest.slice(0, at).trim());
+    rest = rest.slice(at).trim();
+  }
+  if (rest) out.push(rest);
+  return out;
+}
