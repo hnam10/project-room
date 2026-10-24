@@ -12,7 +12,7 @@ export async function approveSuggestion(
   projectId: string,
   suggestionId: string,
   memberId: string,
-  options: { assigneeId?: string | null } = {},
+  options: { assigneeId?: string | null; topicId?: string | null } = {},
 ): Promise<Suggestion> {
   const suggestion = await getSuggestion(projectId, suggestionId);
   if (suggestion.status !== 'pending') throw new ConflictError(`Suggestion is already ${suggestion.status}`);
@@ -57,7 +57,7 @@ export async function approveSuggestion(
       return resolveSuggestion(suggestion.id, 'approved', memberId);
     }
     case 'idea':
-      return approveIdea(projectId, suggestion, memberId);
+      return approveIdea(projectId, suggestion, memberId, options.topicId);
     case 'brainstorm_topic':
       return approveBrainstormTopic(projectId, suggestion, memberId);
     case 'poll':

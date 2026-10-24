@@ -11,6 +11,8 @@ import { SuggestionWhy } from './SuggestionWhy';
 export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   const { projectId, applyRecord } = useWorkspace();
   const { ideas } = useSnapshot();
+  const topics = ideas.filter((idea) => idea.kind === 'problem');
+  const [topicId, setTopicId] = useState(suggestion.topicId ?? (topics.length === 1 ? topics[0]!.id : ''));
   const { toast, toastError } = useFeedback();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,7 +40,7 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
     run(
       async () => {
         await api.updateSuggestion(projectId, suggestion.id, { ideaDraft: form });
-        return api.approveSuggestion(projectId, suggestion.id);
+        return api.approveSuggestion(projectId, suggestion.id, topicId ? { topicId } : {});
       },
       suggestion.ideaId ? 'Idea updated' : 'Idea added to Brainstorm',
     );
@@ -74,12 +76,26 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
             <button type="button" className="btn" onClick={() => setOpen(false)}>
               Cancel
             </button>
-            <button className="btn primary" disabled={busy || !form.title.trim()}>
+            <button className="btn primary" disabled={busy || !form.title.trim() || (!existing && !topicId)}>
               Save &amp; approve
             </button>
           </>
         }
       >
+        {!existing && !suggestion.topicId && (
+          <label className="form-row">
+            Brainstorm topic
+            <select value={topicId} onChange={(event) => setTopicId(event.target.value)} required>
+              <option value="">Choose a topic first</option>
+              {topics.map((topic) => (
+                <option key={topic.id} value={topic.id}>
+                  {topic.title}
+                </option>
+              ))}
+            </select>
+            {!topics.length && <small>Approve a topic before adding ideas to Brainstorm.</small>}
+          </label>
+        )}
         {!existing && (
           <label className="form-row">
             Title

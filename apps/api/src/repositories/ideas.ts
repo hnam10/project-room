@@ -1,6 +1,7 @@
 import type { Idea, IdeaCreateInput, IdeaUpdateInput, ResearchSource } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
 import { ConflictError, NotFoundError, rid } from '../db/records.js';
+import { getTopic, resetTopic } from './brainstorm-topics.js';
 
 export function listIdeas(projectId: string): Promise<Idea[]> {
   return queryMany<Idea>('SELECT * FROM idea WHERE projectId = $project ORDER BY createdAt', { project: rid('project', projectId) });
@@ -23,25 +24,36 @@ export async function deleteIdea(projectId: string, ideaId: string): Promise<voi
 export async function createIdea(
   projectId: string,
   authorId: string,
-  input: Required<Omit<IdeaCreateInput, 'kind'>> & { kind?: IdeaCreateInput['kind'] },
+  input: Pick<Idea, 'title' | 'description' | 'theme'> & Pick<IdeaCreateInput, 'kind' | 'topicId'>,
   source: { suggestionId: string; researchSources: ResearchSource[] } | null = null,
 ): Promise<Idea> {
-  if (input.kind === 'problem' && (await listIdeas(projectId)).some((idea) => idea.kind === 'problem')) {
-    throw new ConflictError('This project already has a central problem');
-  }
-  const fixedId = input.kind === 'problem' ? rid('idea', `problem_${projectId}`) : null;
-  const idea = await queryOne<Idea>(`CREATE ONLY ${fixedId ? '$id' : 'idea'} CONTENT $content`, {
-    id: fixedId,
-    content: {
-      ...input,
-      kind: input.kind ?? 'idea',
-      projectId: rid('project', projectId),
-      authorId: rid('member', authorId),
-      votingOpen: false,
-      sourceSuggestionId: source ? rid('suggestion', source.suggestionId) : null,
-      researchSources: source?.researchSources ?? [],
+  const topic = input.kind === 'problem' ? null : await getTopic(projectId, input.topicId);
+  const create = 'CREATE ONLY idea CONTENT $content';
+  const idea = await queryOne<Idea>(
+    topic
+      ? `
+    IF array::len((SELECT VALUE id FROM idea WHERE id = $topic AND projectId = $project AND boardVersion = $version)) = 1
+      AND ($source = null OR array::len((SELECT VALUE id FROM suggestion WHERE id = $source AND projectId = $project AND status = 'pending')) = 1) {
+      ${create}
+    } ELSE { THROW 'The brainstorm topic changed'; }`
+      : create,
+    {
+      topic: topic ? rid('idea', topic.id) : null,
+      project: rid('project', projectId),
+      version: topic?.boardVersion,
+      source: source ? rid('suggestion', source.suggestionId) : null,
+      content: {
+        ...input,
+        kind: input.kind ?? 'idea',
+        topicId: topic ? rid('idea', topic.id) : null,
+        projectId: rid('project', projectId),
+        authorId: rid('member', authorId),
+        votingOpen: false,
+        sourceSuggestionId: source ? rid('suggestion', source.suggestionId) : null,
+        researchSources: source?.researchSources ?? [],
+      },
     },
-  });
+  );
   if (!idea) throw new Error('Idea creation returned nothing');
   return idea;
 }
@@ -86,6 +98,12 @@ export async function updateIdeaDescription(projectId: string, ideaId: string, d
 
 export async function updateIdea(projectId: string, ideaId: string, patch: IdeaUpdateInput, significant: boolean): Promise<Idea> {
   const previous = await getIdea(projectId, ideaId);
+  if (previous.kind === 'problem') {
+    const changed =
+      (patch.title !== undefined && patch.title !== previous.title) ||
+      (patch.description !== undefined && patch.description !== previous.description);
+    return changed ? (await resetTopic(projectId, ideaId, 'all', patch))! : previous;
+  }
   const changes = significant ? ', significantChangeAt = time::now(), researchStale = $stale, approved = false' : '';
   const idea = await queryOne<Idea>(
     `UPDATE ONLY $id SET title = $title, description = $description, theme = $theme${changes} RETURN AFTER`,

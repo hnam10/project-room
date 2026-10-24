@@ -179,7 +179,9 @@ describe('workspace API', () => {
     );
     expect(topicSuggestion?.ideaDraft?.title.toLowerCase()).toContain('reduce food waste');
     expect(topicSuggestion?.ideaId).toBeNull();
-    expect((await api<Idea[]>('/projects/hackathon/ideas')).body.some((candidate) => candidate.kind === 'problem')).toBe(false);
+    expect(
+      (await api<Idea[]>('/projects/hackathon/ideas')).body.some((candidate) => candidate.sourceSuggestionId === topicSuggestion?.id),
+    ).toBe(false);
     await api(`/projects/hackathon/suggestions/${topicSuggestion!.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ ideaDraft: { ...topicSuggestion!.ideaDraft, description: 'Focus on campus dining surplus.' } }),
@@ -187,13 +189,18 @@ describe('workspace API', () => {
     expect(
       (await api<Suggestion>(`/projects/hackathon/suggestions/${topicSuggestion!.id}/approve`, { method: 'POST', body: '{}' })).body.status,
     ).toBe('approved');
-    const topic = (await api<Idea[]>('/projects/hackathon/ideas')).body.find((candidate) => candidate.kind === 'problem');
+    const topic = (await api<Idea[]>('/projects/hackathon/ideas')).body.find(
+      (candidate) => candidate.sourceSuggestionId === topicSuggestion?.id,
+    );
     expect(topic).toMatchObject({ description: 'Focus on campus dining surplus.' });
 
     const before = await api<Idea[]>('/projects/hackathon/ideas');
     expect(before.body.some((idea) => idea.title === suggestion.ideaDraft?.title)).toBe(false);
 
-    const approved = await api<Suggestion>(`/projects/hackathon/suggestions/${suggestion.id}/approve`, { method: 'POST', body: '{}' });
+    const approved = await api<Suggestion>(`/projects/hackathon/suggestions/${suggestion.id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ topicId: topic!.id }),
+    });
     expect(approved.body.status).toBe('approved');
     const ideas = await api<Idea[]>('/projects/hackathon/ideas');
     const idea = ideas.body.find((candidate) => candidate.title === suggestion.ideaDraft?.title);
@@ -218,11 +225,12 @@ describe('workspace API', () => {
         candidate.record.kind === 'brainstorm_topic' &&
         candidate.record.title.toLowerCase().includes('dinner'),
     )) as Extract<ServerMessage, { table: 'suggestion' }>;
-    expect(updatedTopic.record.ideaId).toBe(topic?.id);
+    expect(updatedTopic.record.ideaId).toBeNull();
     await api(`/projects/hackathon/suggestions/${updatedTopic.record.id}/approve`, { method: 'POST', body: '{}' });
     const topics = (await api<Idea[]>('/projects/hackathon/ideas')).body.filter((candidate) => candidate.kind === 'problem');
-    expect(topics).toHaveLength(1);
-    expect(topics[0]).toMatchObject({ id: topic?.id, title: expect.stringContaining('dinner') });
+    expect(topics).toHaveLength(3);
+    expect(topics.some((item) => item.title.includes('dinner'))).toBe(true);
+    expect(topics.some((item) => item.id === topic?.id && item.description === 'Focus on campus dining surplus.')).toBe(true);
     live.ws.close();
   });
 
