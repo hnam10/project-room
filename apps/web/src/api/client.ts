@@ -113,8 +113,8 @@ export const api = {
   deleteTask: (projectId: string, taskId: string) => request<void>('DELETE', `${p(projectId)}/tasks/${taskId}`),
 
   messages: (projectId: string, channelId: string) => request<Message[]>('GET', `${p(projectId)}/channels/${channelId}/messages`),
-  sendMessage: (projectId: string, channelId: string, text: string) =>
-    request<Message>('POST', `${p(projectId)}/channels/${channelId}/messages`, { text }),
+  sendMessage: (projectId: string, channelId: string, text: string, fileId?: string) =>
+    request<Message>('POST', `${p(projectId)}/channels/${channelId}/messages`, { text, fileId: fileId ?? null }),
   createChannel: (projectId: string, input: ChannelCreateInput) => request<Channel>('POST', `${p(projectId)}/channels`, input),
 
   createIdea: (projectId: string, input: IdeaCreateInput) => request<Idea>('POST', `${p(projectId)}/ideas`, input),

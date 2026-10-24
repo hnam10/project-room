@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { fileNameSchema, fileSizeSchema, type ProjectFile } from '@project-room/shared';
-import { createFile, deleteFileRecord, getFile } from '../repositories/files.js';
+import { createFile, deleteFileRecord, getFile, setMemoryDocumentId } from '../repositories/files.js';
 import { NotFoundError } from '../db/records.js';
+import { getProjectMemory, type ProjectMemory } from './project-memory.js';
 import { readStoredFile, removeStoredFile, writeStoredFile } from './file-store.js';
 
 /** Last path segment of a header value, so a name like `../../notes.txt` is stored as `notes.txt`. */
@@ -44,17 +45,28 @@ export async function uploadFile(
   projectId: string,
   uploadedById: string,
   input: { nameHeader: string | undefined; typeHeader: string | undefined; bytes: Buffer },
+  memory: ProjectMemory | null = getProjectMemory(),
 ): Promise<ProjectFile> {
   const name = fileNameFromHeader(input.nameHeader);
   const size = fileSizeSchema.parse(input.bytes.length);
   const contentType = contentTypeFromHeader(input.typeHeader);
   const id = randomUUID();
   await writeStoredFile(projectId, id, input.bytes);
+  let file: ProjectFile;
   try {
-    return await createFile(projectId, uploadedById, { id, name, size, contentType });
+    file = await createFile(projectId, uploadedById, { id, name, size, contentType });
   } catch (error) {
     await removeStoredFile(projectId, id);
     throw error;
+  }
+  if (!memory) return file;
+  try {
+    const documentId = await memory.rememberFile({ projectId, name, contentType, bytes: input.bytes });
+    if (!documentId) return file;
+    return await setMemoryDocumentId(projectId, file.id, documentId);
+  } catch (error) {
+    console.error('Could not send file to Agent Memory', file.id, error);
+    return file;
   }
 }
 
@@ -65,9 +77,13 @@ export async function openFile(projectId: string, fileId: string): Promise<{ fil
   return { file, bytes };
 }
 
-/** Removes the bytes first, keeping the record available for retry if disk removal fails. */
-export async function deleteFile(projectId: string, fileId: string): Promise<void> {
-  await getFile(projectId, fileId);
+/**
+ * Removes the bytes first, keeping the record available for retry if disk removal fails.
+ * The Agent Memory copy is removed before the record, so a failed forget can be retried too.
+ */
+export async function deleteFile(projectId: string, fileId: string, memory: ProjectMemory | null = getProjectMemory()): Promise<void> {
+  const file = await getFile(projectId, fileId);
   await removeStoredFile(projectId, fileId);
+  if (memory && file.memoryDocumentId) await memory.forgetFile(file.memoryDocumentId);
   await deleteFileRecord(projectId, fileId);
 }

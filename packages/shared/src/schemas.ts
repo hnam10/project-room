@@ -28,6 +28,7 @@ export type ProjectUpdateInput = z.input<typeof projectUpdateSchema>;
 
 export const messageCreateSchema = z.object({
   text: z.string().trim().min(1).max(2000),
+  fileId: z.string().trim().min(1).max(64).nullable().optional(),
 });
 export type MessageCreateInput = z.input<typeof messageCreateSchema>;
 
