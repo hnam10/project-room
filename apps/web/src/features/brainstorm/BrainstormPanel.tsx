@@ -235,29 +235,25 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
           <div className="empty-state">{tab === 'mindmap' ? 'Mind map' : 'Notes'} isn’t built yet — planned for a later iteration.</div>
         ) : (
           <>
-            <div className="brainstorm-topics" role="tablist" aria-label="Brainstorm topics">
-              {topics.map((topic) => (
-                <button
-                  key={topic.id}
-                  role="tab"
-                  title={topic.title}
-                  aria-selected={topic.id === problem?.id}
-                  className={`brainstorm-topic-tab${topic.id === problem?.id ? ' active' : ''}`}
-                  onClick={() => chooseTopic(topic.id)}
-                >
-                  {topic.title}
+            {topics.length > 0 && (
+              <div className="brainstorm-topics" role="tablist" aria-label="Brainstorm topics">
+                {topics.map((topic) => (
+                  <button
+                    key={topic.id}
+                    role="tab"
+                    title={topic.title}
+                    aria-selected={topic.id === problem?.id}
+                    className={`brainstorm-topic-tab${topic.id === problem?.id ? ' active' : ''}`}
+                    onClick={() => chooseTopic(topic.id)}
+                  >
+                    {topic.title}
+                  </button>
+                ))}
+                <button className="btn sm" onClick={() => setDialog({ kind: 'problem' })}>
+                  <Icon name="plus" /> New topic
                 </button>
-              ))}
-              <button className="btn sm" onClick={() => setDialog({ kind: 'problem' })}>
-                <Icon name="plus" /> New topic
-              </button>
-            </div>
-            <ol className="brainstorm-flow" aria-label="Brainstorm workflow">
-              <li>Pick topic</li>
-              <li>Research &amp; strategies</li>
-              <li>Add ideas</li>
-              <li>Iterate &amp; decide</li>
-            </ol>
+              </div>
+            )}
             <div className="brainstorm-problem">
               {problem ? (
                 <>

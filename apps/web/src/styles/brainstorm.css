@@ -381,15 +381,6 @@
   flex: 0 0 auto;
   white-space: nowrap;
 }
-.brainstorm-flow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  padding: 12px 0 12px 20px;
-  margin: 0;
-  font-size: 11px;
-  color: var(--muted);
-}
 .brainstorm-research-status {
   padding: 10px 12px;
   background: var(--accent-weak);
