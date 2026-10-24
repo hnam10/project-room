@@ -192,13 +192,15 @@ describe('live meeting pipeline', () => {
       ideaDraft: { title: 'How should students find study groups?' },
     });
     expect(idea.status).toBe('pending');
-    expect((await listIdeas('hackathon')).filter((item) => item.kind === 'problem')).toHaveLength(0);
+    expect((await listIdeas('hackathon')).some((item) => item.sourceSuggestionId === topic.id)).toBe(false);
 
     await speak('We can keep exploring study group options.');
     expect((await runLiveTick('hackathon', meetingId, ai)).some((s) => s.kind === 'brainstorm_topic')).toBe(false);
     const approved = await post(`/suggestions/${topic.id}/approve`);
     expect(approved.status).toBe(200);
-    expect((await listIdeas('hackathon')).find((item) => item.kind === 'problem')?.title).toBe('How should students find study groups?');
+    expect((await listIdeas('hackathon')).find((item) => item.sourceSuggestionId === topic.id)?.title).toBe(
+      'How should students find study groups?',
+    );
     expect((await listSuggestions('hackathon')).find((s) => s.id === idea.id)?.status).toBe('pending');
 
     await speak('Could the topic instead be mentoring?');

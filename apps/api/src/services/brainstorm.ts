@@ -13,8 +13,10 @@ import { ConflictError } from '../db/records.js';
 import { getIdea, listIdeas } from '../repositories/ideas.js';
 import { createSuggestion, getSuggestion, listSuggestions, updateSuggestionResearchSummary } from '../repositories/suggestions.js';
 import { researchWeb, type WebResearchResult } from './research.js';
+import { brainstormScope, getTopic } from '../repositories/brainstorm-topics.js';
 
 const EXPLORATION_TRIGGERS = new Set<BrainstormActionInput['trigger']>(['problem_created', 'first_idea', 'idea_updated', 'manual']);
+const runningActions = new Map<string, Promise<Suggestion[]>>();
 
 function idFor(...parts: string[]): string {
   return `brainstorm_${createHash('sha256').update(parts.join('\0')).digest('hex').slice(0, 24)}`;
@@ -252,14 +254,99 @@ export async function summarizeExistingResearch(projectId: string, suggestionId:
 
 /** Assess the team's goal before choosing sourced examples or context-based idea drafts. */
 export async function runBrainstormAction(projectId: string, input: BrainstormActionInput): Promise<Suggestion[]> {
-  const ideas = await listIdeas(projectId);
-  const problem = ideas.find((idea) => idea.kind === 'problem') ?? null;
-  const cards = ideas.filter((idea) => idea.kind === 'idea');
   const requested = input.ideaId ? await getIdea(projectId, input.ideaId) : null;
-  const previous = await listSuggestions(projectId);
+  const problem = await getTopic(projectId, input.topicId ?? (requested?.kind === 'problem' ? requested.id : requested?.topicId));
+  if (requested && requested.id !== problem.id && requested.topicId !== problem.id)
+    throw new ConflictError('This idea belongs to another topic');
+  const preparing = input.trigger === 'problem_created' || (input.trigger === 'manual' && (!requested || requested.kind === 'problem'));
+  const key = [projectId, problem.id, problem.boardVersion, preparing ? 'prepare' : `${input.trigger}:${requested?.id ?? ''}`].join(':');
+  const running = runningActions.get(key);
+  if (running) return running;
+  const operation = brainstormScope
+    .run({ projectId, topicId: problem.id, version: problem.boardVersion }, () => runTopicAction(projectId, input, problem, requested))
+    .finally(() => runningActions.delete(key));
+  runningActions.set(key, operation);
+  return operation;
+}
+
+async function prepareTopic(projectId: string, problem: Idea, previous: Suggestion[], manual: boolean): Promise<Suggestion[]> {
+  if (!manual && previous.some((item) => item.ideaId === problem.id && item.title.startsWith('Brainstorm checked:'))) return [];
+  const ai = getAiProvider();
+  const mode = await ai.classifyBrainstorm({ problem, ideas: [] });
+  const search = await researchWeb(`${problem.title} ${problem.description.slice(0, 160)} research approaches`);
+  const results = search.error ? [] : similarWebResults(problem, search.results);
+  const summaries = results.length ? await ai.summarizeResearch({ idea: problem, results }) : [];
+  const created: Suggestion[] = [];
+  for (const summary of summaries) {
+    const source = results.find((item) => item.url === summary.url);
+    if (!source || isCopiedResearch(summary.summary, source.content)) continue;
+    created.push(
+      await createSuggestion(
+        projectId,
+        {
+          kind: 'brainstorm_analysis',
+          title: `Topic research: ${source.title}`,
+          proposal: summary.summary.replace(/\s+/g, ' ').trim().slice(0, 400),
+          reason: `${RESEARCH_SUMMARY_REASON} for “${problem.title}”${ai.isMock ? ' (mock AI)' : ''}. Review the source.`,
+          ideaId: problem.id,
+          brainstormTrigger: 'problem_created',
+          researchSources: [{ title: source.title, url: source.url }],
+        },
+        idFor(projectId, problem.id, String(problem.boardVersion), source.url),
+      ),
+    );
+  }
+  const output = await ai.facilitateBrainstorm({ trigger: 'problem_created', problem, ideas: [], research: results, mode });
+  if (output.summary.trim())
+    created.push(
+      await createSuggestion(
+        projectId,
+        {
+          kind: 'idea',
+          title: `Strategy: ${problem.title}`,
+          reason: `A starting approach for this topic${ai.isMock ? ' (mock AI)' : ''}. Review before saving.`,
+          ideaDraft: { title: `Approach: ${problem.title}`.slice(0, 80), description: output.summary, theme: 'Strategy' },
+          brainstormTrigger: 'problem_created',
+          researchSources: created.flatMap((item) => item.researchSources),
+        },
+        idFor(projectId, problem.id, String(problem.boardVersion), 'strategy'),
+      ),
+    );
+  created.push(
+    await createSuggestion(projectId, {
+      kind: 'brainstorm_analysis',
+      title: 'Topic research status',
+      proposal: !search.configured
+        ? 'Web research is not configured. These strategies use the topic context. You can add ideas or retry research later.'
+        : search.error
+          ? 'Web research is temporarily unavailable. You can add ideas or retry research.'
+          : created.some((item) => item.researchSources.length)
+            ? 'Research is ready. Review the sources and strategy, then add your ideas.'
+            : 'No reliable matching sources were found. Review the strategy, add context to your topic, or try research again.',
+      reason: 'Research availability and next step for this topic.',
+      ideaId: problem.id,
+      brainstormTrigger: 'problem_created',
+    }),
+  );
+  await markExplored(projectId, 'problem_created', problem, problem.updatedAt, mode);
+  return created;
+}
+
+async function runTopicAction(
+  projectId: string,
+  input: BrainstormActionInput,
+  problem: Idea,
+  requested: Idea | null,
+): Promise<Suggestion[]> {
+  const ideas = (await listIdeas(projectId)).filter((idea) => idea.id === problem.id || idea.topicId === problem.id);
+  const cards = ideas.filter((idea) => idea.kind === 'idea');
+  const previous = (await listSuggestions(projectId)).filter((item) => item.topicId === problem.id);
+
+  if (input.trigger === 'problem_created' || (input.trigger === 'manual' && (!requested || requested.kind === 'problem')))
+    return prepareTopic(projectId, problem, previous, input.trigger === 'manual');
 
   if (EXPLORATION_TRIGGERS.has(input.trigger)) {
-    const target = requested ?? (input.trigger === 'problem_created' ? problem : (cards.find(hasResearchableDetail) ?? problem));
+    const target = requested ?? cards.find(hasResearchableDetail) ?? problem;
     if (!target || !hasResearchableDetail(target)) return [];
     if (input.trigger === 'idea_updated' && !target.significantChangeAt) return [];
     const version =
@@ -276,7 +363,7 @@ export async function runBrainstormAction(projectId: string, input: BrainstormAc
       return [];
     }
     const drafts =
-      input.trigger === 'problem_created' || mode === 'non_product' || input.trigger === 'manual' || input.trigger === 'first_idea'
+      mode === 'non_product' || input.trigger === 'manual' || input.trigger === 'first_idea'
         ? await suggestDirection(
             projectId,
             ai,

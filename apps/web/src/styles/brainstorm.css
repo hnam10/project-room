@@ -357,3 +357,41 @@
   color: var(--accent);
   font-weight: 600;
 }
+.brainstorm-topics {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.brainstorm-topic-tab {
+  flex: 0 0 auto;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.brainstorm-topic-tab.active {
+  background: var(--accent-weak);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 650;
+}
+.brainstorm-topics > .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.brainstorm-research-status {
+  padding: 10px 12px;
+  background: var(--accent-weak);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}

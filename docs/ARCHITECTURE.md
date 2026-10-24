@@ -54,21 +54,28 @@ HTTP call; a missing or failed search never fabricates research and brainstormin
 
 ## Brainstorm facilitator
 
-`idea.kind = problem` identifies the project's central problem; ordinary ideas have `shortlisted`, `approved`,
+`idea.kind = problem` identifies a topic; a project can have several topic tabs. Cards and AI suggestions
+carry `topicId` (a link to the topic's idea record). A topic has `topicId = null`; every new board card
+requires a valid topic in the same project. Ordinary ideas have `shortlisted`, `approved`,
 `researchStale`, and `significantChangeAt` fields. Members edit cards through `PATCH /ideas/:id`, shortlist
 through `POST /ideas/:id/shortlist`, and explicitly approve a shortlisted direction through
 `POST /ideas/:id/approve`. `services/idea-change.ts` filters minor text edits; a significant edit clears
 approval, flags existing research as stale, and exposes a re-evaluation trigger. Saving the form groups edits
 before this check, rather than invoking the model for each keystroke.
 
-`BrainstormGuide` explores a sufficiently specific central problem or idea once per meaningful state.
+`BrainstormGuide` first prepares the selected topic: relevant web sources are summarized and a
+reviewable Strategy is proposed before idea entry is enabled. Missing keys, failed searches, and no
+matching sources produce an honest status message; topic-context strategies and member ideas remain
+available. A hidden check records that preparation completed. Subsequent exploration develops ideas
+once per meaningful state. Concurrent requests for the same topic/version/action share one operation.
 Chat `@AI brainstorm` produces a separate `brainstorm_topic` suggestion with an editable `ideaDraft`
-as well as direct idea suggestions. Approving that topic suggestion creates the `problem` idea or
-updates the existing one; AI generation never writes the topic directly. Pending topic cards appear
+as well as direct idea suggestions. Approving a new topic suggestion creates a separate topic tab;
+AI generation never writes the topic directly. Inbox ideas require a member-selected topic on approval.
+Pending topic cards appear
 beside the current topic so members can review or dismiss them before changing the board.
-`AiProvider.classifyBrainstorm` returns product, non-product, or unclear; unclear goals stay quiet. For a
-product problem, `facilitateBrainstorm` may draft a reviewable concept, and `services/brainstorm.ts` may
-attach relevant Tavily sources to that draft. Product ideas may also receive up to two sourced
+`AiProvider.classifyBrainstorm` returns product, non-product, or unclear. Topic preparation can research
+any topic and uses `facilitateBrainstorm` for a starting strategy. Later product ideas may receive a
+reviewable concept and up to two sourced
 `brainstorm_analysis` cards, filtered by topic overlap and distinct hosts. `AiProvider.summarizeResearch`
 turns the supplied search snippets into short descriptions of what each related idea does; copied or
 unsupported summaries are omitted. Earlier pending cards can be summarized on demand through
@@ -82,6 +89,16 @@ an idea or creates an AI-drafted idea. `originIdeaId` links a new draft to its p
 dismisses the related pending draft without making approval update that original idea. Approved directions may receive reviewable next-step tasks; the
 language is specific to the classified goal. Old generic problem, comparison, and inactivity cards are not
 shown.
+
+`repositories/brainstorm-topics.ts` resets boards in one transaction. Editing a topic's title/details
+removes all of its cards and suggestions and clears saved topic research. Deleting a topic also removes
+the topic itself. `POST /ideas/:topicId/clear-ideas` removes direct ideas/drafts and related task drafts,
+but preserves saved strategies and Strategy drafts; research linked to removed ideas is retained on the
+topic. Tasks/decisions already approved remain project records. An incrementing `boardVersion` and an
+`AsyncLocalStorage` scope capture each AI operation's topic/version; conditional repository writes reject
+results after a topic edit, deletion, or clear. The guard also covers nested research and follow-up drafts.
+Startup migrates older unscoped boards once per project (`brainstormTopicsMigrated`), preserving their
+cards under their existing topic or an "Earlier brainstorming" tab. New projects skip this legacy migration.
 The Brainstorm panel groups the guide, sourced research, strategies, and next-step drafts above the
 direct-idea grid. Research holds summarized web examples; direct concept drafts stay in the Ideas grid
 even when they include source links. Strategy drafts and approved

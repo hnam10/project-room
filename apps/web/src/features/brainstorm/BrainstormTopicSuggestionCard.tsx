@@ -62,7 +62,9 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
           “{suggestion.quote}”{suggestion.cite && <cite>{suggestion.cite}</cite>}
         </blockquote>
       )}
-      {suggestion.ideaId && <p>Approving will replace the current topic. Existing ideas will stay on the board.</p>}
+      {suggestion.ideaId && (
+        <p>Approving replaces this topic and clears all of its ideas, research, strategies and drafts. Other topic boards stay in place.</p>
+      )}
       <div className="action-buttons">
         <button className="btn success sm" disabled={busy} onClick={() => setReviewing(true)}>
           Review &amp; {suggestion.ideaId ? 'update topic' : 'set topic'}

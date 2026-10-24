@@ -21,6 +21,7 @@ const source = (title: string, url: string, content: string) => ({ title, url, c
 beforeAll(async () => {
   await connectDb('mem://');
   await seedDemoData();
+  await getDb().query('DELETE idea;').collect();
   server = createServer(createApp());
   await new Promise<void>((resolve) => server.listen(0, resolve));
   base = `http://localhost:${(server.address() as AddressInfo).port}/api/projects/hackathon`;
@@ -54,7 +55,6 @@ describe('sourced brainstorm research', () => {
     });
     expect(created.status).toBe(201);
     problem = created.body;
-    expect((await call('POST', '/ideas', { kind: 'problem', title: 'Duplicate' })).status).toBe(409);
     web.mockResolvedValue({
       configured: true,
       results: [
@@ -67,14 +67,14 @@ describe('sourced brainstorm research', () => {
       error: null,
     });
     const result = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', ideaId: problem.id });
-    expect(result.body).toHaveLength(1);
-    expect(result.body[0]).toMatchObject({ kind: 'idea', status: 'pending', brainstormTrigger: 'problem_created' });
-    expect(result.body[0]?.ideaDraft?.description).toContain('Students miss group deadlines');
-    expect(result.body[0]?.researchSources).toEqual([
-      { title: 'Student group deadline planning app', url: 'https://deadlines.example/product' },
-    ]);
+    const strategy = result.body.find((item) => item.kind === 'idea')!;
+    const research = result.body.find((item) => item.title.startsWith('Topic research:'))!;
+    expect(strategy).toMatchObject({ kind: 'idea', status: 'pending', brainstormTrigger: 'problem_created', topicId: problem.id });
+    expect(strategy.ideaDraft?.theme).toBe('Strategy');
+    expect(strategy.ideaDraft?.description).toContain('Students miss group deadlines');
+    expect(research.researchSources).toEqual([{ title: 'Student group deadline planning app', url: 'https://deadlines.example/product' }]);
     expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', ideaId: problem.id })).body).toEqual([]);
-    await call('POST', `/suggestions/${result.body[0]!.id}/dismiss`, {});
+    for (const item of result.body) await call('POST', `/suggestions/${item.id}/dismiss`, {});
   });
 
   it('shows relevant sourced work and only saves its link after member approval', async () => {
@@ -242,7 +242,7 @@ describe('sourced brainstorm research', () => {
     expect((await call<Idea[]>('GET', '/ideas')).body.filter((item) => item.kind === 'problem')).toHaveLength(1);
   });
 
-  it('suggests a strategy for a non-product goal without searching the web', async () => {
+  it('researches a non-product topic and prepares a strategy before direct ideas', async () => {
     const current = (await call<Idea[]>('GET', '/ideas')).body.find((item) => item.kind === 'problem')!;
     await call<Idea>('PATCH', `/ideas/${current.id}`, {
       title: 'Organize a campus food waste awareness event',
@@ -255,16 +255,14 @@ describe('sourced brainstorm research', () => {
     web.mockClear();
     const action = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', ideaId: current.id });
     expect(action.status).toBe(201);
-    expect(action.body).toHaveLength(1);
-    expect(action.body[0]?.ideaDraft?.theme).toBe('Strategy');
-    expect(action.body[0]?.ideaDraft?.description).toContain('campus food waste awareness event');
-    expect(web).not.toHaveBeenCalled();
-    const approved = await call<Suggestion>('POST', `/suggestions/${action.body[0]!.id}/approve`, {});
+    const strategy = action.body.find((item) => item.kind === 'idea')!;
+    expect(strategy.ideaDraft?.theme).toBe('Strategy');
+    expect(strategy.ideaDraft?.description).toContain('campus food waste awareness event');
+    expect(web).toHaveBeenCalled();
+    const approved = await call<Suggestion>('POST', `/suggestions/${strategy.id}/approve`, {});
     expect(approved.body.status).toBe('approved');
     expect(
-      (await call<Idea[]>('GET', '/ideas')).body.some(
-        (item) => item.theme === 'Strategy' && item.title === action.body[0]?.ideaDraft?.title,
-      ),
+      (await call<Idea[]>('GET', '/ideas')).body.some((item) => item.theme === 'Strategy' && item.title === strategy.ideaDraft?.title),
     ).toBe(true);
 
     const activity = await call<Idea>('POST', '/ideas', {
@@ -277,7 +275,7 @@ describe('sourced brainstorm research', () => {
     expect(web).not.toHaveBeenCalled();
   });
 
-  it('suggests a direct meal option without web research or follow-up tasks', async () => {
+  it('prepares a meal-topic strategy and leaves direct choices to members', async () => {
     const current = (await call<Idea[]>('GET', '/ideas')).body.find((item) => item.kind === 'problem')!;
     await call<Idea>('PATCH', `/ideas/${current.id}`, {
       title: 'What should our team eat for dinner?',
@@ -291,11 +289,10 @@ describe('sourced brainstorm research', () => {
     web.mockClear();
     const action = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', ideaId: current.id });
     expect(action.status).toBe(201);
-    expect(action.body).toHaveLength(1);
-    expect(action.body[0]?.ideaDraft).toMatchObject({ title: 'Italian food', theme: 'Option' });
-    expect(web).not.toHaveBeenCalled();
+    expect(action.body.find((item) => item.kind === 'idea')?.ideaDraft?.theme).toBe('Strategy');
+    expect(web).toHaveBeenCalled();
 
-    await call('POST', `/suggestions/${action.body[0]!.id}/approve`, {});
+    await call('POST', '/ideas', { title: 'Italian food', theme: 'Option' });
     const option = (await call<Idea[]>('GET', '/ideas')).body.find((item) => item.title === 'Italian food')!;
     await call('POST', `/ideas/${option.id}/shortlist`, { shortlisted: true });
     await call('POST', `/ideas/${option.id}/approve`, {});

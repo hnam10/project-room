@@ -17,7 +17,7 @@ export function BrainstormAnalysisCard({ suggestion }: { suggestion: Suggestion 
         : await api.dismissSuggestion(projectId, suggestion.id);
       applyRecord('suggestion', updated);
       if (approve) reload();
-      toast(approve ? 'Source saved to the idea' : 'Web example dismissed');
+      toast(approve ? 'Research source saved' : 'Web example dismissed');
     } catch (error) {
       toastError(error);
     } finally {
@@ -40,7 +40,7 @@ export function BrainstormAnalysisCard({ suggestion }: { suggestion: Suggestion 
   };
   return (
     <article className="brainstorm-analysis">
-      <strong>Research · related idea</strong>
+      <strong>{suggestion.title.startsWith('Topic research:') ? 'Topic research' : 'Research · related idea'}</strong>
       {hasSummary ? (
         <IdeaDetails description={suggestion.proposal ?? ''} previewLength={120} />
       ) : (
@@ -57,7 +57,7 @@ export function BrainstormAnalysisCard({ suggestion }: { suggestion: Suggestion 
           </button>
         )}
         <button className="btn success sm" disabled={busy} onClick={() => void act(true)}>
-          Save source to idea
+          Save source
         </button>
         <button className="btn sm" disabled={busy} onClick={() => void act(false)}>
           Dismiss

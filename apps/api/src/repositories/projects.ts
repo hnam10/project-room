@@ -72,7 +72,7 @@ export async function ensureProject(project: Pick<Project, 'id' | 'name'>): Prom
   await queryOne(
     `BEGIN;
      IF !record::exists($id) {
-       UPSERT $id MERGE { name: $name };
+       UPSERT $id MERGE { name: $name, brainstormTopicsMigrated: true };
        UPSERT $channel MERGE { projectId: $id, name: 'general' };
      };
      COMMIT;`,

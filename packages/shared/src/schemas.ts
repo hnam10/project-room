@@ -43,6 +43,7 @@ export const channelCreateSchema = z.object({
 export type ChannelCreateInput = z.input<typeof channelCreateSchema>;
 
 export const ideaCreateSchema = z.object({
+  topicId: id.nullable().optional(),
   title: z.string().trim().min(1).max(80),
   description: z.string().trim().max(240).default(''),
   theme: z.enum(IDEA_THEMES).default('Option'),
@@ -56,6 +57,7 @@ export const ideaUpdateSchema = z.object({
 });
 export type IdeaUpdateInput = z.input<typeof ideaUpdateSchema>;
 export const brainstormActionSchema = z.object({
+  topicId: id.nullable().optional(),
   trigger: z.enum(BRAINSTORM_TRIGGERS),
   ideaId: id.nullable().default(null),
 });

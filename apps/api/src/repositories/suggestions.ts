@@ -10,8 +10,11 @@ import type {
 } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
 import { NotFoundError, rid, ridOrNull } from '../db/records.js';
+import { assertTopicScope, brainstormScope, getTopic } from './brainstorm-topics.js';
 
 export interface SuggestionDraft {
+  topicId?: string | null;
+  topicVersion?: number | null;
   kind: SuggestionKind;
   /** Used for a hidden, completed research check when search found nothing worth showing. */
   status?: SuggestionStatus;
@@ -51,6 +54,17 @@ export async function getSuggestion(projectId: string, suggestionId: string): Pr
   return suggestion;
 }
 
+/** A member chooses where an inbox draft belongs before it can create a board card. */
+export async function assignSuggestionTopic(projectId: string, suggestionId: string, topicId: string): Promise<void> {
+  const topic = await getTopic(projectId, topicId);
+  await queryOne("UPDATE ONLY $id SET topicId = $topic, topicVersion = $version WHERE projectId = $project AND status = 'pending'", {
+    id: rid('suggestion', suggestionId),
+    project: rid('project', projectId),
+    topic: rid('idea', topic.id),
+    version: topic.boardVersion,
+  });
+}
+
 /** Pending proposals based on a deleted idea can no longer be approved. */
 export function dismissPendingSuggestionsForIdea(projectId: string, ideaId: string, memberId: string): Promise<Suggestion[]> {
   return queryMany<Suggestion>(
@@ -61,36 +75,62 @@ export function dismissPendingSuggestionsForIdea(projectId: string, ideaId: stri
 
 /** With a fixed `id`, a retry returns the suggestion already stored under it instead of creating a second one. */
 export async function createSuggestion(projectId: string, draft: SuggestionDraft, id?: string): Promise<Suggestion> {
+  const scope = brainstormScope.getStore();
+  if (scope) await assertTopicScope(scope);
+  // Develop/research proposals inherit the referenced card's topic. New chat and
+  // meeting proposals can remain in the inbox until a member chooses a topic.
+  const reference = draft.ideaId ?? draft.originIdeaId;
+  const parent = reference
+    ? await queryOne<{ id: string; kind: string; topicId: string | null; boardVersion: number }>(
+        'SELECT id, kind, topicId, boardVersion FROM ONLY $id WHERE projectId = $project',
+        { id: rid('idea', reference), project: rid('project', projectId) },
+      )
+    : null;
+  const topicId = scope?.topicId ?? draft.topicId ?? (parent?.kind === 'problem' ? parent.id : parent?.topicId) ?? null;
   const target = id ? rid('suggestion', id) : null;
   if (target) {
     const existing = await queryOne<Suggestion>('SELECT * FROM ONLY $id', { id: target });
     if (existing) return existing;
   }
-  const suggestion = await queryOne<Suggestion>(`CREATE ONLY ${target ? '$id' : 'suggestion'} CONTENT $content`, {
-    id: target,
-    content: {
-      projectId: rid('project', projectId),
-      kind: draft.kind,
-      status: draft.status ?? 'pending',
-      title: draft.title,
-      reason: draft.reason,
-      proposal: draft.proposal ?? null,
-      outcome: draft.outcome ?? null,
-      quote: draft.quote ?? null,
-      cite: draft.cite ?? null,
-      researchSources: draft.researchSources ?? [],
-      sourceMessageId: ridOrNull('message', draft.sourceMessageId),
-      items: toDbItems(draft.items ?? []),
-      taskId: ridOrNull('task', draft.taskId),
-      meetingId: ridOrNull('meeting', draft.meetingId),
-      sourceLineId: ridOrNull('transcript_line', draft.sourceLineId),
-      ideaId: ridOrNull('idea', draft.ideaId),
-      originIdeaId: ridOrNull('idea', draft.originIdeaId),
-      brainstormTrigger: draft.brainstormTrigger ?? null,
-      ideaDraft: draft.ideaDraft ?? null,
-      pollDraft: draft.pollDraft ?? null,
+  const create = `CREATE ONLY ${target ? '$id' : 'suggestion'} CONTENT $content`;
+  const suggestion = await queryOne<Suggestion>(
+    scope
+      ? `
+    IF array::len((SELECT VALUE id FROM idea WHERE id = $topic AND projectId = $project AND boardVersion = $version)) = 1 {
+      ${create}
+    } ELSE { THROW 'The brainstorm topic changed'; }`
+      : create,
+    {
+      id: target,
+      topic: ridOrNull('idea', topicId),
+      project: rid('project', projectId),
+      version: scope?.version ?? null,
+      content: {
+        topicId: ridOrNull('idea', topicId),
+        topicVersion: scope?.version ?? draft.topicVersion ?? null,
+        projectId: rid('project', projectId),
+        kind: draft.kind,
+        status: draft.status ?? 'pending',
+        title: draft.title,
+        reason: draft.reason,
+        proposal: draft.proposal ?? null,
+        outcome: draft.outcome ?? null,
+        quote: draft.quote ?? null,
+        cite: draft.cite ?? null,
+        researchSources: draft.researchSources ?? [],
+        sourceMessageId: ridOrNull('message', draft.sourceMessageId),
+        items: toDbItems(draft.items ?? []),
+        taskId: ridOrNull('task', draft.taskId),
+        meetingId: ridOrNull('meeting', draft.meetingId),
+        sourceLineId: ridOrNull('transcript_line', draft.sourceLineId),
+        ideaId: ridOrNull('idea', draft.ideaId),
+        originIdeaId: ridOrNull('idea', draft.originIdeaId),
+        brainstormTrigger: draft.brainstormTrigger ?? null,
+        ideaDraft: draft.ideaDraft ?? null,
+        pollDraft: draft.pollDraft ?? null,
+      },
     },
-  });
+  );
   if (!suggestion) throw new Error('Suggestion creation returned nothing');
   return suggestion;
 }

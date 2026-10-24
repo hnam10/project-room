@@ -1,6 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { closeDb, connectDb, getDb } from './client.js';
 import { rid } from './records.js';
+import { migrateLegacyTopics } from '../repositories/brainstorm-topics.js';
 
 // Demo data for the "Hackathon 2026" project. Runs automatically on an empty database (dev/test), or
 // `npm run db:seed` to wipe and reseed. In Clerk mode the project id must be a Clerk organization id, so
@@ -286,6 +287,7 @@ export async function seedDemoData({ projectId = DEMO_PROJECT_ID }: { projectId?
       },
     )
     .collect();
+  await migrateLegacyTopics();
 }
 
 export async function wipe(): Promise<void> {
