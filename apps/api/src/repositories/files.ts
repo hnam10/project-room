@@ -36,6 +36,15 @@ export async function createFile(
   return file;
 }
 
+export async function setMemoryDocumentId(projectId: string, fileId: string, memoryDocumentId: string): Promise<ProjectFile> {
+  const file = await queryOne<ProjectFile>(
+    'UPDATE ONLY $id SET memoryDocumentId = $memoryDocumentId WHERE projectId = $project RETURN AFTER',
+    { id: rid('file', fileId), project: rid('project', projectId), memoryDocumentId },
+  );
+  if (!file) throw new NotFoundError('File');
+  return file;
+}
+
 export async function deleteFileRecord(projectId: string, fileId: string): Promise<void> {
   await getFile(projectId, fileId);
   await queryOne('DELETE $id WHERE projectId = $project', {
