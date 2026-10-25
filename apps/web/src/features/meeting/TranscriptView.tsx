@@ -41,9 +41,7 @@ export function TranscriptView({ lines: all, interim: speaking }: { lines: Trans
       >
         {lines.length === 0 && !interim && (
           <p className="empty-state">
-            {chatOnly
-              ? 'No chat messages yet. Type below to message the meeting.'
-              : 'Nothing said yet. Speak or type and your words appear here.'}
+            {chatOnly ? 'No chat messages yet.' : 'Nothing said yet. Speak or type and your words appear here.'}
           </p>
         )}
         {lines.map((l, i) =>
