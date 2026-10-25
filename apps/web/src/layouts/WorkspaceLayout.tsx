@@ -83,12 +83,6 @@ function TopBar() {
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="brand-mark" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-        </span>
         <strong>Project Room</strong>
         <span className="crumb-sep">/</span>
         <span className="crumb-project">{project.name}</span>

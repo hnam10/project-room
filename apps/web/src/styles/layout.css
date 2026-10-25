@@ -32,26 +32,6 @@
 .crumb-sep {
   color: var(--line-strong);
 }
-.brand-mark {
-  width: 26px;
-  height: 26px;
-  padding: 5px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
-  border-radius: 7px;
-  background: var(--accent);
-}
-.brand-mark i {
-  background: #fff;
-  border-radius: 2px;
-  opacity: 0.95;
-}
-.brand-mark i:nth-child(2),
-.brand-mark i:nth-child(3) {
-  opacity: 0.55;
-}
-
 .top-tabs {
   display: flex;
   align-self: stretch;
