@@ -5,6 +5,13 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Meeting duplicate topics check every board.** Live and summary analysis compare against
+  every existing topic rather than only the first. Summary prompts now include all topic titles and
+  descriptions. The model identifies semantic matches by existing topic id; normalized title checks
+  and a fresh server read block exact duplicates even if the model proposes them. Reworded discussions
+  are directed to existing boards for idea suggestions. All 201 tests, lint and typecheck pass; full
+  check remains blocked by existing repository formatting drift.
+
 - 2026-10-24 — **Meeting ideas identify an existing topic.** The meeting AI reads all topic titles and
   descriptions, selects the topic being discussed, and includes its id on idea proposals. Validation
   rejects absent/unknown topics and developments on the wrong board; new topic proposals cannot receive

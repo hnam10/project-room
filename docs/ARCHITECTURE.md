@@ -141,6 +141,9 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
   from the full transcript if live analysis missed it. New proposals appear in the meeting and in a shared
   inbox above Brainstorm's topic tabs. Approval creates a separate board; existing topics and pending idea
   drafts remain intact.
+  Both live and summary prompts include every existing topic and ask for semantic matches by id.
+  `ai/meeting-topics.ts` suppresses normalized title or matched-id duplicates; the topic proposal service
+  re-reads all saved topics before storing output to catch boards approved while the AI was running.
 - **Meeting idea scope:** the model receives all existing topic titles and descriptions and each existing
   idea's topic. Every idea proposal must return a matching existing `topicId`; validation and the live
   service reject missing/unknown topics and developments belonging to a different topic. The stored

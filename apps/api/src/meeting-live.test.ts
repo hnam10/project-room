@@ -12,6 +12,7 @@ import { listIdeas } from './repositories/ideas.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
 import { shouldRun } from './services/meeting-trigger.js';
 import { checkMeeting, noteLine, runLiveTick, triggerState } from './services/meeting-live.js';
+import { proposeMeetingTopic } from './services/meeting-topic.js';
 
 let server: Server;
 let hub: RealtimeHub;
@@ -61,6 +62,31 @@ function fakeAi(make: (input: MeetingTickInput) => Partial<MeetingTickResult> | 
 }
 
 describe('live meeting pipeline', () => {
+  it('rechecks every saved topic before storing a new proposal', async () => {
+    const first = (await post<Idea>('/ideas', { kind: 'problem', title: 'Dinner menu', description: '', theme: 'Option' })).body;
+    const second = (await post<Idea>('/ideas', { kind: 'problem', title: 'Fix audio issues', description: '', theme: 'Option' })).body;
+    for (const proposed of [
+      { title: 'FIX AUDIO ISSUES!', existingTopicId: null },
+      { title: 'Resolve sound playback problems', existingTopicId: second.id },
+    ]) {
+      expect(
+        await proposeMeetingTopic(
+          'hackathon',
+          meetingId,
+          {
+            ...proposed,
+            description: '',
+            reason: 'r',
+            quote: null,
+            sourceLineId: null,
+          },
+          first,
+          [],
+          null,
+        ),
+      ).toBeNull();
+    }
+  });
   let meetingId: string;
   const speak = async (text: string) => (await post<TranscriptLine>(`/meetings/${meetingId}/lines`, { text })).body;
 

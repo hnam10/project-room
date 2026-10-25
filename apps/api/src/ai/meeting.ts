@@ -14,6 +14,7 @@ import { createAnthropicMeetingAi } from './anthropic-meeting.js';
 import { createOpenAiClient } from './openai.js';
 import { mockMeetingAi } from './mock-meeting.js';
 import type { MemberBrief } from './provider.js';
+import { matchesMeetingTopic } from './meeting-topics.js';
 
 // Live AI during a meeting. Like AiProvider, everything returned is a proposal; the caller stores it as a
 // suggestion. validateTick is the one place that checks model output against the meeting's real data.
@@ -45,6 +46,7 @@ export interface SummarizeInput {
   lines: MeetingTickInput['lines'];
   carryOver: string[];
   ideas: { id: string; title: string }[];
+  topics?: MeetingTickInput['topics'];
   currentTopic?: { id: string; title: string } | null;
   taskTitles: string[];
   suggestions: { title: string; status: SuggestionStatus }[];
@@ -67,6 +69,7 @@ export interface MeetingAi {
 }
 
 export interface MeetingTopic {
+  existingTopicId?: string | null;
   title: string;
   description: string;
   reason: string;
@@ -76,7 +79,7 @@ export interface MeetingTopic {
 
 /** What a provider hands to validateTick: loosely typed, nothing trusted yet. */
 export interface RawTick {
-  topic?: { title: string; description: string; reason: string; quote: string | null } | null;
+  topic?: { existingTopicId?: string | null; title: string; description: string; reason: string; quote: string | null } | null;
   actionItems: { title: string; assigneeId: string | null; priority: string; reason: string; quote: string | null }[];
   ideas: {
     topicId?: string | null;
@@ -128,7 +131,9 @@ export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTick
 
   return {
     topic:
-      raw.topic && fresh(raw.topic.title) && norm(raw.topic.title) !== norm(input.currentTopic?.title ?? '')
+      raw.topic &&
+      fresh(raw.topic.title) &&
+      !matchesMeetingTopic(raw.topic, [...(input.topics ?? []), ...(input.currentTopic ? [input.currentTopic] : [])])
         ? {
             title: raw.topic.title.trim().slice(0, 80),
             description: raw.topic.description.trim().slice(0, 240),
@@ -193,7 +198,7 @@ export function validateSummary(raw: RawSummary, input: SummarizeInput): Summari
     topic:
       raw.topic &&
       norm(raw.topic.title) &&
-      norm(raw.topic.title) !== norm(input.currentTopic?.title ?? '') &&
+      !matchesMeetingTopic(raw.topic, [...(input.topics ?? []), ...(input.currentTopic ? [input.currentTopic] : [])]) &&
       !seen.has(norm(raw.topic.title))
         ? {
             title: raw.topic.title.trim().slice(0, 80),

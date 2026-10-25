@@ -53,6 +53,9 @@ export async function summarize(
       lines: lines.map((l) => ({ id: l.id, speakerId: l.speakerId, speakerName: speakerName(nameOf(l.speakerId), l), text: l.text })),
       carryOver: previous?.carryOver ?? [],
       ideas: ideas.map((i) => ({ id: i.id, title: i.title })),
+      topics: ideas
+        .filter((idea) => idea.kind === 'problem')
+        .map((idea) => ({ id: idea.id, title: idea.title, description: idea.description })),
       currentTopic: ideas.find((idea) => idea.kind === 'problem') ?? null,
       taskTitles: tasks.map((t) => t.title),
       suggestions: all.filter((s) => s.meetingId === meetingId).map((s) => ({ title: s.title, status: s.status })),

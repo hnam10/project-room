@@ -40,6 +40,26 @@ const idea = (over = {}) => ({
 });
 
 describe('validateTick', () => {
+  it('suppresses topics matching any board or a semantic match id, while keeping ideas for that board', () => {
+    const topics = [
+      { id: 'first', title: 'Dinner choices', description: '' },
+      { id: 'audio', title: 'Fix audio issues', description: 'Resolve playback problems' },
+    ];
+    for (const proposed of [
+      { title: '  FIX AUDIO ISSUES!  ', existingTopicId: null },
+      { title: 'Resolve sound playback problems', existingTopicId: 'audio' },
+    ]) {
+      const out = validateTick(
+        raw({
+          topic: { ...proposed, description: '', reason: 'Discussed', quote: null },
+          ideas: [idea({ title: 'Check output device', topicId: 'audio' })],
+        }),
+        { ...input, topics, currentTopic: topics[0] },
+      );
+      expect(out.topic).toBeNull();
+      expect(out.ideas).toMatchObject([{ topicId: 'audio', draft: { title: 'Check output device' } }]);
+    }
+  });
   it('accepts only ideas assigned to existing topics and rejects cross-topic developments', () => {
     const multiTopicInput = { ...input, topics: [...input.topics!, { id: 'p2', title: 'Study groups', description: '' }] };
     const out = validateTick(
@@ -218,6 +238,24 @@ const rawSummary = (over: Partial<RawSummary> = {}): RawSummary => ({
 const item = (over = {}) => ({ title: 'T', assigneeId: null, priority: 'high', reason: 'r', quote: null, ...over });
 
 describe('validateSummary', () => {
+  it('does not recreate an existing topic outside the first board, including semantic matches', () => {
+    const topics = [
+      { id: 'first', title: 'Dinner', description: '' },
+      { id: 'audio', title: 'Fix audio issues', description: '' },
+    ];
+    for (const proposed of [
+      { title: 'Fix audio issues?', existingTopicId: null },
+      { title: 'Resolve playback problems', existingTopicId: 'audio' },
+    ]) {
+      expect(
+        validateSummary(rawSummary({ topic: { ...proposed, description: '', reason: 'r', quote: null } }), {
+          ...sumInput,
+          topics,
+          currentTopic: topics[0],
+        }).topic,
+      ).toBeNull();
+    }
+  });
   it('checks quotes, assignees and dedupes against suggestions and itself', () => {
     const out = validateSummary(
       rawSummary({
@@ -280,7 +318,7 @@ describe('Claude summarizeMeeting', () => {
       usage: { input_tokens: 40, output_tokens: 9 },
     });
     const ai = createAnthropicMeetingAi('k', 'fast', 'claude-main', { messages: { parse } } as never);
-    const out = await ai.summarizeMeeting(sumInput);
+    const out = await ai.summarizeMeeting({ ...sumInput, topics: input.topics });
     const req = parse.mock.calls[0]![0];
     expect(req).toMatchObject({ model: 'claude-main', max_tokens: 16000 });
     expect(req.output_config.effort).toBe('medium');
@@ -288,6 +326,8 @@ describe('Claude summarizeMeeting', () => {
     expect(req).not.toHaveProperty('fallbacks');
     expect(req.messages[0].content).toContain('<carry_over>\nOld note\n</carry_over>');
     expect(req.messages[0].content).toContain('<suggestions>');
+    expect(req.messages[0].content).toContain('<topics>');
+    expect(req.messages[0].content).toContain('p1: Dark mode');
     expect(req.messages[0].content).toContain("[l1] Alex: I'll set up the CI pipeline.");
     expect(out.usage).toEqual({ inputTokens: 40, outputTokens: 9 });
   });
