@@ -45,6 +45,7 @@ async function actionItems(ai: AiProvider, c: EvalCase, messages: ConversationMe
     listMembers: async () => members,
     listTasks: async () => [],
     searchMessages: async () => [],
+    searchMeetingLines: async () => [],
     listPendingSuggestions: async () => [],
     listIdeas: async () => [],
   };
