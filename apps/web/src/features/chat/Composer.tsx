@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ClipboardEvent } from 'react';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { useFeedback } from '../../components/Feedback';
@@ -12,6 +12,21 @@ export function Composer({ channelId, files }: { channelId: string; files: Retur
   const [sending, setSending] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const picker = useRef<HTMLInputElement>(null);
+
+  const pasteFiles = (event: ClipboardEvent<HTMLInputElement>) => {
+    const pasted = [...event.clipboardData.items]
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null)
+      .map((file) => {
+        if (file.name) return file;
+        const extension = file.type.split('/')[1] || 'png';
+        return new File([file], `pasted-image.${extension}`, { type: file.type });
+      });
+    if (!pasted.length) return;
+    event.preventDefault();
+    void files.attach(pasted);
+  };
 
   const send = async () => {
     const value = text.trim();
@@ -41,6 +56,7 @@ export function Composer({ channelId, files }: { channelId: string; files: Retur
         ref={input}
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onPaste={pasteFiles}
         maxLength={2000}
         autoComplete="off"
         placeholder="Message @team or @AI…"

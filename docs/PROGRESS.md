@@ -5,6 +5,13 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Chat AI retrieves durable context and accepts pasted images.** `@AI` now receives recent
+  Agent Memory file passages alongside the latest confirmed decisions, labeled separately so it can distinguish
+  evidence from durable project facts and call out conflicts instead of guessing. Images copied to the clipboard
+  can be pasted directly into the chat composer; they upload through the existing project Files flow, appear as
+  downloadable chat attachments, and are available to Agent Memory for OCR/vision retrieval. AI suggestions remain
+  reviewable and approval-gated.
+
 - 2026-10-24 — **Agent Memory accepts Clerk organization scopes.** Clerk organization ids can contain uppercase
   letters, while Agent Memory scope segments are lowercase-only. Project scopes now normalize ids consistently
   before upload and retrieval, with a regression test; rejected scope responses include the service detail.
