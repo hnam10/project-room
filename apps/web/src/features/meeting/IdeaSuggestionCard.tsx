@@ -74,6 +74,7 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
         </button>
       </div>
       <Modal
+        wide
         open={open}
         title={existing ? `Develop: ${existing.title}` : 'New idea'}
         eyebrow="AI suggestion"
@@ -123,7 +124,7 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
           <textarea
             maxLength={2000}
             value={form.description}
-            rows={4}
+            rows={10}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </label>

@@ -92,6 +92,7 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
         </button>
       </div>
       <Modal
+        wide
         open={reviewing}
         title={suggestion.ideaId ? 'Review topic change' : 'Review new brainstorm topic'}
         eyebrow={suggestion.ideaId ? 'The topic changes only when you approve' : 'Add a separate board for this topic'}
@@ -115,7 +116,7 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
         </label>
         <label className="form-row">
           Context or constraints
-          <textarea value={description} rows={3} maxLength={240} onChange={(event) => setDescription(event.target.value)} />
+          <textarea value={description} rows={5} maxLength={240} onChange={(event) => setDescription(event.target.value)} />
         </label>
       </Modal>
     </article>
