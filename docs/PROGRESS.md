@@ -5,6 +5,8 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Meeting AI panel no longer overlaps in a narrow column.** The panel stacks cards in a flex
+  column instead of a grid, and action items put owner and priority under the title, so cards stay inside the column.
 - 2026-10-24 — **Calendar scheduling ignores stale task requests.** Only the latest pending update per task
   may apply its response or rollback; workspace deletion tombstones prevent either from restoring a deleted task.
 

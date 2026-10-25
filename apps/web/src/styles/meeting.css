@@ -342,11 +342,18 @@
     min-height: 320px;
   }
 }
+/* A column of cards, not a grid: a grid track grew to the widest card's min-content and rows were sized from that
+   width, so in a narrow column cards overflowed sideways and onto each other. */
 .ai-panel {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  align-content: start;
   overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.ai-panel > * {
+  flex: none;
+  min-width: 0;
 }
 .ai-card,
 .poll-card {
@@ -367,7 +374,18 @@
   border-left-color: var(--green);
 }
 .ai-panel .action-card {
+  max-width: none;
   border-left: 3px solid var(--accent);
+}
+/* Narrow column: the title takes the full row; owner and priority go underneath. */
+.ai-panel .action-item {
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+}
+.ai-panel .action-item > :nth-child(2) {
+  grid-column: 2 / -1;
+}
+.ai-panel .action-owner {
+  grid-column: 2;
 }
 .ai-card p,
 .ai-card ul {
