@@ -60,6 +60,9 @@ export async function approveSuggestion(
       }
       return resolveSuggestion(suggestion.id, 'approved', memberId);
     }
+    default:
+      // Old kinds (such as 'decision') can still be stored; they can be dismissed, not approved.
+      throw new ConflictError(`Suggestions of kind '${String(suggestion.kind)}' can no longer be approved`);
   }
 }
 

@@ -38,6 +38,15 @@ const pollSuggestion = (question = 'Which login?') =>
   createSuggestion('hackathon', { kind: 'poll', title: 'Poll', reason: 'r', pollDraft: { question, options: ['Google', 'Email'] } });
 
 describe('meeting approvals', () => {
+  it('an old decision suggestion is refused on approve (409), and can still be dismissed', async () => {
+    // Decisions were replaced by polls; databases from before can still hold pending ones.
+    const s = await createSuggestion('hackathon', { kind: 'decision', title: 'Old', reason: 'r' } as unknown as Parameters<
+      typeof createSuggestion
+    >[1]);
+    expect((await post(`/suggestions/${s.id}/approve`)).status).toBe(409);
+    expect((await post(`/suggestions/${s.id}/dismiss`)).body.status).toBe('dismissed');
+  });
+
   it('approving a poll suggestion opens a poll', async () => {
     const s = await pollSuggestion('Approve me?');
     const res = await post(`/suggestions/${s.id}/approve`);

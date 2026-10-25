@@ -388,8 +388,10 @@
 .ai-card.notes {
   --role: var(--accent);
 }
-.ai-panel .action-card:not(.pending) {
+.ai-panel .action-card {
   max-width: none;
+}
+.ai-panel .action-card:not(.pending) {
   border-left: 3px solid var(--accent);
 }
 /* Narrow column: the title takes the full row; owner and priority go underneath. */

@@ -8,7 +8,20 @@ import { migrateLegacyTopics } from '../repositories/brainstorm-topics.js';
 // seed with `npm run db:seed -- --org org_xxx` (or set SEED_ORG_ID on the server). The demo teammates are
 // placeholder members; real Clerk users join the project the first time they open it.
 
-const TABLES = ['suggestion', 'message', 'task', 'idea', 'decision', 'channel', 'project', 'member'] as const;
+const TABLES = [
+  'suggestion',
+  'message',
+  'task',
+  'idea',
+  'decision',
+  'poll',
+  'transcript_line',
+  'live_meeting',
+  'meeting',
+  'channel',
+  'project',
+  'member',
+] as const;
 
 const day = (offsetDays: number, time = '10:00') => {
   const d = new Date();

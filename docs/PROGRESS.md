@@ -337,6 +337,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Known gaps
 
+- Meeting file passages come from a project-wide Agent Memory search filtered to the meeting's files afterwards; with
+  many uploaded files the top hits can all be other files. Scope the query to the meeting's document ids if the API allows.
+- Meeting `@AI` reloads the whole transcript and re-reads shared files on every call, and the meeting AI panel keeps
+  its own poll list next to the snapshot's. Fine at hackathon scale; revisit if meetings get long.
 - The Files picker clears its live `FileList` before starting uploads; use drag and drop until that separate issue is fixed.
 
 - Brainstorm topic selection is a browser preference; each browser may work on a different topic.
