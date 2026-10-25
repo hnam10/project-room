@@ -5,6 +5,8 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Idea card footer at the bottom.** The author and Start voting / vote count sit at the bottom of
+  each idea card instead of right under the title, and Start voting no longer wraps.
 - 2026-10-24 — **AI colour roles and dashed pending suggestions.** An AI suggestion nobody has confirmed has a
   dashed outline in the colour of where it lands once approved, and its main button matches: brainstorm topics and
   ideas yellow, brainstorm directions (theme Strategy) teal, before and after approval, research blue, polls green, decisions, action items, deadline risks and meeting notes purple.
