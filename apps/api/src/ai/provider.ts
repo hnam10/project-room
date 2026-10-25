@@ -22,8 +22,6 @@ export interface FileExcerpt {
   text: string;
   /** The Agent Memory document the passage came from, when the search returned it. */
   documentId?: string;
-  /** Distinguishes durable project context from an uploaded file passage. */
-  kind?: 'file' | 'decision';
 }
 
 /** An existing task, so the AI can avoid duplicates and point at the ones that are at risk. */

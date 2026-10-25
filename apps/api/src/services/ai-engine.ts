@@ -121,15 +121,6 @@ async function replyToMention(projectId: string, channelId: string, channelName:
   ]);
   const conversation = toConversation(recent, members);
   const files = await fileExcerpts(projectId, recent);
-  const confirmedContext: FileExcerpt[] = decisions
-    .filter((decision) => decision.status === 'decided' && decision.outcome)
-    .slice(0, 12)
-    .map((decision) => ({
-      name: decision.title,
-      text: `${decision.outcome}${decision.reason ? ` Reason: ${decision.reason}` : ''}`,
-      kind: 'decision' as const,
-    }));
-  const context = [...files, ...confirmedContext];
 
   const request = recent.at(-1)?.text ?? '';
   if (ASKS_TO_BRAINSTORM.test(request)) {
@@ -183,7 +174,7 @@ async function replyToMention(projectId: string, channelId: string, channelName:
     );
     let topicCreated = false;
     if (proposedTopic && topicKey(proposedTopic.title) !== topicKey(currentTopic?.title ?? '') && !topicAlreadyPending) {
-      const citation = citeFor(proposedTopic.quote, recent, conversation, channelName, context);
+      const citation = citeFor(proposedTopic.quote, recent, conversation, channelName, files);
       await createSuggestion(projectId, {
         kind: 'brainstorm_topic',
         title: `Brainstorm topic: ${proposedTopic.title}`,
@@ -199,7 +190,7 @@ async function replyToMention(projectId: string, channelId: string, channelName:
     let attachedSources = 0;
     for (const proposal of brainstorm.ideas) {
       if (waitingTitles.has(proposal.draft.title.toLowerCase())) continue;
-      const citation = citeFor(proposal.quote, recent, conversation, channelName, context);
+      const citation = citeFor(proposal.quote, recent, conversation, channelName, files);
       const researchSources = proposal.sourceUrls
         .map((url) => research.results.find((result) => result.url === url))
         .filter((source): source is NonNullable<typeof source> => !!source)
@@ -242,7 +233,7 @@ async function replyToMention(projectId: string, channelId: string, channelName:
   let reply = '';
   try {
     if (ai.runMention) {
-      const result = await ai.runMention({ messages: conversation, files: context, lookup: projectLookup(projectId, members) });
+      const result = await ai.runMention({ messages: conversation, files, lookup: projectLookup(projectId, members) });
       analysis = result;
       ideas = result.ideas;
       reply = result.reply;
@@ -279,19 +270,6 @@ async function replyToMention(projectId: string, channelId: string, channelName:
   );
 
   let panelCount = 0;
-  for (const d of analysis.decisions) {
-    if (seenDecisions.has(d.topic.toLowerCase())) continue;
-    await createSuggestion(projectId, {
-      kind: 'decision',
-      title: d.outcome ? `Decision made: ${d.topic}` : `Open question: ${d.topic}`,
-      proposal: d.topic,
-      outcome: d.outcome,
-      reason: d.reason,
-      quote: d.quote,
-      ...citeFor(d.quote, recent, conversation, channelName, context),
-    });
-    panelCount++;
-  }
   for (const r of analysis.risks) {
     if (seenRisks.has(r.taskId)) continue;
     await createSuggestion(projectId, {
@@ -300,7 +278,7 @@ async function replyToMention(projectId: string, channelId: string, channelName:
       reason: r.reason,
       quote: r.quote,
       taskId: r.taskId,
-      ...citeFor(r.quote, recent, conversation, channelName, context),
+      ...citeFor(r.quote, recent, conversation, channelName, files),
     });
     panelCount++;
   }
@@ -313,7 +291,7 @@ async function replyToMention(projectId: string, channelId: string, channelName:
       reason: idea.reason,
       quote: idea.quote,
       ideaDraft: { title: idea.title, description: idea.description, theme: idea.theme },
-      ...citeFor(idea.quote, recent, conversation, channelName, context),
+      ...citeFor(idea.quote, recent, conversation, channelName, files),
     });
     panelCount++;
   }

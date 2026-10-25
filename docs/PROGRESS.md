@@ -5,12 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
-- 2026-10-25 — **Chat AI retrieves durable context and accepts pasted images.** `@AI` now receives recent
-  Agent Memory file passages alongside the latest confirmed decisions, labeled separately so it can distinguish
-  evidence from durable project facts and call out conflicts instead of guessing. Images copied to the clipboard
-  can be pasted directly into the chat composer; they upload through the existing project Files flow, appear as
-  downloadable chat attachments, and are available to Agent Memory for OCR/vision retrieval. AI suggestions remain
-  reviewable and approval-gated.
+- 2026-10-25 — **Chat accepts pasted images.** Images copied to the clipboard can be pasted directly into
+  the chat composer; they upload through the existing project Files flow, appear as downloadable chat
+  attachments, and are available to Agent Memory for OCR/vision retrieval.
 
 - 2026-10-25 — **Roomier AI review dialogs.** The idea, direction, topic and poll review dialogs open wide (640px),
   stack each label over a full-width field, and give the description 10 rows, so a draft reads at a glance.
