@@ -8,6 +8,8 @@ export const TASK_LABELS = ['feature', 'frontend', 'backend', 'design', 'docs', 
 // Engagement and Platform remain valid for ideas saved before the simpler categories were introduced.
 export const IDEA_THEMES = ['Option', 'Product', 'Strategy', 'Engagement', 'Platform'] as const;
 export const IDEA_THEME_CHOICES = ['Option', 'Product', 'Strategy'] as const;
+/** Room for a reviewable, step-by-step strategy without truncating its roadmap. */
+export const STRATEGY_DESCRIPTION_MAX = 20000;
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type Priority = (typeof PRIORITIES)[number];
@@ -85,6 +87,7 @@ export interface Idea {
   description: string;
   theme: IdeaTheme;
   kind: 'problem' | 'idea';
+  /** Legacy shortlist state; approval no longer requires it. */
   shortlisted: boolean;
   approved: boolean;
   researchStale: boolean;
@@ -92,7 +95,7 @@ export interface Idea {
   updatedAt: string;
   authorId: string;
   voterIds: string[];
-  /** Voting stays closed until a member explicitly starts it. */
+  /** Legacy formal-vote state; individual hearts are always available. */
   votingOpen: boolean;
   sourceSuggestionId: string | null;
   researchSources: ResearchSource[];
