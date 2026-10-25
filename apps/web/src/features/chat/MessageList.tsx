@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { AI_AUTHOR, type Message } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
@@ -59,12 +59,17 @@ export function MessageList({ channelId, scrollRef }: { channelId: string; scrol
     if (!list) loadMessages(channelId).catch(toastError);
   }, [channelId, list, loadMessages, toastError]);
 
-  // Stick to the bottom when a new message arrives.
-  useLayoutEffect(() => {
+  // Scroll after the browser has laid out the new message so the panel reaches the actual bottom.
+  useEffect(() => {
     const newest = list?.at(-1)?.id;
-    if (newest && newest !== lastId.current && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (!newest || newest === lastId.current) return;
     lastId.current = newest;
-  }, [list, scrollRef]);
+    const frame = requestAnimationFrame(() => {
+      const panel = scrollRef.current;
+      if (panel) panel.scrollTop = panel.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [channelId, list, scrollRef]);
 
   if (!list) return <div className="empty-state">Loading messages…</div>;
   if (!list.length) return <div className="empty-state">No messages yet. Say hi to your team.</div>;

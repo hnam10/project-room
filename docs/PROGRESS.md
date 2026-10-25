@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Chat opens at the latest message.** The shared chat panel scrolls to the bottom after
+  messages finish browser layout, including initial loads, channel changes and realtime messages, across
+  docked, floating, PiP and popout views.
+
 - 2026-10-24 — **The meeting follows you.** The call moved from `MeetingPage` to `MeetingCallProvider` in the
   workspace layout, so changing pages keeps the mic, audio and transcript going; a floating bar (live, title,
   mute, leave) shows off the meeting page. "End for everyone" is gone: the last participant leaving ends the
