@@ -47,7 +47,7 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
     );
 
   return (
-    <div className="ai-card idea">
+    <div className={`ai-card idea${draft.theme === 'Strategy' ? ' direction' : ''}`}>
       <span className="ai-badge">
         <Icon name="sparkle" />
         {existing ? `Develop: ${existing.title}` : `New idea: ${draft.title}`}
@@ -58,7 +58,11 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
       <p>{draft.description}</p>
       <SuggestionWhy suggestion={suggestion} />
       <div className="action-buttons">
-        <button className="btn success sm" disabled={busy} onClick={() => setOpen(true)}>
+        <button
+          className={`btn ${draft.theme === 'Strategy' ? 'direction-btn' : 'idea-btn'} sm`}
+          disabled={busy}
+          onClick={() => setOpen(true)}
+        >
           Review &amp; approve
         </button>
         <button
@@ -80,7 +84,10 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
             <button type="button" className="btn" onClick={() => setOpen(false)}>
               Cancel
             </button>
-            <button className="btn primary" disabled={busy || !form.title.trim() || (!existing && !topicId)}>
+            <button
+              className={`btn ${draft.theme === 'Strategy' ? 'direction-btn' : 'idea-btn'}`}
+              disabled={busy || !form.title.trim() || (!existing && !topicId)}
+            >
               Save &amp; approve
             </button>
           </>

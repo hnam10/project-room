@@ -74,7 +74,7 @@ export function PollSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
             <button type="button" className="btn" onClick={() => setOpen(false)}>
               Cancel
             </button>
-            <button className="btn primary" disabled={busy || !valid}>
+            <button className="btn success" disabled={busy || !valid}>
               Save &amp; open poll
             </button>
           </>

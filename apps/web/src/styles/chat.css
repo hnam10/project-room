@@ -101,6 +101,10 @@
   background: var(--bg);
   padding: 4px 0;
 }
+/* Waiting for review: dashed in the task board's purple, like every unconfirmed AI suggestion. */
+.action-card.pending {
+  border: 1.5px dashed var(--accent);
+}
 .action-item {
   display: grid;
   grid-template-columns: 18px 1fr auto auto;
@@ -230,7 +234,8 @@
 }
 .insight {
   padding: 12px 14px;
-  border: 1px solid var(--line);
+  /* Decisions and deadline risks wait for review: dashed purple (they land in Decisions or on the task board). */
+  border: 1.5px dashed var(--accent);
   border-radius: 9px;
   background: var(--surface);
 }

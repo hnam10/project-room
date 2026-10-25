@@ -85,7 +85,7 @@ export function IdeaDialog({
           <button type="button" className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn primary" disabled={saving || !title.trim()}>
+          <button type="submit" className={`btn ${kind === 'problem' ? 'primary' : 'idea-btn'}`} disabled={saving || !title.trim()}>
             {idea ? 'Save changes' : kind === 'problem' ? 'Set topic' : 'Add idea'}
           </button>
         </>

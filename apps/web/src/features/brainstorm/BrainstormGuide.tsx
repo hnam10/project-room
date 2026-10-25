@@ -129,7 +129,7 @@ export function BrainstormGuide({
           <p>AI summarizes relevant sources and proposes a strategy. Your team reviews them and adds ideas.</p>
         </div>
         <button
-          className="btn sm"
+          className="btn research-btn sm"
           disabled={busy || !manualTarget}
           onClick={() => manualTarget && onRun({ trigger: 'manual', ideaId: manualTarget.id })}
         >

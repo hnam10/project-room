@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **AI colour roles and dashed pending suggestions.** An AI suggestion nobody has confirmed has a
+  dashed outline in the colour of where it lands once approved, and its main button matches: brainstorm topics and
+  ideas yellow, brainstorm directions (theme Strategy) teal, before and after approval, research blue, polls green, decisions, action items, deadline risks and meeting notes purple.
+  Confirmed things (saved ideas, open polls, approved action items) stay solid. Tokens `--research` /
+  `--research-weak` and buttons `.btn.idea-btn` / `.btn.research-btn` in `base.css`; the Decision label moved from
+  amber to purple so it doesn't read as an idea.
 - 2026-10-24 — **Agent Memory accepts Clerk organization scopes.** Clerk organization ids can contain uppercase
   letters, while Agent Memory scope segments are lowercase-only. Project scopes now normalize ids consistently
   before upload and retrieval, with a regression test; rejected scope responses include the service detail.
@@ -395,6 +401,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-24 — **Pending AI suggestions are dashed, in the colour of their destination.** Brainstorm yellow, research
+  blue, polls green, decisions and tasks purple, on every page, so it reads at a glance what is unconfirmed and where
+  approving it puts it.
 - 2026-10-24 — **Team is a section of Settings, not its own sidebar item.** Members and roles are project
   administration, and the sidebar was already a long list of pages. Workload stays on the planned Overview
   page. `/team` redirects to `/settings`.
