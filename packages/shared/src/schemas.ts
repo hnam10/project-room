@@ -106,3 +106,10 @@ export const suggestionUpdateSchema = z.object({
   pollDraft: pollDraftSchema.optional(),
 });
 export type SuggestionUpdateInput = z.input<typeof suggestionUpdateSchema>;
+
+export const suggestionApproveSchema = z.object({
+  assigneeId: z.string().min(1).max(64).nullable().optional(),
+  topicId: z.string().min(1).max(64).optional(),
+  replaceTopicId: z.string().min(1).max(64).optional(),
+});
+export type SuggestionApproveInput = z.input<typeof suggestionApproveSchema>;

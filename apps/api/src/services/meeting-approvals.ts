@@ -35,10 +35,16 @@ export async function approveIdea(
 }
 
 /** A chat brainstorm proposes its topic; only the member's approval creates or replaces the board topic. */
-export async function approveBrainstormTopic(projectId: string, suggestion: Suggestion, memberId: string): Promise<Suggestion> {
+export async function approveBrainstormTopic(
+  projectId: string,
+  suggestion: Suggestion,
+  memberId: string,
+  replaceTopicId?: string,
+): Promise<Suggestion> {
   const draft = suggestion.ideaDraft;
   if (!draft) throw new ConflictError('Suggestion has no brainstorm topic');
   if (suggestion.ideaId) {
+    if (replaceTopicId !== suggestion.ideaId) throw new ConflictError('Confirm the specific topic to replace before clearing its board');
     const before = await getIdea(projectId, suggestion.ideaId);
     if (before.kind !== 'problem') throw new ConflictError('The suggested topic no longer points to a brainstorm topic');
     const patch = { title: draft.title, description: draft.description.slice(0, 240) };

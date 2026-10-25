@@ -169,6 +169,12 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
   service reject missing/unknown topics and developments belonging to a different topic. The stored
   suggestion carries the topic and board version, and its topic is labelled on meeting and board cards.
   A pending topic proposal cannot receive idea suggestions until a member approves it.
+  Mock topic matching requires multiple distinct meaningful words (or an unambiguous single-word topic)
+  and abstains on ties. Explicit topic ids and versions use the same conditional repository write as
+  board AI scopes, preventing late meeting output from referencing deleted or reset boards.
+  Topic-change proposals appear only on their target board, name it during review, and require a
+  destructive confirmation plus matching `replaceTopicId` in the approval request. New-board proposals
+  alone appear in the shared new-topic inbox.
 - **End:** `POST /meetings/:id/end` summarizes on the OpenAI model (Nebius when that key is the only one) into `meeting.summary` plus a `meeting_notes`
   suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
   shows a "Last time" card. Summary suggestions use fixed ids (`<meetingId>-summary-topic` / `-summary-actions` / `-summary-notes`) and are

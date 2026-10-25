@@ -10,6 +10,40 @@ const DISAGREE = /\bbut\b|\bdisagree\b|근데/i;
 const TOPIC = /(?:\b(?:brainstorm|ideas? for|how (?:can|should) we|what should we)\b|아이디어|어떻게)/i;
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const GENERIC_WORDS = new Set(
+  'what should about ideas could with the for how can would will our your this that from and but want need use add new app application product project feature build create make help users team brainstorm topic'.split(
+    ' ',
+  ),
+);
+const topicWords = (text: string) =>
+  new Set(
+    (
+      text
+        .normalize('NFKC')
+        .toLowerCase()
+        .match(/[\p{L}\p{N}]+/gu) ?? []
+    ).filter((word) => (word.length > 2 || /\p{Script=Hangul}/u.test(word)) && !GENERIC_WORDS.has(word)),
+  );
+
+/** A mock cannot infer meaning: require distinctive evidence and abstain on shared or tied matches. */
+function matchTopic(text: string, topics: NonNullable<MeetingTickInput['topics']>) {
+  const words = topicWords(text);
+  const candidates = topics.map((topic) => ({ topic, words: topicWords(topic.title) }));
+  const matches = candidates
+    .map((candidate) => ({
+      ...candidate,
+      score: [...candidate.words].filter((word) => words.has(word)).length,
+    }))
+    .filter(
+      (candidate) =>
+        candidate.score >= 2 ||
+        (candidate.words.size === 1 &&
+          candidate.score === 1 &&
+          !candidates.some((other) => other.topic.id !== candidate.topic.id && [...candidate.words].some((word) => other.words.has(word)))),
+    )
+    .sort((a, b) => b.score - a.score);
+  return matches[0] && matches[0].score !== matches[1]?.score ? matches[0].topic : null;
+}
 
 export const mockMeetingAi: MeetingAi = {
   name: 'mock',
@@ -41,20 +75,7 @@ export const mockMeetingAi: MeetingAi = {
         });
       }
       if (IDEA.test(text)) {
-        const words = new Set(text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
-        const matches = (input.topics ?? [])
-          .map((topic) => ({
-            topic,
-            score: (topic.title.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter(
-              (word) =>
-                (word.length > 2 || /\p{Script=Hangul}/u.test(word)) &&
-                !['what', 'should', 'about', 'ideas', 'could', 'with', 'the', 'for', 'how'].includes(word) &&
-                words.has(word),
-            ).length,
-          }))
-          .filter((match) => match.score > 0)
-          .sort((a, b) => b.score - a.score);
-        const matched = matches[0] && matches[0].score !== matches[1]?.score ? matches[0].topic : null;
+        const matched = matchTopic(text, input.topics ?? []);
         if (matched) {
           raw.ideas.push({
             topicId: matched.id,

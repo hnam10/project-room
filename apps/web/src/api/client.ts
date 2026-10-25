@@ -13,6 +13,7 @@ import type {
   ProjectFile,
   ProjectUpdateInput,
   Suggestion,
+  SuggestionApproveInput,
   SuggestionUpdateInput,
   Task,
   TaskCreateInput,
@@ -138,7 +139,7 @@ export const api = {
 
   updateSuggestion: (projectId: string, suggestionId: string, input: SuggestionUpdateInput) =>
     request<Suggestion>('PATCH', `${p(projectId)}/suggestions/${suggestionId}`, input),
-  approveSuggestion: (projectId: string, suggestionId: string, options: { assigneeId?: string; topicId?: string } = {}) =>
+  approveSuggestion: (projectId: string, suggestionId: string, options: SuggestionApproveInput = {}) =>
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/approve`, options),
   dismissSuggestion: (projectId: string, suggestionId: string) =>
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/dismiss`),

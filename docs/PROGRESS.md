@@ -5,6 +5,13 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **CodeRabbit brainstorm fixes (PR #24).** Topic-change proposals appear on their target
+  board, name that board in the card and modal, and require destructive confirmation and the exact
+  `replaceTopicId` on approval. The shared inbox contains only new-topic proposals. Mock meeting idea
+  routing rejects generic single-word overlaps, repeated-word bias and tied matches. Explicit meeting
+  scopes now use an atomic topic/version guard when storing suggestions, including resets between the
+  validation read and write. Full check passes with 241 tests; API and web builds pass.
+
 - 2026-10-24 — **Brainstorming integrated with current main.** Resolved the meeting provider, tests and
   documentation conflicts while retaining file context, OpenAI/Nebius routing, topic-scoped ideas and
   duplicate-topic checks. Full `npm run check` passes with all 235 tests after rebuilding shared outputs

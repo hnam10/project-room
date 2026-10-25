@@ -1,4 +1,4 @@
-import type { Suggestion } from '@project-room/shared';
+import type { Suggestion, SuggestionApproveInput } from '@project-room/shared';
 import { ConflictError } from '../db/records.js';
 import { createDecision } from '../repositories/decisions.js';
 import { attachIdeaResearch } from '../repositories/ideas.js';
@@ -12,7 +12,7 @@ export async function approveSuggestion(
   projectId: string,
   suggestionId: string,
   memberId: string,
-  options: { assigneeId?: string | null; topicId?: string | null } = {},
+  options: SuggestionApproveInput = {},
 ): Promise<Suggestion> {
   const suggestion = await getSuggestion(projectId, suggestionId);
   if (suggestion.status !== 'pending') throw new ConflictError(`Suggestion is already ${suggestion.status}`);
@@ -59,7 +59,7 @@ export async function approveSuggestion(
     case 'idea':
       return approveIdea(projectId, suggestion, memberId, options.topicId);
     case 'brainstorm_topic':
-      return approveBrainstormTopic(projectId, suggestion, memberId);
+      return approveBrainstormTopic(projectId, suggestion, memberId, options.replaceTopicId);
     case 'poll':
       return approvePoll(projectId, suggestion, memberId);
     case 'meeting_notes':

@@ -103,6 +103,8 @@ prototype/         the first static prototype; do not build on it
   tasks or decisions already created are unaffected. New AI topics never replace a topic automatically.
 - Meeting idea suggestions must identify a relevant existing topic, retain its `topicId`, and display
   its title. Skip ideas without a clear topic match; a proposed new topic must be approved first.
+- Topic-change proposals name the board they replace and require explicit confirmation of that target
+  before clearing it. Only proposals for new topics appear in the shared new-topic inbox.
 
 ## Engineering conventions
 

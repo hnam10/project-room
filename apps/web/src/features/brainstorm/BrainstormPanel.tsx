@@ -43,7 +43,10 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const aiBusy = !!problem && busyTopics.includes(problem.id);
 
   const pendingTopics = snapshot.suggestions.filter(
-    (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic',
+    (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic' && !suggestion.ideaId,
+  );
+  const pendingTopicChanges = snapshot.suggestions.filter(
+    (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic' && suggestion.ideaId === problem?.id,
   );
   const visible = ideas.filter((i) => i.kind !== 'problem' && i.theme !== 'Strategy' && (theme === 'all' || i.theme === theme));
   const strategies = ideas.filter((idea) => idea.kind !== 'problem' && idea.theme === 'Strategy');
@@ -299,6 +302,9 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                 </>
               )}
             </div>
+            {pendingTopicChanges.map((suggestion) => (
+              <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
+            ))}
             {problem && (
               <>
                 <section className="brainstorm-support" aria-labelledby="brainstorm-support-title">

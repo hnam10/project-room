@@ -28,3 +28,5 @@ The rules that matter most when suggesting code:
   topic's board on approval. Inbox idea drafts need a topic selection when approved.
 - Meeting idea proposals must identify a relevant existing topic and store its `topicId`; skip ideas
   without a clear match. Show that topic on the suggestion. New topic proposals stay separate until approved.
+- Topic changes name their target board and require `replaceTopicId` confirmation on approval. The shared
+  new-topic inbox contains only new-board proposals; changes appear on their target board.

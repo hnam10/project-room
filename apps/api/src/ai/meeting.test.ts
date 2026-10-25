@@ -158,6 +158,45 @@ describe('reason and quote caps', () => {
 });
 
 describe('mock meeting AI', () => {
+  it('does not route ideas using generic or repeated words or a tied topic match', async () => {
+    for (const { title, topics } of [
+      { title: 'What if we add student meal discounts?', topics: [{ id: 'housing', title: 'Plan student housing', description: '' }] },
+      { title: 'How about we can add a new app?', topics: [{ id: 'audio', title: 'How can we fix audio?', description: '' }] },
+      {
+        title: 'What if we make a dinner menu?',
+        topics: [
+          { id: 'a', title: 'Dinner dinner dinner planning', description: '' },
+          { id: 'b', title: 'Dinner choices', description: '' },
+        ],
+      },
+      {
+        title: 'How about dark mode?',
+        topics: [
+          { id: 'a', title: 'Dark mode appearance', description: '' },
+          { id: 'b', title: 'Dark mode settings', description: '' },
+        ],
+      },
+    ]) {
+      const out = await mockMeetingAi.meetingTick({
+        ...input,
+        topics,
+        lines: [{ id: 'm1', speakerId: 'alex', speakerName: 'Alex', text: title }],
+      });
+      expect(out.ideas).toEqual([]);
+    }
+  });
+
+  it('routes a specific idea to the matching topic among multiple boards', async () => {
+    const out = await mockMeetingAi.meetingTick({
+      ...input,
+      topics: [
+        { id: 'meals', title: 'Dinner choices', description: '' },
+        { id: 'audio', title: 'Fix audio playback', description: '' },
+      ],
+      lines: [{ id: 'm1', speakerId: 'alex', speakerName: 'Alex', text: 'How about audio playback diagnostics?' }],
+    });
+    expect(out.ideas).toMatchObject([{ topicId: 'audio' }]);
+  });
   it('proposes a ticket, an idea and a poll from cue phrases', async () => {
     const out = await mockMeetingAi.meetingTick(input);
     expect(out.actionItems).toMatchObject([{ assigneeId: 'alex', sourceLineId: 'l1' }]);

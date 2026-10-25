@@ -6,7 +6,8 @@ import { createApp } from './app.js';
 import { closeDb, connectDb, getDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { createSuggestion } from './repositories/suggestions.js';
-import { migrateLegacyTopics } from './repositories/brainstorm-topics.js';
+import { migrateLegacyTopics, resetTopic } from './repositories/brainstorm-topics.js';
+import * as queries from './db/query.js';
 import { researchWeb } from './services/research.js';
 import { runBrainstormAction } from './services/brainstorm.js';
 import { rid } from './db/records.js';
@@ -173,7 +174,9 @@ it('requires inbox ideas to choose a topic and binds the approved suggestion to 
 
 it('explicit approval of an existing topic change clears its board and preserves the approval record', async () => {
   const a = await topic();
-  await card(a.id);
+  const original = await card(a.id);
+  const b = await topic('Other board');
+  const other = await card(b.id);
   const draft = await createSuggestion('hackathon', {
     kind: 'brainstorm_topic',
     title: 'Change topic',
@@ -181,12 +184,58 @@ it('explicit approval of an existing topic change clears its board and preserves
     ideaId: a.id,
     ideaDraft: { title: 'A different direction', description: 'New constraints', theme: 'Option' },
   });
-  const approved = await call<Suggestion>('POST', `/suggestions/${draft.id}/approve`, {});
+  expect((await call('POST', `/suggestions/${draft.id}/approve`, {})).status).toBe(409);
+  expect((await call('POST', `/suggestions/${draft.id}/approve`, { replaceTopicId: b.id })).status).toBe(409);
+  expect((await snapshot()).ideas.map((idea) => idea.id)).toEqual(expect.arrayContaining([original.id, other.id]));
+  const approved = await call<Suggestion>('POST', `/suggestions/${draft.id}/approve`, { replaceTopicId: a.id });
   expect(approved.status).toBe(200);
   expect(approved.body.status).toBe('approved');
   const state = await snapshot();
   expect(state.ideas.find((item) => item.id === a.id)?.title).toBe('A different direction');
   expect(state.ideas.filter((item) => item.topicId === a.id)).toEqual([]);
+  expect(state.ideas.find((item) => item.id === other.id)).toEqual(other);
+});
+
+it.each(['all', 'ideas', 'delete'] as const)(
+  'rejects explicit meeting suggestions if the topic resets (%s) immediately before storage',
+  async (mode) => {
+    const a = await topic();
+    const originalQuery = queries.queryOne;
+    const intercept = vi.spyOn(queries, 'queryOne').mockImplementationOnce(async (...args) => {
+      await resetTopic('hackathon', a.id, mode);
+      return originalQuery(...args);
+    });
+    try {
+      await expect(
+        createSuggestion('hackathon', {
+          topicId: a.id,
+          topicVersion: a.boardVersion,
+          kind: 'idea',
+          title: 'Stale meeting idea',
+          reason: 'Old context',
+          ideaDraft: { title: 'Old draft', description: '', theme: 'Option' },
+        }),
+      ).rejects.toThrow(/topic changed/i);
+    } finally {
+      intercept.mockRestore();
+    }
+    expect((await snapshot()).suggestions).toEqual([]);
+  },
+);
+
+it('rejects a meeting suggestion whose captured topic version is already stale', async () => {
+  const a = await topic();
+  await resetTopic('hackathon', a.id, 'all');
+  await expect(
+    createSuggestion('hackathon', {
+      topicId: a.id,
+      topicVersion: a.boardVersion,
+      kind: 'idea',
+      title: 'Outdated draft',
+      reason: 'Old context',
+    }),
+  ).rejects.toThrow(/topic changed/i);
+  expect((await snapshot()).suggestions).toEqual([]);
 });
 
 it('coalesces simultaneous topic preparation requests', async () => {
