@@ -27,6 +27,16 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Research survives AI service limits.** Reproduced the fitness-topic failure as an
+  upstream daily-token 429. Topic preparation now retains web sources and reports unavailable AI
+  summaries/strategies explicitly instead of aborting the whole board. Unsummarized source cards are
+  labelled honestly and pending cards recover summaries on a later manual retry. No strategy is faked,
+  and no provider/model/key is changed. Collapsed sections show AI unavailable; upstream AI failures
+  outside preparation return a clear 503. Live isolated-memory verification returned two research cards
+  while the real strategy call was rate limited. Full check passes with 258 tests; both builds pass.
+  Direct and proxied local API health checks returned 200. The browser session could not reopen its
+  authenticated project, so the new status label remains browser-unverified; availability is covered by API tests.
+
 - 2026-10-25 — **Fixed live strategy JSON failures.** Reproduced a provider 400 when generated
   deferred-scope entries did not match the nested nullable response schema. Topic preparation now
   requests the roadmap directly at the JSON root, with explicit nested-shape examples; other stages

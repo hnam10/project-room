@@ -8,6 +8,7 @@ import {
   type Suggestion,
 } from '@project-room/shared';
 import { getAiProvider } from '../ai/index.js';
+import { AiRequestError } from '../ai/openai.js';
 import type { AiProvider, BrainstormMode } from '../ai/provider.js';
 import { ConflictError } from '../db/records.js';
 import { getIdea, listIdeas } from '../repositories/ideas.js';
@@ -272,14 +273,49 @@ export async function runBrainstormAction(projectId: string, input: BrainstormAc
 async function prepareTopic(projectId: string, problem: Idea, previous: Suggestion[], manual: boolean): Promise<Suggestion[]> {
   if (!manual && previous.some((item) => item.ideaId === problem.id && item.title.startsWith('Brainstorm checked:'))) return [];
   const ai = getAiProvider();
-  const mode = await ai.classifyBrainstorm({ problem, ideas: [] });
+  let mode: BrainstormMode = 'unclear';
+  let aiFailure: string | null = null;
+  const recordFailure = (error: unknown) => {
+    console.error('Brainstorm preparation AI unavailable', error);
+    aiFailure =
+      error instanceof AiRequestError && error.status === 429
+        ? 'The AI service has reached its usage limit. Retry Research again after the provider limit resets.'
+        : 'AI guidance is temporarily unavailable. Retry Research again later.';
+  };
+  try {
+    mode = await ai.classifyBrainstorm({ problem, ideas: [] });
+  } catch (error) {
+    recordFailure(error);
+  }
   const search = await researchWeb(`${problem.title} ${problem.description.slice(0, 160)} research approaches`);
   const results = search.error ? [] : similarWebResults(problem, search.results);
-  const summaries = results.length ? await ai.summarizeResearch({ idea: problem, results }) : [];
+  let summaries: { url: string; summary: string }[] = [];
+  if (results.length && !aiFailure) {
+    try {
+      summaries = await ai.summarizeResearch({ idea: problem, results });
+    } catch (error) {
+      recordFailure(error);
+    }
+  }
+  const unsummarized = !!aiFailure;
+  if (unsummarized)
+    summaries = results.map((source) => ({
+      url: source.url,
+      summary: 'Source found for this topic. An AI summary is unavailable; open the source to assess its relevance.',
+    }));
   const created: Suggestion[] = [];
   for (const summary of summaries) {
     const source = results.find((item) => item.url === summary.url);
-    if (!source || isCopiedResearch(summary.summary, source.content)) continue;
+    if (!source || (!unsummarized && isCopiedResearch(summary.summary, source.content))) continue;
+    const sourceId = idFor(projectId, problem.id, String(problem.boardVersion), source.url);
+    const reason = unsummarized
+      ? 'Web source found; AI summary unavailable. Review the linked source directly.'
+      : `${RESEARCH_SUMMARY_REASON} for “${problem.title}”${ai.isMock ? ' (mock AI)' : ''}. Review the source.`;
+    const existing = previous.find((item) => item.id === sourceId);
+    if (!unsummarized && existing?.status === 'pending' && existing.reason.includes('AI summary unavailable')) {
+      created.push(await updateSuggestionResearchSummary(projectId, existing.id, summary.summary, reason));
+      continue;
+    }
     created.push(
       await createSuggestion(
         projectId,
@@ -287,17 +323,24 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
           kind: 'brainstorm_analysis',
           title: `Topic research: ${source.title}`,
           proposal: summary.summary.replace(/\s+/g, ' ').trim().slice(0, 400),
-          reason: `${RESEARCH_SUMMARY_REASON} for “${problem.title}”${ai.isMock ? ' (mock AI)' : ''}. Review the source.`,
+          reason,
           ideaId: problem.id,
           brainstormTrigger: 'problem_created',
           researchSources: [{ title: source.title, url: source.url }],
         },
-        idFor(projectId, problem.id, String(problem.boardVersion), source.url),
+        sourceId,
       ),
     );
   }
-  const output = await ai.facilitateBrainstorm({ trigger: 'problem_created', problem, ideas: [], research: results, mode });
-  const strategyDescription = output.strategy ? JSON.stringify(output.strategy, null, 2) : output.summary.trim();
+  let strategyDescription = '';
+  if (!aiFailure) {
+    try {
+      const output = await ai.facilitateBrainstorm({ trigger: 'problem_created', problem, ideas: [], research: results, mode });
+      strategyDescription = output.strategy ? JSON.stringify(output.strategy, null, 2) : output.summary.trim();
+    } catch (error) {
+      recordFailure(error);
+    }
+  }
   if (strategyDescription)
     created.push(
       await createSuggestion(
@@ -317,13 +360,15 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
     await createSuggestion(projectId, {
       kind: 'brainstorm_analysis',
       title: 'Topic research status',
-      proposal: !search.configured
-        ? 'Web research is not configured. These strategies use the topic context. You can add ideas or retry research later.'
-        : search.error
-          ? 'Web research is temporarily unavailable. You can add ideas or retry research.'
-          : created.some((item) => item.researchSources.length)
-            ? 'Research is ready. Review the sources and strategy, then add your ideas.'
-            : 'No reliable matching sources were found. Review the strategy, add context to your topic, or try research again.',
+      proposal: aiFailure
+        ? `${aiFailure} ${results.length ? 'Web sources are available to review.' : search.error ? 'Web search is also temporarily unavailable.' : !search.configured ? 'Web research is not configured.' : 'No matching web sources were found.'} You can still add ideas.`
+        : !search.configured
+          ? 'Web research is not configured. These strategies use the topic context. You can add ideas or retry research later.'
+          : search.error
+            ? 'Web research is temporarily unavailable. You can add ideas or retry research.'
+            : created.some((item) => item.researchSources.length)
+              ? 'Research is ready. Review the sources and strategy, then add your ideas.'
+              : 'No reliable matching sources were found. Review the strategy, add context to your topic, or try research again.',
       reason: 'Research availability and next step for this topic.',
       ideaId: problem.id,
       brainstormTrigger: 'problem_created',

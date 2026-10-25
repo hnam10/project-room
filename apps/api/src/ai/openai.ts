@@ -80,6 +80,17 @@ export interface OpenAiClient {
 /** A provider generated invalid JSON, rather than rejecting the request schema or credentials. */
 class StructuredGenerationError extends Error {}
 
+/** A failed upstream request, allowing callers to distinguish service limits from malformed output. */
+export class AiRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    detail: string,
+  ) {
+    super(`AI request failed (${status}): ${detail}`);
+    this.name = 'AiRequestError';
+  }
+}
+
 export function createOpenAiClient(apiKey: string, baseUrl: string): OpenAiClient {
   const endpoint = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
@@ -100,7 +111,7 @@ export function createOpenAiClient(apiKey: string, baseUrl: string): OpenAiClien
           if (error instanceof StructuredGenerationError) throw error;
         }
       }
-      throw new Error(`AI request failed (${res.status}): ${text.slice(0, 300)}`);
+      throw new AiRequestError(res.status, text.slice(0, 300));
     }
     return (await res.json()) as ChatResponse;
   }

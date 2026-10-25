@@ -39,6 +39,11 @@ Product plans lead to a realistically scoped MVP; other topics use a proportiona
 The provider requests this roadmap directly at the JSON root, avoiding a nested nullable strategy
 wrapper and unrelated tasks/ideas fields. The shared structured client retries generation/JSON validation
 failures up to twice with correction feedback; request, auth, rate-limit and service errors are not retried.
+Topic preparation isolates AI failures from web search: sources can still be reviewed with an explicit
+unavailable-summary notice, and strategy failures preserve completed research. A later manual retry
+refreshes pending unavailable-summary cards. `AiRequestError` carries upstream status for safe availability
+messages; other routes map it to 503 rather than exposing provider details. Preparation records a completed
+availability check so teams can add their own ideas even when AI is unavailable.
 `strategyPlanSchema` defines goal, context, ranked assumptions, evidence/status/source URLs, recommendation,
 roadmap steps and scope. Each step requires focus, why, action, deliverable, successCriterion and nextStep.
 Plans are serialized as JSON in the existing strategy description field (up to `STRATEGY_DESCRIPTION_MAX`,

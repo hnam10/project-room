@@ -43,6 +43,10 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const automaticAttempts = useRef(new Set<string>());
   const [busyTopics, setBusyTopics] = useState<string[]>([]);
   const aiBusy = !!problem && busyTopics.includes(problem.id);
+  const researchStatus = suggestions.find(
+    (item) => item.kind === 'brainstorm_analysis' && item.title === 'Topic research status',
+  )?.proposal;
+  const aiUnavailable = /usage limit|AI guidance is temporarily unavailable/.test(researchStatus ?? '');
 
   const pendingTopics = snapshot.suggestions.filter(
     (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic' && !suggestion.ideaId,
@@ -306,13 +310,13 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                           Researching…
                         </span>
                       )}
+                      {!aiBusy && aiUnavailable && <span className="brainstorm-section-status">AI unavailable</span>}
                     </summary>
                     <div className="brainstorm-disclosure-content">
                       <BrainstormGuide ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} attempted={automaticAttempts} />
-                      {suggestions.find((item) => item.kind === 'brainstorm_analysis' && item.title === 'Topic research status')
-                        ?.proposal && (
+                      {researchStatus && (
                         <p className="brainstorm-research-status" role="status">
-                          {suggestions.find((item) => item.title === 'Topic research status')?.proposal}
+                          {researchStatus}
                         </p>
                       )}
                       {problem.researchSources.length > 0 && (
@@ -339,9 +343,12 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                   <details className="brainstorm-disclosure">
                     <summary>
                       Strategies <span className="brainstorm-section-count">{pendingStrategies.length + strategies.length}</span>
+                      {!aiBusy && aiUnavailable && <span className="brainstorm-section-status">AI unavailable</span>}
                     </summary>
                     <div className="brainstorm-disclosure-content">
-                      {pendingStrategies.length === 0 && strategies.length === 0 && <p>No strategies yet.</p>}
+                      {pendingStrategies.length === 0 && strategies.length === 0 && (
+                        <p>{aiUnavailable ? researchStatus : 'No strategies yet.'}</p>
+                      )}
                       <div className="brainstorm-strategy-grid">
                         {pendingStrategies.map((suggestion) => (
                           <BrainstormSuggestionCard key={suggestion.id} suggestion={suggestion} />

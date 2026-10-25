@@ -15,6 +15,8 @@ import { createMessage, listMessages } from './repositories/messages.js';
 import { onMessagePosted } from './services/ai-engine.js';
 import { parseChatCommand } from './services/chat-commands.js';
 import { readStrategyPlan } from '@project-room/shared';
+import { getAiProvider } from './ai/index.js';
+import { AiRequestError } from './ai/openai.js';
 
 vi.mock('./services/research.js', () => ({ researchWeb: vi.fn() }));
 let server: Server;
@@ -173,6 +175,56 @@ it('keeps non-product preparation practical rather than imposing an MVP roadmap'
   expect(readStrategyPlan(guidance)?.steps[0]?.deliverable).toBeTruthy();
   expect(guidance).not.toContain('MVP');
   expect(guidance).not.toContain('Interview');
+});
+
+it('keeps web research available when AI classification is rate limited, then recovers summaries on retry', async () => {
+  const problem = await topic('Fitness app for students with limited equipment');
+  web.mockResolvedValue({
+    configured: true,
+    error: null,
+    results: [
+      {
+        title: 'Student fitness app',
+        url: 'https://example.com/fitness',
+        content: 'This fitness app offers students bodyweight workouts without exercise equipment, designed for small spaces.',
+      },
+    ],
+  });
+  const classify = vi.spyOn(getAiProvider(), 'classifyBrainstorm').mockRejectedValueOnce(new AiRequestError(429, 'Daily token limit'));
+  const first = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  classify.mockRestore();
+  expect(first.status).toBe(201);
+  const source = first.body.find((item) => item.researchSources.length > 0)!;
+  expect(source.researchSources[0]?.url).toBe('https://example.com/fitness');
+  expect(source.proposal).toContain('summary is unavailable');
+  expect(first.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(false);
+  expect(first.body.find((item) => item.title === 'Topic research status')?.proposal).toContain('usage limit');
+  const retry = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
+  expect(retry.status).toBe(201);
+  expect(retry.body.find((item) => item.id === source.id)?.reason).not.toContain('summary unavailable');
+  expect(retry.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(true);
+});
+
+it('returns research and an honest status if strategy generation fails', async () => {
+  const problem = await topic('Fitness app for students with limited equipment');
+  web.mockResolvedValue({
+    configured: true,
+    error: null,
+    results: [
+      {
+        title: 'Student fitness app',
+        url: 'https://example.com/fitness',
+        content: 'This fitness app offers students bodyweight workouts without exercise equipment, designed for small spaces.',
+      },
+    ],
+  });
+  const generate = vi.spyOn(getAiProvider(), 'facilitateBrainstorm').mockRejectedValueOnce(new Error('Invalid strategy JSON'));
+  const result = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  generate.mockRestore();
+  expect(result.status).toBe(201);
+  expect(result.body.some((item) => item.researchSources.length > 0)).toBe(true);
+  expect(result.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(false);
+  expect(result.body.find((item) => item.title === 'Topic research status')?.proposal).toContain('AI guidance is temporarily unavailable');
 });
 
 it('requires a topic and explicit selection when more than one exists', async () => {

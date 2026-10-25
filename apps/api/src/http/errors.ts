@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { ConflictError, ForbiddenError, NotFoundError } from '../db/records.js';
+import { AiRequestError } from '../ai/openai.js';
 
 export function notFoundRoute(_req: Request, res: Response): void {
   res.status(404).json({ error: 'Not found' });
@@ -8,6 +9,16 @@ export function notFoundRoute(_req: Request, res: Response): void {
 
 // Express 5 forwards rejected promises from async handlers here.
 export function errorHandler(error: unknown, _req: Request, res: Response, _next: NextFunction): void {
+  if (error instanceof AiRequestError) {
+    console.error(error);
+    res.status(503).json({
+      error:
+        error.status === 429
+          ? 'The AI service has reached its usage limit. Try again after the provider limit resets.'
+          : 'The AI service is temporarily unavailable. Please try again later.',
+    });
+    return;
+  }
   if (error instanceof ZodError) {
     res.status(400).json({ error: 'Invalid request', issues: error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) });
     return;
