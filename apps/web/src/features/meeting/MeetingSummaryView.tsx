@@ -157,7 +157,7 @@ export function MeetingSummaryView(props: {
         ) : null,
       )}
       <details>
-        <summary>Transcript ({lines.length} lines)</summary>
+        <summary>Transcript</summary>
         <TranscriptView lines={lines} interim="" />
       </details>
       <p className="meeting-note-small">
