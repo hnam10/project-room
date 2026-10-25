@@ -234,7 +234,7 @@
 }
 .insight {
   padding: 12px 14px;
-  /* Decisions and deadline risks wait for review: dashed purple (they land in Decisions or on the task board). */
+  /* Deadline risks wait for review: dashed purple (approving assigns the task on the board). */
   border: 1.5px dashed var(--accent);
   border-radius: 9px;
   background: var(--surface);
