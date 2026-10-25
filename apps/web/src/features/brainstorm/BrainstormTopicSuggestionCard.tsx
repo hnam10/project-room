@@ -38,7 +38,7 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
       });
       applyRecord('suggestion', await api.approveSuggestion(projectId, suggestion.id));
       reload();
-      toast(suggestion.ideaId ? 'Brainstorm topic updated' : 'Brainstorm topic set');
+      toast(suggestion.ideaId ? 'Brainstorm topic updated' : 'New brainstorm topic added');
       setReviewing(false);
     } catch (error) {
       toastError(error);
@@ -50,7 +50,7 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
   return (
     <article className="brainstorm-topic-draft">
       <strong className="ai-draft-label">
-        <Icon name="sparkle" /> AI topic · review required
+        <Icon name="sparkle" /> {suggestion.ideaId ? 'Topic change' : 'New topic'} · review required
       </strong>
       <h3>{draft.title}</h3>
       <IdeaDetails description={draft.description} />
@@ -65,9 +65,10 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
       {suggestion.ideaId && (
         <p>Approving replaces this topic and clears all of its ideas, research, strategies and drafts. Other topic boards stay in place.</p>
       )}
+      {!suggestion.ideaId && <p>Creates a separate topic tab with its own brainstorming board.</p>}
       <div className="action-buttons">
         <button className="btn success sm" disabled={busy} onClick={() => setReviewing(true)}>
-          Review &amp; {suggestion.ideaId ? 'update topic' : 'set topic'}
+          Review &amp; {suggestion.ideaId ? 'update topic' : 'add topic'}
         </button>
         <button className="btn sm" disabled={busy} onClick={() => void dismiss()}>
           Dismiss
@@ -75,8 +76,8 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
       </div>
       <Modal
         open={reviewing}
-        title={suggestion.ideaId ? 'Review topic change' : 'Review brainstorm topic'}
-        eyebrow="The topic changes only when you approve"
+        title={suggestion.ideaId ? 'Review topic change' : 'Review new brainstorm topic'}
+        eyebrow={suggestion.ideaId ? 'The topic changes only when you approve' : 'Add a separate board for this topic'}
         onClose={() => setReviewing(false)}
         onSubmit={() => void approve()}
         footer={
@@ -85,7 +86,7 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
               Cancel
             </button>
             <button className="btn primary" disabled={busy || !title.trim()}>
-              {suggestion.ideaId ? 'Update topic' : 'Set topic'}
+              {suggestion.ideaId ? 'Update topic' : 'Add topic'}
             </button>
           </>
         }

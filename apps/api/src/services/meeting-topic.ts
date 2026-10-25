@@ -8,7 +8,7 @@ const key = (title: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 
-/** Keep one reviewable topic per meeting while leaving all idea suggestions pending. */
+/** Propose distinct new topic boards without changing existing boards or pending ideas. */
 export async function proposeMeetingTopic(
   projectId: string,
   meetingId: string,
@@ -23,8 +23,8 @@ export async function proposeMeetingTopic(
     suggestions.some(
       (suggestion) =>
         suggestion.kind === 'brainstorm_topic' &&
-        (suggestion.meetingId === meetingId ||
-          (suggestion.status === 'pending' && key(suggestion.ideaDraft?.title ?? '') === key(topic.title))),
+        key(suggestion.ideaDraft?.title ?? '') === key(topic.title) &&
+        (suggestion.meetingId === meetingId || suggestion.status === 'pending'),
     )
   )
     return null;

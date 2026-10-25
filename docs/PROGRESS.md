@@ -5,6 +5,13 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Meeting topics use a shared proposal inbox.** New topic proposals appear above the
+  topic tabs, with an explicit Add topic action that creates a separate board. Meetings can propose
+  multiple distinct topics while repeated titles remain suppressed; approval preserves existing topics
+  and pending ideas. Topic tabs use visible inactive backgrounds and borders, with board-aligned
+  margins. All 195 tests, lint, typecheck and the web build pass. Checked styling and switching two
+  existing topic tabs in Edge; meeting approval isolation is covered by the API regression test.
+
 - 2026-10-24 — **Stable research controls across topic tabs.** Research loading state belongs to each
   topic, so background work on another board does not flash Working on the selected board. The guide
   keeps its attempted research states across topic and view switches, and duplicate in-flight requests

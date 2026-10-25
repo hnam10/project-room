@@ -241,6 +241,15 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
           <div className="empty-state">{tab === 'mindmap' ? 'Mind map' : 'Notes'} isn’t built yet — planned for a later iteration.</div>
         ) : (
           <>
+            {pendingTopics.length > 0 && (
+              <section className="brainstorm-topic-inbox" aria-label="New topics from conversations">
+                <h2>New topics from conversations</h2>
+                <p>Approve a proposal to add a separate topic tab with its own board.</p>
+                {pendingTopics.map((suggestion) => (
+                  <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
+                ))}
+              </section>
+            )}
             {topics.length > 0 && (
               <div className="brainstorm-topics" role="tablist" aria-label="Brainstorm topics">
                 {topics.map((topic) => (
@@ -290,9 +299,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                 </>
               )}
             </div>
-            {pendingTopics.map((suggestion) => (
-              <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
-            ))}
             {problem && (
               <>
                 <section className="brainstorm-support" aria-labelledby="brainstorm-support-title">

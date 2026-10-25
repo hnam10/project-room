@@ -213,6 +213,22 @@ describe('live meeting pipeline', () => {
         sourceLineId: null,
       },
     }));
+    const previousTopics = (await listIdeas('hackathon')).filter((item) => item.kind === 'problem');
+    const nextTopic = (await runLiveTick('hackathon', meetingId, revised.ai)).find((s) => s.kind === 'brainstorm_topic')!;
+    expect(nextTopic).toMatchObject({
+      status: 'pending',
+      ideaId: null,
+      topicId: null,
+      ideaDraft: { title: 'How should we organize mentoring?' },
+    });
+    expect((await listIdeas('hackathon')).filter((item) => item.kind === 'problem')).toEqual(previousTopics);
+    expect((await post(`/suggestions/${nextTopic.id}/approve`)).status).toBe(200);
+    const topicsAfterApproval = (await listIdeas('hackathon')).filter((item) => item.kind === 'problem');
+    expect(topicsAfterApproval).toHaveLength(previousTopics.length + 1);
+    for (const previousTopic of previousTopics) expect(topicsAfterApproval).toContainEqual(previousTopic);
+    expect((await listSuggestions('hackathon')).find((s) => s.id === idea.id)?.status).toBe('pending');
+
+    await speak('Let us keep exploring mentoring.');
     expect((await runLiveTick('hackathon', meetingId, revised.ai)).some((s) => s.kind === 'brainstorm_topic')).toBe(false);
   });
 

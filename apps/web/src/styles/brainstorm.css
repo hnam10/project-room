@@ -359,11 +359,12 @@
 }
 .brainstorm-topics {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
   overflow-x: auto;
-  padding: 2px 0 12px;
-  border-bottom: 1px solid var(--border);
+  margin: 14px 16px 0;
+  padding: 0 0 8px;
+  border-bottom: 2px solid var(--line-strong);
 }
 .brainstorm-topic-tab {
   flex: 0 0 auto;
@@ -371,12 +372,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--muted);
-  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 3px;
+  border-radius: 9px 9px 3px 3px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  padding: 10px 14px;
+  font-weight: 600;
   cursor: pointer;
+}
+.brainstorm-topic-tab:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.brainstorm-topic-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .brainstorm-topic-tab.active {
   background: var(--accent-weak);
@@ -387,6 +398,25 @@
 .brainstorm-topics > .btn {
   flex: 0 0 auto;
   white-space: nowrap;
+}
+.brainstorm-topic-inbox {
+  margin: 14px 16px 0;
+  padding: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+.brainstorm-topic-inbox h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.brainstorm-topic-inbox > p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.brainstorm-topic-inbox .brainstorm-topic-draft {
+  margin: 12px 0 0;
 }
 .brainstorm-research-status {
   padding: 10px 12px;

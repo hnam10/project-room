@@ -136,9 +136,11 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
   come from `RTC_ICE_SERVERS`.
 - **Live AI:** new lines trigger `MeetingAi` (separate from `AiProvider`; fast model, running summary + new lines) which stores
   `brainstorm_topic` / `action_items` / `idea` / `poll` suggestions. A tick runs after 40 new words (at most every 20s) or 15 words then 8s of silence; a meeting is capped at 150 AI calls. Members approve them; AI never writes tasks, ideas or polls.
-- **Topic review:** a live meeting proposes at most one pending topic, separate from its ideas. The end summary
-  can propose a topic from the full transcript if live analysis missed it. The topic appears in the meeting and
-  Brainstorm views; idea drafts remain pending after the meeting and after topic approval.
+- **Topic review:** a live meeting can propose distinct new topics, separate from its ideas; matching titles
+  from the same meeting and pending matching proposals are suppressed. The end summary can propose a topic
+  from the full transcript if live analysis missed it. New proposals appear in the meeting and in a shared
+  inbox above Brainstorm's topic tabs. Approval creates a separate board; existing topics and pending idea
+  drafts remain intact.
 - **End:** `POST /meetings/:id/end` summarizes on the main model into `meeting.summary` plus a `meeting_notes`
   suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
   shows a "Last time" card. Summary suggestions use fixed ids (`<meetingId>-summary-topic` / `-summary-actions` / `-summary-notes`) and are
