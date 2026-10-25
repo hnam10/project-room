@@ -8,6 +8,8 @@ export const TASK_LABELS = ['feature', 'frontend', 'backend', 'design', 'docs', 
 // Engagement and Platform remain valid for ideas saved before the simpler categories were introduced.
 export const IDEA_THEMES = ['Option', 'Product', 'Strategy', 'Engagement', 'Platform'] as const;
 export const IDEA_THEME_CHOICES = ['Option', 'Product', 'Strategy'] as const;
+/** Room for a reviewable, step-by-step strategy without truncating its roadmap. */
+export const STRATEGY_DESCRIPTION_MAX = 10000;
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type Priority = (typeof PRIORITIES)[number];

@@ -27,6 +27,17 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Actionable brainstorm strategies.** Topic preparation now requests a specific goal,
+  ranked assumptions, sourced comparisons, a provisional direction and numbered steps with focus/why,
+  action, deliverable, success criterion and a next-step gate. Student projects get an evidence-to-MVP
+  roadmap and explicit scope/deferred features; non-product topics get proportionate guidance instead.
+  Strategy drafts and editing support 10,000 characters, preserve line breaks and use full-width cards.
+  Direct ideas keep their short entry/preview limits. Research again can create a new reviewable roadmap
+  without changing saved strategies. The labelled mock offers a planning template, never fake findings.
+  Full check passes with 250 tests, including long-strategy review/approval/edit/refresh and non-product
+  guidance; API and web builds pass. Browser verification was blocked by an unreachable API and a database
+  file locked by another process; that process was left untouched.
+
 - 2026-10-24 — **Sidebar cleanup.** Removed the placeholder Project Room workspace dropdown above
   the organization switcher, along with its unused styles and toast.
 

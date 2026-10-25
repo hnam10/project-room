@@ -127,6 +127,14 @@
 .brainstorm-strategy-grid .ai-idea-draft {
   grid-column: auto;
 }
+.brainstorm-strategy-grid > .idea {
+  grid-column: 1 / -1;
+}
+.brainstorm-strategy-grid .idea-details p {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
 .brainstorm-guide-head,
 .brainstorm-problem {
   display: flex;

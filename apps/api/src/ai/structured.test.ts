@@ -24,6 +24,35 @@ const tasks = [
 ];
 
 describe('structured provider', () => {
+  it('preserves a full preparation roadmap while keeping later guidance short and preparation drafts reviewable', async () => {
+    const roadmap =
+      'Goal: Validate the fitness app hypothesis.\n\n' +
+      'Action: Interview users; Deliverable: notes; Success: repeated barrier; Next: revise or proceed.\n'.repeat(40);
+    const { provider, parse } = providerReturning({
+      summary: roadmap,
+      ideas: [{ title: 'Premature solution' }],
+      tasks: [{ title: 'Premature task' }],
+    });
+    const input = {
+      trigger: 'problem_created' as const,
+      problem: { title: 'Fitness app for students with limited equipment', description: '' },
+      ideas: [],
+      research: [],
+      mode: 'product' as const,
+    };
+    const result = await provider.facilitateBrainstorm(input);
+    expect(result.summary).toBe(roadmap.trim());
+    expect(result.summary.length).toBeGreaterThan(2000);
+    expect(result.ideas).toEqual([]);
+    expect(result.tasks).toEqual([]);
+    const prompt = parse.mock.calls[0]![0].content;
+    expect(prompt).toContain('equipment as one hypothesis');
+    expect(prompt).toContain('Deliverable:');
+    expect(prompt).toContain('what would change the recommendation');
+    expect(prompt).toContain('do not impose interviews, market research or a product roadmap');
+    expect(prompt).toContain('never invent competitors, interviews, metrics or feedback');
+  });
+
   it('summarizes supplied research and drops invented source URLs', async () => {
     const { provider, parse } = providerReturning({
       summaries: [

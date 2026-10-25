@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IDEA_THEME_CHOICES, type Idea, type IdeaTheme } from '@project-room/shared';
+import { IDEA_THEME_CHOICES, STRATEGY_DESCRIPTION_MAX, type Idea, type IdeaTheme } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Modal } from '../../components/Modal';
 import { useFeedback } from '../../components/Feedback';
@@ -107,8 +107,8 @@ export function IdeaDialog({
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          maxLength={240}
+          rows={theme === 'Strategy' && kind !== 'problem' ? 14 : 3}
+          maxLength={theme === 'Strategy' && kind !== 'problem' ? STRATEGY_DESCRIPTION_MAX : 240}
           placeholder={kind === 'problem' ? 'Add any context or constraints.' : 'Add any useful details or reasons.'}
         />
       </label>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IDEA_THEME_CHOICES, type IdeaDraft, type IdeaTheme, type Suggestion } from '@project-room/shared';
+import { IDEA_THEME_CHOICES, STRATEGY_DESCRIPTION_MAX, type IdeaDraft, type IdeaTheme, type Suggestion } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
@@ -131,7 +131,7 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
           <textarea
             value={form.description}
             rows={10}
-            maxLength={2000}
+            maxLength={form.theme === 'Strategy' ? STRATEGY_DESCRIPTION_MAX : 2000}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
           />
         </label>

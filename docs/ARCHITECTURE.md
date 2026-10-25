@@ -33,6 +33,14 @@ All records carry `projectId`; repositories always filter by it.
 
 ## The AI action engine
 
+Topic preparation returns a numbered strategy roadmap in `FacilitateResult.summary`: explicit hypotheses,
+evidence/unknowns, a provisional direction, and actions with deliverables, success criteria and decision gates.
+Product plans lead to a realistically scoped MVP; other topics use a proportionate decision/trial plan.
+Strategy text supports up to `STRATEGY_DESCRIPTION_MAX` (10,000 characters) through generation, review,
+approval and editing. Other facilitation summaries retain their short limit. Preparation cannot create
+direct ideas or tasks; the plan remains a reviewable Strategy draft. Manual refresh keys the draft by its
+content, preserving saved guidance while allowing an existing topic to receive the updated roadmap format.
+
 Explicit commands are handled first by `services/chat-commands.ts`, without a model call.
 `@AI create topic Weekend plans` creates that exact topic; `@AI add idea pool to Weekend plans topic`
 adds a member-authored idea to an exact, case-insensitive topic match. Quotes are optional. An omitted

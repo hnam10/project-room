@@ -122,6 +122,48 @@ it('creates unassigned tasks from inline commands and same-member same-channel f
   expect((await snapshot()).tasks).toHaveLength(before + 2);
 });
 
+it('generates a step-by-step strategy and preserves it through review, approval and editing', async () => {
+  const problem = await topic('Fitness app for students with limited equipment');
+  const drafts = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  const strategy = drafts.body.find((item) => item.ideaDraft?.theme === 'Strategy')!;
+  const description = strategy.ideaDraft!.description;
+  expect(description.length).toBeGreaterThan(2000);
+  for (const section of ['Assumptions', 'Provisional direction', 'Focus / Why:', 'Action:', 'Deliverable:', 'Success:', 'Next:', 'Defer'])
+    expect(description).toContain(section);
+  expect(description).toContain('not verified research');
+  const review = await call<Suggestion>('PATCH', `/suggestions/${strategy.id}`, { ideaDraft: strategy.ideaDraft });
+  expect(review.status).toBe(200);
+  expect(review.body.ideaDraft?.description).toBe(description);
+  expect((await call('POST', `/suggestions/${strategy.id}/approve`, {})).status).toBe(200);
+  const saved = (await snapshot()).ideas.find((idea) => idea.theme === 'Strategy')!;
+  expect(saved.description).toBe(description);
+  const edited = await call<Idea>('PATCH', `/ideas/${saved.id}`, {
+    description: description + '\nTeam note: start with interviews.',
+    theme: 'Strategy',
+  });
+  expect(edited.status).toBe(200);
+  expect(edited.body.description).toContain('Team note: start with interviews.');
+  const refreshed = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
+  const refreshedStrategy = refreshed.body.find((item) => item.ideaDraft?.theme === 'Strategy')!;
+  expect(refreshedStrategy.id).not.toBe(strategy.id);
+  expect(refreshedStrategy.status).toBe('pending');
+  expect(refreshedStrategy.ideaDraft!.description.length).toBeGreaterThan(2000);
+  expect((await snapshot()).ideas.find((idea) => idea.id === saved.id)?.description).toBe(edited.body.description);
+  expect(
+    (await call('POST', '/ideas', { topicId: problem.id, title: 'Too much direct detail', description: 'x'.repeat(241) })).status,
+  ).toBe(400);
+});
+
+it('keeps non-product preparation practical rather than imposing an MVP roadmap', async () => {
+  const problem = await topic('What should we eat for dinner?');
+  const drafts = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  const guidance = drafts.body.find((item) => item.ideaDraft?.theme === 'Strategy')!.ideaDraft!.description;
+  expect(guidance).toContain('allergies');
+  expect(guidance).toContain('Deliverable:');
+  expect(guidance).not.toContain('MVP');
+  expect(guidance).not.toContain('Interview');
+});
+
 it('requires a topic and explicit selection when more than one exists', async () => {
   expect((await call('POST', '/ideas', { title: 'Unscoped' })).status).toBe(409);
   expect((await call('POST', '/ideas/actions', { trigger: 'manual' })).status).toBe(409);

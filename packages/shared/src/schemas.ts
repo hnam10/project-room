@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import { ideaDraftSchema, pollDraftSchema } from './meeting.js';
-import { BRAINSTORM_TRIGGERS, IDEA_THEMES, MAX_FILE_BYTES, PRIORITIES, TASK_LABELS, TASK_STATUSES } from './domain.js';
+import {
+  BRAINSTORM_TRIGGERS,
+  IDEA_THEMES,
+  MAX_FILE_BYTES,
+  PRIORITIES,
+  STRATEGY_DESCRIPTION_MAX,
+  TASK_LABELS,
+  TASK_STATUSES,
+} from './domain.js';
 
 // Request bodies accepted by the API. The web app uses the inferred types when calling it.
 
@@ -43,17 +51,22 @@ export const channelCreateSchema = z.object({
 });
 export type ChannelCreateInput = z.input<typeof channelCreateSchema>;
 
-export const ideaCreateSchema = z.object({
-  topicId: id.nullable().optional(),
-  title: z.string().trim().min(1).max(80),
-  description: z.string().trim().max(240).default(''),
-  theme: z.enum(IDEA_THEMES).default('Option'),
-  kind: z.enum(['problem', 'idea']).default('idea'),
-});
+export const ideaCreateSchema = z
+  .object({
+    topicId: id.nullable().optional(),
+    title: z.string().trim().min(1).max(80),
+    description: z.string().trim().max(STRATEGY_DESCRIPTION_MAX).default(''),
+    theme: z.enum(IDEA_THEMES).default('Option'),
+    kind: z.enum(['problem', 'idea']).default('idea'),
+  })
+  .superRefine((idea, ctx) => {
+    if ((idea.kind === 'problem' || idea.theme !== 'Strategy') && idea.description.length > 240)
+      ctx.addIssue({ code: 'custom', path: ['description'], message: 'Keep topic and direct idea details within 240 characters' });
+  });
 export type IdeaCreateInput = z.input<typeof ideaCreateSchema>;
 export const ideaUpdateSchema = z.object({
   title: z.string().trim().min(1).max(80).optional(),
-  description: z.string().trim().max(240).optional(),
+  description: z.string().trim().max(STRATEGY_DESCRIPTION_MAX).optional(),
   theme: z.enum(IDEA_THEMES).optional(),
 });
 export type IdeaUpdateInput = z.input<typeof ideaUpdateSchema>;
