@@ -25,6 +25,7 @@ describe('project memory', () => {
 
   it('scopes a project id and rejects one that is not a path segment', () => {
     expect(projectScope('org_abc')).toBe('project/org_abc');
+    expect(projectScope('org_3KzH02XTbR1zERhgsjjDduXpwBx')).toBe('project/org_3kzh02xtbr1zerhgsjjdduxpwbx');
     expect(projectScope('a/b')).toBeNull();
   });
 
