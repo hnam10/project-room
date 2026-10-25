@@ -123,7 +123,6 @@ function Sidebar() {
   const { snapshot, activeChannelId, setActiveChannelId, connection } = useWorkspace();
   const { me } = useSession();
   const identity = useClerkIdentity(me?.member.id);
-  const { toast } = useFeedback();
   const navigate = useNavigate();
   const [creatingChannel, setCreatingChannel] = useState(false);
   const { channels } = snapshot!;
