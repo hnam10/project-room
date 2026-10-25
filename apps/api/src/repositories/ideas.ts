@@ -1,4 +1,5 @@
 import type { Idea, IdeaCreateInput, IdeaUpdateInput, ResearchSource } from '@project-room/shared';
+import { ideaCreateSchema } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
 import { ConflictError, NotFoundError, rid } from '../db/records.js';
 import { getTopic, resetTopic } from './brainstorm-topics.js';
@@ -96,8 +97,10 @@ export async function updateIdeaDescription(projectId: string, ideaId: string, d
   return idea;
 }
 
+/** Validates the resulting idea against its stored kind and theme before changing it or clearing a topic board. */
 export async function updateIdea(projectId: string, ideaId: string, patch: IdeaUpdateInput, significant: boolean): Promise<Idea> {
   const previous = await getIdea(projectId, ideaId);
+  ideaCreateSchema.parse({ ...previous, ...patch });
   if (previous.kind === 'problem') {
     const changed =
       (patch.title !== undefined && patch.title !== previous.title) ||

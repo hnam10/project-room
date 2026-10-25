@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Validate edits against the saved idea.** Idea updates now validate the combined stored
+  record and patch with the creation rules before writing or resetting a topic board. Omitting the theme
+  cannot bypass strategy JSON validation, and description-only or theme-only edits cannot bypass the
+  240-character topic/direct-idea limit. Regression tests cover rejected edits leaving boards unchanged,
+  valid partial strategy edits, category changes and legacy plain-text guidance. Full check passes (261 tests).
+
 - 2026-10-25 — **Brainstorming rebased onto main.** Replayed the ten brainstorming commits over the
   latest polls, chat, evaluation and dialog updates. Resolved shared imports and UI/documentation conflicts;
   preserved concise strategies, plain-text editing, immediate hearts and direct approval. Saved strategy

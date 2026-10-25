@@ -196,6 +196,46 @@ it('generates a concise strategy and preserves it through review, approval and e
   ).toBe(400);
 });
 
+it.each(['problem', 'idea'] as const)('rejects oversized description edits on a stored %s without changing its board', async (kind) => {
+  const problem = await topic();
+  const idea = await card(problem.id);
+  const target = kind === 'problem' ? problem : idea;
+  const before = await snapshot();
+  for (const patch of [{ description: 'x'.repeat(241) }, { description: 'x'.repeat(241), theme: 'Option' }]) {
+    const result = await call<{ issues: { path: string }[] }>('PATCH', `/ideas/${target.id}`, patch);
+    expect(result.status).toBe(400);
+    expect(result.body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ path: 'description' })]));
+    expect((await snapshot()).ideas).toEqual(before.ideas);
+  }
+  if (kind === 'problem') {
+    expect((await call('PATCH', `/ideas/${target.id}`, { description: 'x'.repeat(241), theme: 'Strategy' })).status).toBe(400);
+    expect((await snapshot()).ideas).toEqual(before.ideas);
+  }
+  expect((await call('PATCH', `/ideas/${target.id}`, { description: 'x'.repeat(240) })).status).toBe(200);
+});
+
+it('validates partial strategy edits and category changes against the saved description', async () => {
+  const problem = await topic();
+  const strategy = await card(problem.id, 'Strategy');
+  const description = JSON.stringify({
+    recommendation: 'Test the student problem before building. '.repeat(7),
+    steps: ['Interview students about their last attempt to exercise.'],
+    essentialScope: 'Keep only the core workout flow.',
+  });
+  expect(description.length).toBeGreaterThan(240);
+  const saved = await call<Idea>('PATCH', `/ideas/${strategy.id}`, { description });
+  expect(saved.status).toBe(200);
+  for (const patch of [{ description: '{}' }, { description: '{invalid' }, { theme: 'Option' }]) {
+    expect((await call('PATCH', `/ideas/${strategy.id}`, patch)).status).toBe(400);
+    expect((await snapshot()).ideas.find((idea) => idea.id === strategy.id)).toEqual(saved.body);
+  }
+  expect((await call('PATCH', `/ideas/${strategy.id}`, { title: 'Updated strategy title' })).status).toBe(200);
+  expect((await call('PATCH', `/ideas/${strategy.id}`, { theme: 'Option', description: 'A short direct idea.' })).status).toBe(200);
+  expect((await call('PATCH', `/ideas/${strategy.id}`, { theme: 'Strategy', description: 'Existing plain text guidance.' })).status).toBe(
+    200,
+  );
+});
+
 it('keeps non-product preparation practical rather than imposing an MVP roadmap', async () => {
   const problem = await topic('What should we eat for dinner?');
   const drafts = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
