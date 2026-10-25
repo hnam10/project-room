@@ -82,6 +82,22 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   Confirmed things (saved ideas, open polls, approved action items) stay solid. Tokens `--research` /
   `--research-weak` and buttons `.btn.idea-btn` / `.btn.research-btn` in `base.css`; the Decision label moved from
   amber to purple so it doesn't read as an idea.
+- 2026-10-25 — **Clerk profile identities power member avatars.** All member circles resolve current Clerk
+  names and profile photos, including the top-bar member stack and task, chat, brainstorm, calendar, files
+  and meeting surfaces; the signed-in sidebar name uses the same identity with API data as a fallback.
+
+- 2026-10-25 — **Chat AI retrieves durable context and accepts pasted images.** `@AI` now receives recent
+  Agent Memory file passages alongside the latest confirmed decisions, labeled separately so it can distinguish
+  evidence from durable project facts and call out conflicts instead of guessing. Images copied to the clipboard
+  can be pasted directly into the chat composer; they upload through the existing project Files flow, appear as
+  downloadable chat attachments, and are available to Agent Memory for OCR/vision retrieval. AI suggestions remain
+  reviewable and approval-gated.
+
+- 2026-10-25 — **Channel `@AI` can search meeting transcripts.** The regular mention agent now has a
+  project-scoped, read-only meeting-line search tool, so it can answer channel questions from meeting
+  contents and ground proposal quotes without loading every transcript into the prompt. Regression coverage
+  verifies meeting context lookup and quote preservation.
+
 - 2026-10-24 — **Agent Memory accepts Clerk organization scopes.** Clerk organization ids can contain uppercase
   letters, while Agent Memory scope segments are lowercase-only. Project scopes now normalize ids consistently
   before upload and retrieval, with a regression test; rejected scope responses include the service detail.
