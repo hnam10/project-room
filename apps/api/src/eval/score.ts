@@ -43,26 +43,36 @@ export function similarity(a: string, b: string): number {
 // ponytail: word-overlap matching with a fixed threshold; swap in Era's own matching rule once we see its answer key.
 export const MATCH_AT = 0.5;
 
-/** Pairs each proposal with at most one expected item, best overlap first. */
+/**
+ * Pairs each proposal with at most one expected item, as many pairs as possible (augmenting paths), trying the best
+ * overlap first. Greedy best-first can pair fewer: it may give an expected item the one proposal another one needed.
+ */
 export function scoreCase(expected: ExpectedItem[], proposed: ProposedItem[]): Score {
-  const pairs: { e: number; p: number; s: number }[] = [];
-  expected.forEach((ex, e) =>
-    proposed.forEach((pr, p) => {
-      const s = similarity(ex.title, pr.title);
-      if (s >= MATCH_AT) pairs.push({ e, p, s });
-    }),
+  // Candidate proposals per expected item, best overlap first.
+  const options = expected.map((ex) =>
+    proposed
+      .map((pr, p) => ({ p, s: similarity(ex.title, pr.title) }))
+      .filter((o) => o.s >= MATCH_AT)
+      .sort((a, b) => b.s - a.s)
+      .map((o) => o.p),
   );
-  pairs.sort((a, b) => b.s - a.s);
-  const usedE = new Set<number>();
-  const usedP = new Set<number>();
+  const ownerOf = new Map<number, number>(); // proposal -> expected
+  const claim = (e: number, seen: Set<number>): boolean => {
+    for (const p of options[e]!) {
+      if (seen.has(p)) continue;
+      seen.add(p);
+      const owner = ownerOf.get(p);
+      if (owner === undefined || claim(owner, seen)) {
+        ownerOf.set(p, e);
+        return true;
+      }
+    }
+    return false;
+  };
+  expected.forEach((_, e) => claim(e, new Set()));
   let assigneeRight = 0;
-  for (const { e, p } of pairs) {
-    if (usedE.has(e) || usedP.has(p)) continue;
-    usedE.add(e);
-    usedP.add(p);
-    if (expected[e]!.assignee === proposed[p]!.assigneeId) assigneeRight++;
-  }
-  return { expected: expected.length, proposed: proposed.length, matched: usedE.size, assigneeRight };
+  for (const [p, e] of ownerOf) if (expected[e]!.assignee === proposed[p]!.assigneeId) assigneeRight++;
+  return { expected: expected.length, proposed: proposed.length, matched: ownerOf.size, assigneeRight };
 }
 
 export function sum(scores: Score[]): Score {

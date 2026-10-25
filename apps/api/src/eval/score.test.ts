@@ -25,4 +25,19 @@ describe('eval scoring', () => {
     const r = rates(score);
     expect([r.precision, r.recall, r.f1, r.assignee].map((n) => n.toFixed(3))).toEqual(['0.500', '0.667', '0.571', '0.500']);
   });
+
+  it('finds the most pairs even when the best overlap would block one', () => {
+    // Greedy best-first pairs "alpha beta gamma" with itself and leaves "alpha beta" unmatched.
+    const score = scoreCase(
+      [
+        { title: 'alpha beta gamma', assignee: null },
+        { title: 'alpha beta', assignee: null },
+      ],
+      [
+        { title: 'alpha beta gamma', assigneeId: null },
+        { title: 'gamma', assigneeId: null },
+      ],
+    );
+    expect(score.matched).toBe(2);
+  });
 });
