@@ -27,6 +27,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-24 — **Sidebar cleanup.** Removed the placeholder Project Room workspace dropdown above
+  the organization switcher, along with its unused styles and toast.
+
 - 2026-10-24 — **Shared mute, simpler brainstorming, task commands.** Participant tiles show everyone's
   mute status via meeting realtime updates and fresh reads. Only a live participant can update their own
   status; leaving/ending clears it. Local mic changes stay immediate and status writes are serialized.
