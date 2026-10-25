@@ -247,6 +247,11 @@
   font-weight: 600;
   background: var(--c, #9aa1b0);
 }
+.avatar.has-image {
+  background-image: var(--avatar-image);
+  background-position: center;
+  background-size: cover;
+}
 .avatar.ai {
   background: var(--accent);
 }
