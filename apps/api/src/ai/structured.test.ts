@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createStructuredProvider } from './structured.js';
 import { mockStrategy } from './mock-strategy.js';
+import { z } from 'zod';
 
 // The model is replaced by a fake: these tests check what we do with its output, not the model.
 
@@ -28,12 +29,7 @@ describe('structured provider', () => {
   it('preserves a full preparation roadmap while keeping later guidance short and preparation drafts reviewable', async () => {
     const roadmap = mockStrategy({ title: 'Fitness app for students with limited equipment', description: '' }, 'product');
     roadmap.evidence = [{ finding: 'An unsupported claim', status: 'verified', sourceUrls: ['https://invented.example'] }];
-    const { provider, parse } = providerReturning({
-      summary: roadmap.goal,
-      strategy: roadmap,
-      ideas: [{ title: 'Premature solution' }],
-      tasks: [{ title: 'Premature task' }],
-    });
+    const { provider, parse } = providerReturning(roadmap);
     const input = {
       trigger: 'problem_created' as const,
       problem: { title: 'Fitness app for students with limited equipment', description: '' },
@@ -48,6 +44,10 @@ describe('structured provider', () => {
     expect(result.ideas).toEqual([]);
     expect(result.tasks).toEqual([]);
     const prompt = parse.mock.calls[0]![0].content;
+    const wireSchema = z.toJSONSchema(parse.mock.calls[0]![0].schema);
+    expect(wireSchema.properties).toHaveProperty('goal');
+    expect(wireSchema.properties).not.toHaveProperty('strategy');
+    expect(wireSchema.properties).not.toHaveProperty('tasks');
     expect(prompt).toContain('equipment as one hypothesis');
     expect(prompt).toContain('successCriterion');
     expect(prompt).toContain('without Markdown markers');

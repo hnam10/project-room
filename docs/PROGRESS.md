@@ -27,6 +27,15 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Fixed live strategy JSON failures.** Reproduced a provider 400 when generated
+  deferred-scope entries did not match the nested nullable response schema. Topic preparation now
+  requests the roadmap directly at the JSON root, with explicit nested-shape examples; other stages
+  keep their smaller facilitation schema. Structured calls retry malformed output at most twice with
+  corrective feedback, while request/auth/rate-limit/service failures are never retried. Invalid JSON
+  is never accepted. Live configured-provider checks passed for product (five steps) and non-product
+  (four steps) topics. Regression tests cover the root schema, correction retries, limits and exclusions.
+  Full check passes with 256 tests; the API production build passes.
+
 - 2026-10-25 — **Strategies use structured JSON.** A shared schema defines the goal, context,
   assumptions, evidence, recommendation, steps and scope. Each step has focus/why, action, deliverable,
   success criterion and a next-step gate. Real and mock providers return the same shape; source URLs

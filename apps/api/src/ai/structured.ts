@@ -90,9 +90,6 @@ const BrainstormSchema = z.object({
 });
 
 const FacilitateSchema = z.object({
-  strategy: strategyPlanSchema
-    .nullable()
-    .describe('A complete structured roadmap for topic preparation; null for other stages. Plain text values, no Markdown.'),
   summary: z
     .string()
     .describe(
@@ -287,7 +284,7 @@ ${research.map((result) => `<result url="${result.url}" title="${result.title}">
   async function facilitateBrainstorm(input: FacilitateInput): Promise<FacilitateResult> {
     const goals: Record<FacilitateInput['trigger'], string> = {
       problem_created:
-        'Prepare actionable guidance for this specific team and topic, using the strategy roadmap requirements below. Return the plan in strategy, with no separate idea drafts or tasks. A recommended direction is provisional guidance for members to evaluate, not an approved solution.',
+        'Prepare actionable guidance for this specific team and topic, using the strategy roadmap requirements below. Return only the roadmap JSON object. A recommended direction is provisional guidance for members to evaluate, not an approved solution.',
       first_idea: 'Propose one distinct direction that builds on the newest idea and the central problem, if useful.',
       multiple_ideas: 'Find specific overlaps, differences, or possible combinations. Propose at most one combined idea if useful.',
       research_completed: 'Suggest a concrete improvement grounded in the supplied research. A new idea draft may express it.',
@@ -297,9 +294,7 @@ ${research.map((result) => `<result url="${result.url}" title="${result.title}">
       idea_approved: 'Propose concrete, unassigned next-step tasks for member review.',
       manual: 'Facilitate the next useful brainstorming step, with questions or drafts only when supported by the context.',
     };
-    const output = await parse(
-      FacilitateSchema,
-      `Facilitate this brainstorming stage: ${goals[input.trigger]}
+    const prompt = `Facilitate this brainstorming stage: ${goals[input.trigger]}
 The goal type is ${input.mode ?? 'product'}. For non_product goals, use Option for a direct answer to a simple
 choice (for example, suggest a cuisine when asked what to eat) and Strategy only for an approach or plan;
 do not turn them into apps, platforms, prototypes, market research, or MVPs. For product goals, a distinct
@@ -334,18 +329,27 @@ do not prescribe dates or assign people. Avoid platform-scale features and unsup
 For non_product topics, adapt to the actual decision, event or activity: use 2-4 proportionate steps and
 an outcome/trial instead of an MVP. For a simple dinner choice, check preferences/allergies, budget/time,
 compare feasible choices and agree on one; do not impose interviews, market research or a product roadmap.
-Return the roadmap in the strategy JSON object, using goal, context, assumptions, evidence,
+Return the roadmap as the top-level JSON object, using goal, context, assumptions, evidence,
 recommendation, steps and scope. Each step has title, focus, why, action, deliverable, successCriterion
 and nextStep. Use plain text field values without Markdown markers or JSON code fences.
-Set summary to one short sentence describing the goal. Do not put the plan in summary.
+Do not wrap the roadmap in strategy, summary, ideas or tasks. Match these nested shapes exactly:
+assumptions: [{"rank":1,"assumption":"Hypothesis","impact":"Why it matters","validation":"How to test it"}]
+evidence: [{"finding":"What is known or unknown","status":"unknown","sourceUrls":[]}]
+recommendation: {"direction":"Provisional direction","rationale":"Reason","changeIf":"Evidence that changes it"}
+steps: [{"title":"Step","focus":"Focus","why":"Reason","action":"Action","deliverable":"Artifact","successCriterion":"Criterion","nextStep":"Decision gate"}]
+scope: {"essential":["One core workflow"],"deferred":[{"item":"Optional feature","reason":"Why it can wait"}]}
+scope.deferred entries MUST be objects with item and reason, never strings. Use empty arrays if nothing applies.
 Use up to 800 words only when useful; omit irrelevant sections rather than filling them with boilerplate.`
-    : 'Keep the summary under 160 words and set strategy to null.'
+    : 'Keep the summary under 160 words.'
 }
 
 <problem>${input.problem ? `${input.problem.title}: ${input.problem.description}` : '(none)'}</problem>
 <ideas>${input.ideas.map((idea) => `${idea.title}: ${idea.description}`).join('\n') || '(none)'}</ideas>
-<web_research>${input.research.map((result) => `<result url="${result.url}" title="${result.title}">${result.content}</result>`).join('\n') || '(none)'}</web_research>`,
-    );
+<web_research>${input.research.map((result) => `<result url="${result.url}" title="${result.title}">${result.content}</result>`).join('\n') || '(none)'}</web_research>`;
+    const output =
+      input.trigger === 'problem_created'
+        ? { strategy: await parse(strategyPlanSchema, prompt), summary: '', ideas: [], tasks: [] }
+        : { ...(await parse(FacilitateSchema, prompt)), strategy: null };
     const knownUrls = new Set(input.research.map((result) => result.url));
     const existing = new Set(input.ideas.map((idea) => norm(idea.title)));
     const strategy = input.trigger === 'problem_created' ? strategyPlanSchema.parse(output.strategy) : null;
@@ -359,7 +363,7 @@ Use up to 800 words only when useful; omit irrelevant sections rather than filli
     }
     return {
       ...(strategy ? { strategy } : {}),
-      summary: output.summary.trim().slice(0, input.trigger === 'problem_created' ? STRATEGY_DESCRIPTION_MAX : 2000),
+      summary: strategy?.goal ?? output.summary.trim().slice(0, 2000),
       ideas: (input.trigger === 'problem_created' ? [] : output.ideas)
         .filter((idea) => idea.title.trim() && !existing.has(norm(idea.title)))
         .slice(0, 2)

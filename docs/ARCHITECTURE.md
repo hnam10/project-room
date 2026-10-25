@@ -36,6 +36,9 @@ All records carry `projectId`; repositories always filter by it.
 Topic preparation returns a validated JSON roadmap in `FacilitateResult.strategy`: explicit hypotheses,
 evidence/unknowns, a provisional direction, and actions with deliverables, success criteria and decision gates.
 Product plans lead to a realistically scoped MVP; other topics use a proportionate decision/trial plan.
+The provider requests this roadmap directly at the JSON root, avoiding a nested nullable strategy
+wrapper and unrelated tasks/ideas fields. The shared structured client retries generation/JSON validation
+failures up to twice with correction feedback; request, auth, rate-limit and service errors are not retried.
 `strategyPlanSchema` defines goal, context, ranked assumptions, evidence/status/source URLs, recommendation,
 roadmap steps and scope. Each step requires focus, why, action, deliverable, successCriterion and nextStep.
 Plans are serialized as JSON in the existing strategy description field (up to `STRATEGY_DESCRIPTION_MAX`,
