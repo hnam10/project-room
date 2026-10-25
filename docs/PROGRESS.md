@@ -5,6 +5,15 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Brainstorm requests without @AI.** Chat recognizes explicit natural creation goals
+  (`I would like to create a Fitness app for students with limited equipment`) and member ideas
+  (`I have an idea for No-equipment dorm workouts to Fitness app for students`). Existing topic lookup
+  prefers normalized exact names, then unique distinctive prefixes; duplicate requests reuse the board,
+  unknown/ambiguous targets ask for a full name, and context stays within the channel. Questions, quoted
+  instructions and tentative discussion do not create records. Generated AI proposals remain pending;
+  task commands still require `@AI`. Full check passes with 267 tests, including HTTP/realtime coverage. Browser flow remains
+  unverified: the local page cannot reach the API and the embedded database is locked by another process.
+
 - 2026-10-25 — **Text-only header branding.** Removed the decorative main logo beside Project Room
   and its unused styles; the header keeps the product name and project breadcrumb. Browser-verified
   the authenticated workspace header.
@@ -516,6 +525,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
+
+- 2026-10-25 — **Explicit natural chat requests count as member input.** Brainstorm creation needs no
+  AI tag or model call; anchored wording and conservative topic matching avoid interpreting ordinary
+  discussion as permission. Existing-topic reuse preserves the board; generated ideas still require review.
 
 - 2026-10-25 — **Polls replace decisions.** Members couldn't tell how a decision got created (only the AI's
   per-message open-question check made one) and decisions overlapped with polls. The team now decides by voting;

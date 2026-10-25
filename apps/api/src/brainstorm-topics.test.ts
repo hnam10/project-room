@@ -72,6 +72,93 @@ it('creates exactly named topics and ideas directly from member commands, with c
   expect(web).not.toHaveBeenCalled();
 });
 
+it('creates the stated fitness topic without a mention and routes a natural idea to its shortened name', async () => {
+  await getDb().query('DELETE message;').collect();
+  expect(await command('I would like to create a Fitness app for students with limited equipment')).toBe(
+    'Created topic “Fitness app for students with limited equipment”.',
+  );
+  await topic('Meal planning');
+  expect(await command('I have an idea for No-equipment dorm workouts to Fitness app for students')).toBe(
+    'Added idea “No-equipment dorm workouts” to topic “Fitness app for students with limited equipment”.',
+  );
+  const board = await snapshot();
+  const fitness = board.ideas.find((idea) => idea.kind === 'problem' && idea.title.startsWith('Fitness'))!;
+  expect(board.ideas.find((idea) => idea.title === 'No-equipment dorm workouts')).toMatchObject({
+    authorId: 'alex',
+    topicId: fitness.id,
+    kind: 'idea',
+    votingOpen: false,
+  });
+  expect(board.suggestions).toHaveLength(0);
+  expect(web).not.toHaveBeenCalled();
+});
+
+it('reuses existing topics, establishes their channel context, and rejects duplicate ideas without a tag', async () => {
+  await getDb().query('DELETE message;').collect();
+  const fitness = await topic('Fitness app for students with limited equipment');
+  await topic('Dinner');
+  expect(await command('I want to create a fitness app for students')).toContain('already exists');
+  expect(await command('I have an idea for No-equipment dorm workouts')).toContain(`to topic “${fitness.title}”`);
+  expect(await command('add idea no equipment dorm workouts to Fitness app for students')).toContain('already exists');
+  expect(await command('create topic FITNESS APP FOR STUDENTS WITH LIMITED EQUIPMENT')).toContain('already exists');
+  expect((await snapshot()).ideas).toHaveLength(3);
+});
+
+it('asks for a full topic name on ambiguous or unknown natural requests without changing any board', async () => {
+  await getDb().query('DELETE message;').collect();
+  await topic('Fitness app for students with limited equipment');
+  await topic('Fitness app for students who commute');
+  expect(await command('I have an idea for Dorm workouts to Fitness app for students')).toContain('couldn’t identify');
+  expect(await command('I would like to create a Fitness app for students')).toContain('More than one');
+  expect(await command('I have an idea for Dorm workouts to Fitness app')).toContain('couldn’t identify');
+  expect(await command('add idea meal suggestions to Meal planning')).toContain('couldn’t identify');
+  expect(await command('I have an idea for Dorm workouts')).toContain('Which topic');
+  expect((await snapshot()).ideas).toHaveLength(2);
+});
+
+it('keeps natural command context inside its channel and never matches another project', async () => {
+  await getDb().query('DELETE message;').collect();
+  await command('create topic Weekend plans');
+  await topic('Dinner');
+  expect(await command('I have an idea for Pool', 'hackathon-design')).toContain('Which topic');
+  expect(await command('add idea Pool to Private topic topic')).toContain('couldn’t identify');
+  expect((await snapshot()).ideas.every((idea) => idea.kind === 'problem')).toBe(true);
+});
+
+it('leaves questions, quoted instructions, tentative discussion and unrelated creation requests alone', async () => {
+  const ordinary = [
+    'Someone said @AI create topic Dinner',
+    '"I would like to create a Fitness app for students"',
+    'Yesterday I wanted to create a Fitness app for students',
+    'Should we create a Fitness app for students?',
+    'Maybe we could create a Fitness app for students',
+    'I do not want to create a Fitness app for students',
+    'I have no idea for Fitness app for students',
+    'Can you suggest an idea for Fitness app for students?',
+    'create task Write the demo script',
+    'I want to create a poll about workouts',
+  ];
+  for (const text of ordinary) {
+    expect(parseChatCommand(text), text).toBeNull();
+    await command(text);
+  }
+  expect((await snapshot()).ideas).toHaveLength(0);
+  expect(parseChatCommand('Let’s create a Fitness app for students')).toEqual({ kind: 'problem', title: 'Fitness app for students' });
+  expect(parseChatCommand('Please add an idea "Dorm workouts" to topic "Fitness app for students"')).toEqual({
+    kind: 'idea',
+    title: 'Dorm workouts',
+    topic: 'Fitness app for students',
+  });
+  expect(parseChatCommand('@AI add idea A way to exercise')).toEqual({ kind: 'idea', title: 'A way to exercise' });
+  expect(parseChatCommand('I have an idea for "A way to exercise"')).toEqual({ kind: 'idea', title: 'A way to exercise' });
+  expect(parseChatCommand('I have an idea for A way to exercise to Fitness app for students')).toEqual({
+    kind: 'idea',
+    title: 'A way to exercise',
+    topic: 'Fitness app for students',
+  });
+  expect(await command(`create topic ${'a'.repeat(81)}`)).toContain('between 1 and 80');
+});
+
 it('does not guess unknown or ambiguous topic targets or reuse context across channels', async () => {
   await getDb().query('DELETE message;').collect();
   await command('@AI create topic Weekend plans');
@@ -105,6 +192,7 @@ it('resolves a sole topic but never a topic belonging to another project', async
     )
     .collect();
   expect(await command('@AI add idea pool to Private topic topic')).toContain('couldn’t identify');
+  expect(await command('I have an idea for pool to topic Private topic')).toContain('couldn’t identify');
   expect((await snapshot()).ideas.filter((idea) => idea.kind === 'idea')).toMatchObject([{ title: 'ramen', topicId: only.id }]);
 });
 

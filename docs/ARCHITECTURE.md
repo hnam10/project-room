@@ -58,10 +58,15 @@ retain their short limit. Preparation cannot create
 direct ideas or tasks; the plan remains a reviewable Strategy draft. Manual refresh keys the draft by its
 content, preserving saved guidance while allowing an existing topic to receive the updated roadmap format.
 
-Explicit commands are handled first by `services/chat-commands.ts`, without a model call.
-`@AI create topic Weekend plans` creates that exact topic; `@AI add idea pool to Weekend plans topic`
-adds a member-authored idea to an exact, case-insensitive topic match. Quotes are optional. An omitted
-topic uses the latest successful command's topic in the same channel, or the only existing topic.
+Explicit requests are handled first by `services/chat-commands.ts`, without a model call or `@AI` requirement
+for brainstorming. `create topic Weekend plans` names a board directly; `I would like to create a Fitness app
+for students` uses the stated goal as its title. `I have an idea for Dorm workouts to Fitness app for students`
+and `add idea pool to Weekend plans topic` add member-authored ideas. Quotes and polite prefixes are optional.
+Anchored patterns leave questions, reported/quoted instructions, negations and tentative discussion alone.
+Topic lookup normalizes case, punctuation and spacing, preferring exact titles before distinctive prefixes
+containing at least two meaningful words. Repeated topic requests reuse an existing board without resetting
+it; multiple matches ask for a full name. An omitted topic uses the latest successful command's topic
+(including an existing-topic reply) in the same channel, or the only existing topic.
 Missing/ambiguous targets and duplicate titles return a chat explanation without creating records.
 These commands are member instructions; generated proposals still require approval as described below.
 `@AI create task TITLE` uses the validated task defaults (unassigned, To Do, no due date). Without a

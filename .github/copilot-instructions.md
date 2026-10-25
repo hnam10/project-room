@@ -36,8 +36,11 @@ The rules that matter most when suggesting code:
 - Chat `@AI brainstorm` creates a reviewable `brainstorm_topic` suggestion alongside idea drafts. Only
   approval creates a separate topic tab. Explicitly targeted older topic-change proposals clear that
   topic's board on approval. Inbox idea drafts need a topic selection when approved.
-- Explicit `@AI create topic TITLE` / `@AI add idea TITLE to TOPIC topic` commands are validated member
-  input and create records directly without model calls. Unclear topic targets require clarification.
+- Explicit brainstorm requests work without `@AI`: `create topic TITLE`, `I would like to create a Fitness
+app for students`, `add idea TITLE to TOPIC topic`, or `I have an idea for TITLE to TOPIC`. These create
+  validated member-authored records without model calls. Reuse exact or unique distinctive shortened
+  existing topic names without resetting boards; clarify unknown/ambiguous targets. Ordinary discussion
+  never authorizes creation, and AI-generated drafts remain pending. Task commands still require `@AI`.
 - `@AI create task TITLE` creates an unassigned To Do task without scheduling. With no title, only the
   requesting member's next message in that channel supplies it.
 - Meeting idea proposals must identify a relevant existing topic and store its `topicId`; skip ideas
