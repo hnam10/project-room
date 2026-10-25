@@ -9,6 +9,7 @@ import { IdeaCard } from './IdeaCard';
 import { IdeaDialog } from './IdeaDialog';
 import { BrainstormSuggestionCard } from './BrainstormSuggestionCard';
 import { BrainstormTopicSuggestionCard } from './BrainstormTopicSuggestionCard';
+import { BrainstormTopicTabs } from './BrainstormTopicTabs';
 import { BrainstormGuide } from './BrainstormGuide';
 import { BrainstormAnalysisCard } from './BrainstormAnalysisCard';
 import { isCurrentWebSuggestion, isSimilarWebSuggestion } from './similarWebSuggestion';
@@ -241,23 +242,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
         <div className="panel-actions">{headerActions}</div>
       </div>
       {topics.length > 0 && (
-        <div className="brainstorm-topics" role="tablist" aria-label="Brainstorm topics">
-          {topics.map((topic) => (
-            <button
-              key={topic.id}
-              role="tab"
-              title={topic.title}
-              aria-selected={topic.id === problem?.id}
-              className={`brainstorm-topic-tab${topic.id === problem?.id ? ' active' : ''}`}
-              onClick={() => chooseTopic(topic.id)}
-            >
-              {topic.title}
-            </button>
-          ))}
-          <button className="brainstorm-topic-tab brainstorm-topic-new" onClick={() => setDialog({ kind: 'problem' })}>
-            <Icon name="plus" /> New topic
-          </button>
-        </div>
+        <BrainstormTopicTabs topics={topics} selectedId={problem?.id} onSelect={chooseTopic} onNew={() => setDialog({ kind: 'problem' })} />
       )}
       <div className="panel-body">
         {tab !== 'ideas' ? (

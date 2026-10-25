@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Clean topic overflow navigation.** Topic tabs hide the native horizontal scrollbar,
+  support mouse dragging and native touch scrolling, and show side arrows only when overflowing.
+  New topic stays visible. Arrow/Home/End keys select and reveal tabs; dragging suppresses accidental
+  selection. Checked overflow, arrows, dragging, keyboard navigation and panel resizing in Edge.
+  Full check passes with 245 tests; the web production build passes.
+
 - 2026-10-24 — **Brainstorm tab order refined.** Brainstorm/Mind Map/Notes sit above the topic tabs;
   both rows remain inside the panel container, above its scrolling content.
 
