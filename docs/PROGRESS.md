@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Quieter brainstorm layout.** Topic tabs sit at the very top of the container, above
+  the view tabs. Suggested topics, research and strategies use keyboard-accessible disclosure sections
+  closed by default and reset closed when switching topics. Counts and research progress remain visible;
+  automatic preparation continues while collapsed. Checked research expansion and topic switching in Edge.
+  Full check passes with 241 tests; the web production build passes.
+
 - 2026-10-24 — **CodeRabbit brainstorm fixes (PR #24).** Topic-change proposals appear on their target
   board, name that board in the card and modal, and require destructive confirmation and the exact
   `replaceTopicId` on approval. The shared inbox contains only new-topic proposals. Mock meeting idea

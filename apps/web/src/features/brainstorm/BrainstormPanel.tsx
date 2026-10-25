@@ -234,6 +234,25 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
 
   return (
     <div className={`panel brainstorm-panel ${className}`}>
+      {topics.length > 0 && (
+        <div className="brainstorm-topics" role="tablist" aria-label="Brainstorm topics">
+          {topics.map((topic) => (
+            <button
+              key={topic.id}
+              role="tab"
+              title={topic.title}
+              aria-selected={topic.id === problem?.id}
+              className={`brainstorm-topic-tab${topic.id === problem?.id ? ' active' : ''}`}
+              onClick={() => chooseTopic(topic.id)}
+            >
+              {topic.title}
+            </button>
+          ))}
+          <button className="brainstorm-topic-tab brainstorm-topic-new" onClick={() => setDialog({ kind: 'problem' })}>
+            <Icon name="plus" /> New topic
+          </button>
+        </div>
+      )}
       <div className="panel-tabs">
         {tabButton('ideas', 'Brainstorm')}
         {tabButton('mindmap', 'Mind Map')}
@@ -245,33 +264,21 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
           <div className="empty-state">{tab === 'mindmap' ? 'Mind map' : 'Notes'} isn’t built yet — planned for a later iteration.</div>
         ) : (
           <>
-            {pendingTopics.length > 0 && (
-              <section className="brainstorm-topic-inbox" aria-label="New topics from conversations">
-                <h2>New topics from conversations</h2>
-                <p>Approve a proposal to add a separate topic tab with its own board.</p>
-                {pendingTopics.map((suggestion) => (
-                  <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
-                ))}
-              </section>
-            )}
-            {topics.length > 0 && (
-              <div className="brainstorm-topics" role="tablist" aria-label="Brainstorm topics">
-                {topics.map((topic) => (
-                  <button
-                    key={topic.id}
-                    role="tab"
-                    title={topic.title}
-                    aria-selected={topic.id === problem?.id}
-                    className={`brainstorm-topic-tab${topic.id === problem?.id ? ' active' : ''}`}
-                    onClick={() => chooseTopic(topic.id)}
-                  >
-                    {topic.title}
-                  </button>
-                ))}
-                <button className="brainstorm-topic-tab brainstorm-topic-new" onClick={() => setDialog({ kind: 'problem' })}>
-                  <Icon name="plus" /> New topic
-                </button>
-              </div>
+            {(pendingTopics.length > 0 || pendingTopicChanges.length > 0) && (
+              <details className="brainstorm-disclosure brainstorm-topic-inbox" key={`proposals:${problem?.id ?? 'new'}`}>
+                <summary>
+                  Suggested topics <span className="brainstorm-section-count">{pendingTopics.length + pendingTopicChanges.length}</span>
+                </summary>
+                <div className="brainstorm-disclosure-content">
+                  <p>Review new topics from conversations and proposed changes to this topic.</p>
+                  {pendingTopics.map((suggestion) => (
+                    <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
+                  ))}
+                  {pendingTopicChanges.map((suggestion) => (
+                    <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
+                  ))}
+                </div>
+              </details>
             )}
             <div className="brainstorm-problem">
               {problem ? (
@@ -303,45 +310,54 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                 </>
               )}
             </div>
-            {pendingTopicChanges.map((suggestion) => (
-              <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
-            ))}
             {problem && (
               <>
-                <section className="brainstorm-support" aria-labelledby="brainstorm-support-title">
-                  <div className="brainstorm-support-head">
-                    <h2 id="brainstorm-support-title">Research &amp; strategies</h2>
-                    <p>Review the evidence and choose an approach, then develop your own ideas below.</p>
-                  </div>
-                  <BrainstormGuide ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} attempted={automaticAttempts} />
-                  {suggestions.find((item) => item.kind === 'brainstorm_analysis' && item.title === 'Topic research status')?.proposal && (
-                    <p className="brainstorm-research-status" role="status">
-                      {suggestions.find((item) => item.title === 'Topic research status')?.proposal}
-                    </p>
-                  )}
-                  {problem.researchSources.length > 0 && (
-                    <div className="idea-sources">
-                      <strong>Saved research</strong>
-                      {problem.researchSources.map((source) => (
-                        <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
-                          {source.title}
-                        </a>
-                      ))}
+                <div className="brainstorm-support" key={problem.id}>
+                  <details className="brainstorm-disclosure">
+                    <summary>
+                      Research
+                      <span className="brainstorm-section-count">{pendingAnalyses.length + problem.researchSources.length}</span>
+                      {aiBusy && (
+                        <span className="brainstorm-section-status" role="status">
+                          Researching…
+                        </span>
+                      )}
+                    </summary>
+                    <div className="brainstorm-disclosure-content">
+                      <BrainstormGuide ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} attempted={automaticAttempts} />
+                      {suggestions.find((item) => item.kind === 'brainstorm_analysis' && item.title === 'Topic research status')
+                        ?.proposal && (
+                        <p className="brainstorm-research-status" role="status">
+                          {suggestions.find((item) => item.title === 'Topic research status')?.proposal}
+                        </p>
+                      )}
+                      {problem.researchSources.length > 0 && (
+                        <div className="idea-sources">
+                          <strong>Saved research</strong>
+                          {problem.researchSources.map((source) => (
+                            <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
+                              {source.title}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {pendingAnalyses.length > 0 && (
+                        <div className="brainstorm-research">
+                          <div className="brainstorm-analysis-list">
+                            {pendingAnalyses.map((suggestion) => (
+                              <BrainstormAnalysisCard key={suggestion.id} suggestion={suggestion} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {pendingAnalyses.length > 0 && (
-                    <div className="brainstorm-research">
-                      <h3>Research</h3>
-                      <div className="brainstorm-analysis-list">
-                        {pendingAnalyses.map((suggestion) => (
-                          <BrainstormAnalysisCard key={suggestion.id} suggestion={suggestion} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {(pendingStrategies.length > 0 || strategies.length > 0) && (
-                    <div className="brainstorm-strategies">
-                      <h3>Strategies</h3>
+                  </details>
+                  <details className="brainstorm-disclosure">
+                    <summary>
+                      Strategies <span className="brainstorm-section-count">{pendingStrategies.length + strategies.length}</span>
+                    </summary>
+                    <div className="brainstorm-disclosure-content">
+                      {pendingStrategies.length === 0 && strategies.length === 0 && <p>No strategies yet.</p>}
                       <div className="brainstorm-strategy-grid">
                         {pendingStrategies.map((suggestion) => (
                           <BrainstormSuggestionCard key={suggestion.id} suggestion={suggestion} />
@@ -349,7 +365,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                         {strategies.map(ideaCard)}
                       </div>
                     </div>
-                  )}
+                  </details>
                   {pendingTasks.length > 0 && (
                     <div className="brainstorm-analysis-list">
                       {pendingTasks.map((suggestion) => (
@@ -360,7 +376,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                       ))}
                     </div>
                   )}
-                </section>
+                </div>
                 <div className="idea-head">
                   <div>
                     <h2>
