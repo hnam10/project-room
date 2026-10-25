@@ -22,7 +22,9 @@ export function Avatar({ member, id }: { member?: Member | null; id?: string | n
   return (
     <span
       className={`avatar${identity?.imageUrl ? ' has-image' : ''}`}
-      style={{ '--c': member.color, '--avatar-image': identity?.imageUrl ? `url("${identity.imageUrl}")` : undefined } as React.CSSProperties}
+      style={
+        { '--c': member.color, '--avatar-image': identity?.imageUrl ? `url("${identity.imageUrl}")` : undefined } as React.CSSProperties
+      }
       title={name}
       role="img"
       aria-label={name}
