@@ -26,9 +26,8 @@ const tasks = [
 ];
 
 describe('structured provider', () => {
-  it('preserves a full preparation roadmap while keeping later guidance short and preparation drafts reviewable', async () => {
+  it('requests only three concise strategy fields and keeps preparation reviewable', async () => {
     const roadmap = mockStrategy({ title: 'Fitness app for students with limited equipment', description: '' }, 'product');
-    roadmap.evidence = [{ finding: 'An unsupported claim', status: 'verified', sourceUrls: ['https://invented.example'] }];
     const { provider, parse } = providerReturning(roadmap);
     const input = {
       trigger: 'problem_created' as const,
@@ -39,21 +38,20 @@ describe('structured provider', () => {
     };
     const result = await provider.facilitateBrainstorm(input);
     expect(result.strategy?.steps).toEqual(roadmap.steps);
-    expect(result.strategy?.evidence).toEqual([{ finding: 'An unsupported claim', status: 'unknown', sourceUrls: [] }]);
-    expect(JSON.stringify(result.strategy).length).toBeGreaterThan(2000);
+    expect(Object.keys(result.strategy!)).toEqual(['recommendation', 'steps', 'essentialScope']);
+    expect(JSON.stringify(result.strategy).length).toBeLessThan(2000);
     expect(result.ideas).toEqual([]);
     expect(result.tasks).toEqual([]);
     const prompt = parse.mock.calls[0]![0].content;
     const wireSchema = z.toJSONSchema(parse.mock.calls[0]![0].schema);
-    expect(wireSchema.properties).toHaveProperty('goal');
+    expect(wireSchema.properties).toHaveProperty('recommendation');
     expect(wireSchema.properties).not.toHaveProperty('strategy');
     expect(wireSchema.properties).not.toHaveProperty('tasks');
     expect(prompt).toContain('equipment as one hypothesis');
-    expect(prompt).toContain('successCriterion');
-    expect(prompt).toContain('without Markdown markers');
-    expect(prompt).toContain('what would change the recommendation');
+    expect(prompt).toContain('one or two short sentences');
+    expect(prompt).toContain('no Markdown');
     expect(prompt).toContain('do not impose interviews, market research or a product roadmap');
-    expect(prompt).toContain('never invent competitors, interviews, metrics or feedback');
+    expect(prompt).toContain('never invent findings, sources, metrics or user feedback');
   });
 
   it('summarizes supplied research and drops invented source URLs', async () => {

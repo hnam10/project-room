@@ -149,8 +149,10 @@
 .strategy-plan section {
   margin-top: 16px;
 }
-.strategy-plan h4,
-.strategy-plan h5 {
+.strategy-plan section:first-child {
+  margin-top: 0;
+}
+.strategy-plan h4 {
   margin: 0 0 6px;
   font-size: 13px;
   color: var(--ink);
@@ -163,35 +165,10 @@
 .strategy-plan li + li {
   margin-top: 10px;
 }
-.strategy-plan .strategy-context {
-  margin-top: 8px;
-  color: var(--muted);
-}
-.strategy-plan dl {
-  display: grid;
-  grid-template-columns: minmax(70px, 110px) minmax(0, 1fr);
-  gap: 6px 12px;
-  margin: 0;
-}
-.strategy-plan dt {
-  font-weight: 600;
-}
-.strategy-plan dd {
-  margin: 0;
-}
-.strategy-evidence-status {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-.strategy-plan a,
 .strategy-expand {
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-.strategy-plan a + a {
-  margin-left: 8px;
 }
 .strategy-expand {
   margin-top: 8px;

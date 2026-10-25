@@ -125,17 +125,46 @@ it('creates unassigned tasks from inline commands and same-member same-channel f
   expect((await snapshot()).tasks).toHaveLength(before + 2);
 });
 
-it('generates a step-by-step strategy and preserves it through review, approval and editing', async () => {
+it('condenses previously saved JSON strategies without requiring migration or losing compatibility', () => {
+  const old = {
+    goal: 'Old goal',
+    context: '',
+    assumptions: [],
+    evidence: [],
+    recommendation: { direction: 'Test a dorm workout flow.', rationale: 'Long explanation.', changeIf: 'Different needs.' },
+    steps: [
+      {
+        title: 'Interview',
+        focus: 'Users',
+        why: 'Validation',
+        action: 'Ask students about exercise. Compare their barriers. This extra detail should be hidden.',
+        deliverable: 'Notes',
+        successCriterion: 'Three examples',
+        nextStep: 'Prototype',
+      },
+    ],
+    scope: { essential: ['One audience', 'One core flow'], deferred: [] },
+  };
+  const plan = readStrategyPlan(JSON.stringify(old));
+  expect(plan).toEqual({
+    recommendation: 'Test a dorm workout flow.',
+    steps: ['Ask students about exercise. Compare their barriers.'],
+    essentialScope: 'One audience; One core flow',
+  });
+  expect(readStrategyPlan('Existing plain text')).toBeNull();
+});
+
+it('generates a concise strategy and preserves it through review, approval and editing', async () => {
   const problem = await topic('Fitness app for students with limited equipment');
   const drafts = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
   const strategy = drafts.body.find((item) => item.ideaDraft?.theme === 'Strategy')!;
   const description = strategy.ideaDraft!.description;
-  expect(description.length).toBeGreaterThan(2000);
+  expect(description.length).toBeLessThan(2000);
   const plan = readStrategyPlan(description)!;
-  expect(plan.assumptions.length).toBeGreaterThan(0);
-  expect(plan.steps.length).toBeGreaterThanOrEqual(4);
-  expect(plan.steps.every((step) => step.action && step.deliverable && step.successCriterion && step.nextStep)).toBe(true);
-  expect(description).toContain('not verified research');
+  expect(Object.keys(plan)).toEqual(['recommendation', 'steps', 'essentialScope']);
+  expect(plan.steps.length).toBeLessThanOrEqual(4);
+  expect(plan.steps.every((step) => typeof step === 'string' && step.length <= 350)).toBe(true);
+  expect(description).toContain('not a research finding');
   expect((await call('PATCH', `/suggestions/${strategy.id}`, { ideaDraft: { ...strategy.ideaDraft, description: '{}' } })).status).toBe(
     400,
   );
@@ -145,7 +174,7 @@ it('generates a step-by-step strategy and preserves it through review, approval 
   expect((await call('POST', `/suggestions/${strategy.id}/approve`, {})).status).toBe(200);
   const saved = (await snapshot()).ideas.find((idea) => idea.theme === 'Strategy')!;
   expect(saved.description).toBe(description);
-  plan.context = 'Team note: start with interviews.';
+  plan.essentialScope = 'Team note: start with interviews.';
   const edited = await call<Idea>('PATCH', `/ideas/${saved.id}`, {
     description: JSON.stringify(plan, null, 2),
     theme: 'Strategy',
@@ -160,7 +189,7 @@ it('generates a step-by-step strategy and preserves it through review, approval 
   const refreshedStrategy = refreshed.body.find((item) => item.ideaDraft?.theme === 'Strategy')!;
   expect(refreshedStrategy.id).not.toBe(strategy.id);
   expect(refreshedStrategy.status).toBe('pending');
-  expect(refreshedStrategy.ideaDraft!.description.length).toBeGreaterThan(2000);
+  expect(refreshedStrategy.ideaDraft!.description.length).toBeLessThan(2000);
   expect((await snapshot()).ideas.find((idea) => idea.id === saved.id)?.description).toBe(edited.body.description);
   expect(
     (await call('POST', '/ideas', { topicId: problem.id, title: 'Too much direct detail', description: 'x'.repeat(241) })).status,
@@ -172,7 +201,7 @@ it('keeps non-product preparation practical rather than imposing an MVP roadmap'
   const drafts = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
   const guidance = drafts.body.find((item) => item.ideaDraft?.theme === 'Strategy')!.ideaDraft!.description;
   expect(guidance).toContain('allergies');
-  expect(readStrategyPlan(guidance)?.steps[0]?.deliverable).toBeTruthy();
+  expect(readStrategyPlan(guidance)?.steps[0]).toContain('preferences');
   expect(guidance).not.toContain('MVP');
   expect(guidance).not.toContain('Interview');
 });

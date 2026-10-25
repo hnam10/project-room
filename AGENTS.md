@@ -107,10 +107,10 @@ prototype/         the first static prototype; do not build on it
   reviewable strategies come first, then member ideas and iteration. Changing or deleting a topic
   clears its board; clearing only ideas preserves its research and strategies. Other topics and
   tasks or polls already created are unaffected. New AI topics never replace a topic automatically.
-- Topic strategies give specific, proportionate steps: focus/reason, action, deliverable, success criterion
-  and next-step gate. Product guidance tests the problem hypothesis, ranks assumptions, distinguishes sourced
-  findings from unknowns, recommends a provisional direction and scopes a realistic MVP. Simple non-product
-  choices get a short practical plan. Never invent research or user feedback.
+- Topic strategies contain only a recommended direction, a short step-by-step plan and essential scope.
+  Each section and each step uses one or two short sentences; no separate focus/why, deliverables,
+  success criteria or next-step gates. Product plans have at most four concrete steps, simple choices fewer.
+  Keep guidance specific and provisional; never invent research or user feedback.
 - New strategies use the shared `strategyPlanSchema` JSON format with plain-text field values, rendered
   as sections and steps. Preserve legacy text strategies; do not require Markdown rendering.
 - Meeting idea suggestions must identify a relevant existing topic, retain its `topicId`, and display

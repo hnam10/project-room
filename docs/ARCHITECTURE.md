@@ -33,9 +33,9 @@ All records carry `projectId`; repositories always filter by it.
 
 ## The AI action engine
 
-Topic preparation returns a validated JSON roadmap in `FacilitateResult.strategy`: explicit hypotheses,
-evidence/unknowns, a provisional direction, and actions with deliverables, success criteria and decision gates.
-Product plans lead to a realistically scoped MVP; other topics use a proportionate decision/trial plan.
+Topic preparation returns concise JSON guidance in `FacilitateResult.strategy`: a provisional recommended
+direction, two to four concrete steps, and essential scope. Each section and step uses one or two short
+sentences. Product plans lead to a small useful version; other topics use a proportionate decision/trial plan.
 The provider requests this roadmap directly at the JSON root, avoiding a nested nullable strategy
 wrapper and unrelated tasks/ideas fields. The shared structured client retries generation/JSON validation
 failures up to twice with correction feedback; request, auth, rate-limit and service errors are not retried.
@@ -44,13 +44,14 @@ unavailable-summary notice, and strategy failures preserve completed research. A
 refreshes pending unavailable-summary cards. `AiRequestError` carries upstream status for safe availability
 messages; other routes map it to 503 rather than exposing provider details. Preparation records a completed
 availability check so teams can add their own ideas even when AI is unavailable.
-`strategyPlanSchema` defines goal, context, ranked assumptions, evidence/status/source URLs, recommendation,
-roadmap steps and scope. Each step requires focus, why, action, deliverable, successCriterion and nextStep.
+`strategyPlanSchema` defines only `recommendation` (string), `steps` (up to four strings), and
+`essentialScope` (string). Research remains in its separate section rather than being repeated in guidance.
 Plans are serialized as JSON in the existing strategy description field (up to `STRATEGY_DESCRIPTION_MAX`,
 20,000 characters) through generation, review, approval and editing. `StrategyDetails` reads this schema
-and renders sections and labelled steps without Markdown; legacy text still uses the compact text view.
-Malformed JSON objects are rejected on review/edit. Unsupported evidence URLs are removed and unsourced
-verified claims become unknown. Other facilitation summaries retain their short limit. Preparation cannot create
+and renders three short sections without Markdown. Older detailed JSON is condensed at read time using
+its direction, action sentences and essential scope; original saved records are not rewritten. Legacy plain
+text remains readable. Malformed JSON objects are rejected on review/edit. Other facilitation summaries
+retain their short limit. Preparation cannot create
 direct ideas or tasks; the plan remains a reviewable Strategy draft. Manual refresh keys the draft by its
 content, preserving saved guidance while allowing an existing topic to receive the updated roadmap format.
 

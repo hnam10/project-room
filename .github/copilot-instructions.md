@@ -22,9 +22,9 @@ The rules that matter most when suggesting code:
 - Use Option for a direct choice (such as cuisine for dinner), Product for something to build, and Strategy
   for a plan. Research is a sourced evidence section, not an idea theme; older Engagement and Platform
   values remain valid for existing records.
-- Strategies are actionable roadmaps: each step names its focus/why, action, deliverable, success criterion
-  and next-step gate. Test assumptions, label evidence versus unknowns, and keep product scope realistic;
-  simple non-product choices need only a short plan. Never invent sources or feedback.
+- Strategies contain only recommended direction, short steps and essential scope. Use one or two
+  sentences per section/step, at most four steps, without separate focus/why or deliverable/criteria
+  fields. Keep guidance specific and realistic; never invent sources or feedback.
 - Strategy generation uses `strategyPlanSchema` JSON with plain-text fields. Render its sections/steps
   directly; legacy text remains readable without Markdown.
 - Chat `@AI brainstorm` creates a reviewable `brainstorm_topic` suggestion alongside idea drafts. Only

@@ -27,6 +27,15 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Much shorter brainstorming strategies.** New JSON contains only recommended direction,
+  up to four short step sentences, and essential scope. Each section/step requests one or two sentences;
+  product guidance targets 120–180 words overall and simple decisions less. Removed the repeated
+  focus/why/action/deliverable/criteria/gate fields and extra assumptions/evidence/deferred sections.
+  Older detailed JSON renders compactly without rewriting saved records; plain text remains readable.
+  Regression tests cover concise generation, review/approval/edit/refresh and old-format compatibility.
+  Browser-checked the three-section display with a temporary fixture, then removed it. A live provider
+  check returned a 93-word plan with four short steps. Full check passes with 259 tests; both builds pass.
+
 - 2026-10-25 — **Research survives AI service limits.** Reproduced the fitness-topic failure as an
   upstream daily-token 429. Topic preparation now retains web sources and reports unavailable AI
   summaries/strategies explicitly instead of aborting the whole board. Unsummarized source cards are

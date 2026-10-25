@@ -182,7 +182,7 @@ export const mockProvider: AiProvider = {
   async facilitateBrainstorm({ trigger, problem, ideas, research, mode = 'product' }) {
     const titles = ideas.map((idea) => idea.title);
     const summary: Record<typeof trigger, string> = {
-      problem_created: mockStrategy(problem, mode).goal,
+      problem_created: mockStrategy(problem, mode).recommendation,
       first_idea: research.length
         ? `Review these search results for similar solutions to “${titles[0]}”. Check what each source actually says before drawing a conclusion.`
         : `Research existing solutions to “${titles[0]}”. Web research is not configured, so no market claims are available.`,
