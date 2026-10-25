@@ -98,9 +98,21 @@ prototype/         the first static prototype; do not build on it
 - Don't fake integrations or data. If a feature isn't built, the UI says so (see `PlaceholderPage`
   and the "isn't built yet" toasts). The mock AI is labelled as mock in the UI.
 - Proactive AI goes to the AI Assistant panel; it doesn't interrupt the chat unless @AI is mentioned.
-- Explicit member chat commands (`@AI create topic TITLE`, `@AI add idea TITLE to TOPIC topic`) create
-  member-authored records directly through validated repositories. This is member input, not model output;
-  ordinary AI brainstorming still creates pending suggestions. Unknown or ambiguous topics require clarification.
+- Explicit member chat requests create member-authored brainstorm records through validated repositories,
+  with or without `@AI`: `create topic TITLE`, `I would like to create a Fitness app for students`,
+  `add idea TITLE to TOPIC topic`, or `I have an idea for TITLE to TOPIC`. Check existing project topics
+  first. A structured intent interpreter reads the latest message, recent channel conversation and all
+  project topics, tolerating typos, verb synonyms and semantic topic references. Only a clear latest-member
+  request with a verified quote and a verbatim same-member title may create a record. Validate selected
+  topic ids against current project data; clarify unknown/ambiguous targets. Reusing a topic never resets
+  its board. Ordinary discussion is not a creation request, and AI-generated brainstorming still creates
+  pending suggestions. Literal commands remain available without AI; the labelled mock has template-only
+  support. Task commands still require `@AI`.
+- Natural idea contributions need no `idea` keyword. “I want to add X to the fitness app” directly
+  adds the member's idea; tentative phrasing such as “I am thinking of adding X” creates a reviewable
+  pending idea suggestion instead. Infer the target from topic names/descriptions and chat context;
+  use the sole topic for an omitted/generic target, but never redirect an explicitly unknown target.
+  Preserve ambiguity when several topics fit. Pending drafts appear in the Assistant tab and its count.
 - `@AI create task TITLE` creates an unassigned To Do task without a due date. A bare `@AI create task`
   asks for a title and consumes only that member's next message in the same channel.
 - Data never crosses projects: every project route goes through `requireProjectMember`, and every

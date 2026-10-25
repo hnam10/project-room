@@ -96,6 +96,9 @@ export function extractActionItemsByRules(messages: ConversationMessage[], exist
 export const mockProvider: AiProvider = {
   name: 'mock',
   isMock: true,
+  async interpretChatIntent() {
+    return null;
+  },
   async classifyBrainstorm({ problem, ideas, request }) {
     const focus = request?.replace(/@ai\b|brainstorm|ideas?|suggest|ways to/gi, '').trim();
     const text =

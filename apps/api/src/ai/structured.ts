@@ -1,5 +1,6 @@
 import { PRIORITIES, STRATEGY_DESCRIPTION_MAX, strategyPlanSchema, type ActionItem, type Priority } from '@project-room/shared';
 import { z } from 'zod';
+import { interpretChatIntent } from './chat-intent.js';
 import type { OpenAiClient } from './openai.js';
 import type {
   AiProvider,
@@ -373,6 +374,7 @@ Return this exact shape, without wrapping it in strategy, summary, ideas or task
     analyzeConversation: analyze,
     brainstorm,
     summarizeResearch,
+    interpretChatIntent: (input) => interpretChatIntent(client, model, input),
     classifyBrainstorm,
     facilitateBrainstorm,
   };

@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 import { AssistantTab } from './AssistantTab';
+import { pendingAssistantSuggestions } from './assistantSuggestions';
 import { Composer } from './Composer';
 import { PollsTab } from './PollsTab';
 import { MessageList } from './MessageList';
@@ -24,7 +25,7 @@ export function ChatPanel(props: {
   initialTab?: ChatTab;
 }) {
   const { projectId, activeChannelId, setActiveChannelId, applyRecord } = useWorkspace();
-  const { channels, suggestions } = useSnapshot();
+  const { channels, suggestions, ideas } = useSnapshot();
   const [tab, setTab] = useState<ChatTab>(props.initialTab ?? 'chat');
   const panel = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -33,7 +34,7 @@ export function ChatPanel(props: {
   );
   // Dropping files anywhere on the chat shares them in the open channel, like the composer's + button.
   const { fileOver, dropProps } = useFileDrop(tab === 'chat' && !!activeChannelId, (dropped) => void files.attach(dropped));
-  const pendingInsights = suggestions.filter((s) => s.status === 'pending' && s.kind === 'risk').length;
+  const pendingInsights = pendingAssistantSuggestions(suggestions, ideas).length;
 
   const tabButton = (id: ChatTab, label: ReactNode) => (
     <button role="tab" aria-selected={tab === id} className={`panel-tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>
