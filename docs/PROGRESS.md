@@ -329,10 +329,6 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - [ ] **Summarize this channel** as a suggestion kind (Claude provider follow-up).
 - [ ] **SurrealDB Agent Memory** (Agent Memory prize) — file upload and `@AI` excerpts are in. Still open:
       remember messages and poll results, and recall that memory before suggesting.
-- [ ] **Era eval harness** (Eon prize) — the local runner is in (`npm run eval -w apps/api`, see Done). Still open:
-      convert an Era Slack/Jira export to its dataset shape, then compare hosts and with/without Agent Memory.
-- [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
-      chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
 - [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open polls, workload per member.
 
 - [ ] **Brainstorm grouping** — themes as columns and a comparison view for proposals; starting a vote still needs confirmation.
@@ -417,6 +413,11 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-25 — **Not entering Eon or Expo.** Era's answer keys are for questions over a simulated enterprise, and
+  its docs show no link from Slack conversations to the Jira tickets they produced, which scoring action-item
+  extraction needs; real-model runs would also share the free model quota with the demo. Expo would be a second
+  app from scratch. The time goes to Clerk, Agent Memory and Best Overall. The local eval runner stays for
+  checking prompt and model changes. Details in HACKATHON.md.
 - 2026-10-25 — **Polls replace decisions.** Members couldn't tell how a decision got created (only the AI's
   per-message open-question check made one) and decisions overlapped with polls. The team now decides by voting;
   closed polls are the record. "Ask the project" went with decisions because it answered only from them. This

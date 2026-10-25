@@ -1,23 +1,21 @@
 # Hackathon plan
 
-We're entering Project Room for all five non-cash prizes. This file says how each sponsor fits the
+We're entering Project Room for three prizes: Clerk, SurrealDB Agent Memory and Best Overall. This file says how each sponsor fits the
 product, so the whole team builds toward the same demo. Status and owners live in
 [PROGRESS.md](PROGRESS.md) ("Next up"); product rules in [AGENTS.md](../AGENTS.md) still apply.
 
-None of the sponsor tools are mandatory, and Best Overall is open to any stack. For the sponsor prizes (Expo,
-Clerk, Eon, SurrealDB Agent Memory), judges look for **evidence that the platform materially shaped what we
-built**, so each section below names that evidence. Judges reward depth over checkbox integrations. If time runs short, go deep on steps 1–3, keep step 4
-small but real, and only do step 5 if there's time left.
+None of the sponsor tools are mandatory, and Best Overall is open to any stack. For the sponsor prizes, judges
+look for **evidence that the platform materially shaped what we built**, so each section below names that
+evidence. Judges reward depth over checkbox integrations: go deep on steps 1–3. We are not entering Eon or
+Expo (see the end of this file).
 
 ## Build order (one branch / PR each)
 
-| #   | Work                       | Prizes it serves                | Depends on |
-| --- | -------------------------- | ------------------------------- | ---------- |
-| 1   | Clerk auth + organizations | Clerk, Best Overall             | —          |
-| 2   | Claude provider (real AI)  | Best Overall                    | —          |
-| 3   | SurrealDB Agent Memory     | Agent Memory, Best Overall      | 2          |
-| 4   | Era eval harness           | Eon, Agent Memory, Best Overall | 2 (3)      |
-| 5   | Expo mobile companion      | Expo                            | 1          |
+| #   | Work                       | Prizes it serves           | Depends on |
+| --- | -------------------------- | -------------------------- | ---------- |
+| 1   | Clerk auth + organizations | Clerk, Best Overall        | —          |
+| 2   | Claude provider (real AI)  | Best Overall               | —          |
+| 3   | SurrealDB Agent Memory     | Agent Memory, Best Overall | 2          |
 
 ## 1. Clerk — real auth, teams and invites
 
@@ -56,31 +54,6 @@ time-aware memory with provenance. SDK: `@surrealdb/memory` (`remember`, `rememb
 - Needs an Agent Memory Cloud endpoint + API key (`AGENT_MEMORY_ENDPOINT`, `AGENT_MEMORY_API_KEY`);
   check whether the hackathon provides access (the product may be waitlisted).
 
-## 4. Eon (Era) — measure the AI instead of claiming it works
-
-[Era](https://www.eon.io/blog/era-build-and-test-ai-agents) generates simulated companies (Slack, Jira, …)
-with exact answer keys, reachable over MCP/REST, graded by code instead of an LLM judge.
-
-- Access: every team gets free early access to Era at kickoff. Only our own model keys have rate limits
-  (the free hosted model hits 429 at about 8k tokens/minute, so space the calls out).
-- The scorer is in: `npm run eval -w apps/api [dataset.json] [--details]` asks each configured host for action
-  items the way `@AI` does and prints precision, recall, F1 and assignee accuracy. Still to do: convert Era's
-  simulated Slack conversations to its dataset shape, with Era's Jira tickets as the answer key.
-- **Evidence for judges:** a before/after, not a single number. Score with Era, change the prompt or model
-  where the scores point (e.g. wrong assignees), score again, and show both tables with the change that moved
-  them. Add a run with Agent Memory on to support that prize too.
-- Run it by hand before judging. No CI job: real-model runs cost tokens and hit rate limits, and judges need
-  the comparison, not a daily history.
-- Era simulates enterprises, not student teams: use it for evaluation, not as product data.
-
-## 5. Expo — a mobile companion, not a port
-
-- `apps/mobile` (Expo Router) in the monorepo, reusing `packages/shared` types and the same API;
-  sign-in with Clerk's Expo SDK.
-- Only what phones are good at: push notification "AI suggestion waiting for your approval",
-  approve / edit / dismiss, chat, my tasks.
-- EAS Build for installable builds; EAS Update to ship fixes during judging.
-
 ## Keys we need
 
 Put them in `apps/api/.env` / `apps/web/.env.local` (git-ignored); never commit them.
@@ -90,5 +63,15 @@ Put them in `apps/api/.env` / `apps/web/.env.local` (git-ignored); never commit 
 | Clerk             | `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` |
 | OpenAI-compatible | `OPENAI_API_KEY`, optional `OPENAI_BASE_URL` / `OPENAI_MODEL`             |
 | Agent Memory      | `AGENT_MEMORY_ENDPOINT`, `AGENT_MEMORY_API_KEY`                           |
-| Era               | from the Era console setup (`.env` it generates)                          |
-| Expo              | Expo account for EAS (`eas login`)                                        |
+
+## Not entering: Eon and Expo
+
+Decided 2026-10-25 to spend the time on steps 1–3.
+
+- **Eon (Era).** Era's answer keys are for questions over a simulated enterprise, and nothing in its docs links
+  Slack conversations to the Jira tickets they produced, which is what scoring our action-item extraction
+  needs. Fitting it anyway would not show Era shaping the product, and real-model runs share the free model
+  quota with the demo. The local scorer stays: `npm run eval -w apps/api [dataset.json] [--details]` checks
+  prompt or model changes against a hand-written answer key.
+- **Expo.** A mobile companion (`apps/mobile`, push approvals, Clerk Expo sign-in, EAS) is a second app built from
+  scratch; nothing of it exists yet.
