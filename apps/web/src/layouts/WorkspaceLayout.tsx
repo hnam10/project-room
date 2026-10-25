@@ -22,7 +22,7 @@ import { WorkspaceProvider, useWorkspace } from '../state/workspace';
 // ];
 
 const SIDE_NAV: [string, string, IconName][] = [
-  ['board', 'Tasks', 'tasks'],
+  ['board', 'Overview', 'tasks'],
   ['chat', 'Chat', 'message'],
   ['meeting', 'Meeting', 'mic'],
   ['brainstorm', 'Brainstorm', 'bulb'],
