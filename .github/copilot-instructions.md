@@ -28,6 +28,8 @@ The rules that matter most when suggesting code:
   topic's board on approval. Inbox idea drafts need a topic selection when approved.
 - Explicit `@AI create topic TITLE` / `@AI add idea TITLE to TOPIC topic` commands are validated member
   input and create records directly without model calls. Unclear topic targets require clarification.
+- `@AI create task TITLE` creates an unassigned To Do task without scheduling. With no title, only the
+  requesting member's next message in that channel supplies it.
 - Meeting idea proposals must identify a relevant existing topic and store its `topicId`; skip ideas
   without a clear match. Show that topic on the suggestion. New topic proposals stay separate until approved.
 - Topic changes name their target board and require `replaceTopicId` confirmation on approval. The shared

@@ -98,6 +98,8 @@ prototype/         the first static prototype; do not build on it
 - Explicit member chat commands (`@AI create topic TITLE`, `@AI add idea TITLE to TOPIC topic`) create
   member-authored records directly through validated repositories. This is member input, not model output;
   ordinary AI brainstorming still creates pending suggestions. Unknown or ambiguous topics require clarification.
+- `@AI create task TITLE` creates an unassigned To Do task without a due date. A bare `@AI create task`
+  asks for a title and consumes only that member's next message in the same channel.
 - Data never crosses projects: every project route goes through `requireProjectMember`, and every
   repository query filters by `projectId`.
 - Brainstorming starts with a member-selected topic. Each topic has its own board: research and

@@ -13,7 +13,7 @@ import { runBrainstormAction } from './services/brainstorm.js';
 import { rid } from './db/records.js';
 import { createMessage, listMessages } from './repositories/messages.js';
 import { onMessagePosted } from './services/ai-engine.js';
-import { parseBrainstormCommand } from './services/brainstorm-commands.js';
+import { parseChatCommand } from './services/chat-commands.js';
 
 vi.mock('./services/research.js', () => ({ researchWeb: vi.fn() }));
 let server: Server;
@@ -49,8 +49,8 @@ const card = async (topicId: string, theme = 'Option') =>
 const snapshot = async () => (await call<WorkspaceSnapshot>('GET', '/snapshot')).body;
 
 /** Runs a posted member command through the same entry point used by the chat route. */
-async function command(text: string, channelId = 'hackathon-general') {
-  const message = await createMessage({ projectId: 'hackathon', channelId, authorId: 'alex', text });
+async function command(text: string, channelId = 'hackathon-general', authorId = 'alex') {
+  const message = await createMessage({ projectId: 'hackathon', channelId, authorId, text });
   await onMessagePosted({ projectId: 'hackathon', channelName: 'general', message, members: new Map() });
   return (await listMessages('hackathon', channelId)).at(-1)!.text;
 }
@@ -81,8 +81,8 @@ it('does not guess unknown or ambiguous topic targets or reuse context across ch
 });
 
 it('rejects duplicate and invalid commands and accepts optional quotes and polite prefixes', async () => {
-  expect(parseBrainstormCommand('Someone said @AI create topic Dinner')).toBeNull();
-  expect(parseBrainstormCommand('@AI can you suggest an idea')).toBeNull();
+  expect(parseChatCommand('Someone said @AI create topic Dinner')).toBeNull();
+  expect(parseChatCommand('@AI can you suggest an idea')).toBeNull();
   expect(await command('@AI please create topic "Dinner"')).toBe('Created topic “Dinner”.');
   expect(await command('@AI add topic dinner')).toContain('already exists');
   expect(await command('@AI add idea pizza to Dinner topic')).toContain('Added idea');
@@ -103,6 +103,23 @@ it('resolves a sole topic but never a topic belonging to another project', async
     .collect();
   expect(await command('@AI add idea pool to Private topic topic')).toContain('couldn’t identify');
   expect((await snapshot()).ideas.filter((idea) => idea.kind === 'idea')).toMatchObject([{ title: 'ramen', topicId: only.id }]);
+});
+
+it('creates unassigned tasks from inline commands and same-member same-channel follow-ups', async () => {
+  await getDb().query('DELETE message;').collect();
+  const before = (await snapshot()).tasks.length;
+  expect(await command('@AI create task Write the demo script')).toContain('Write the demo script');
+  expect(await command('@AI create task')).toContain('next message');
+  await command('Someone else is talking', 'hackathon-general', 'jamie');
+  await command('A different channel', 'hackathon-design');
+  expect((await snapshot()).tasks).toHaveLength(before + 1);
+  expect(await command('Prepare the slides')).toContain('Created task');
+  await command('An ordinary follow-up');
+  const added = (await snapshot()).tasks.slice(before);
+  expect(added.map((task) => task.title)).toEqual(['Write the demo script', 'Prepare the slides']);
+  expect(added.every((task) => task.assigneeId === null && task.status === 'todo' && task.dueDate === null)).toBe(true);
+  expect(await command(`@AI create task ${'x'.repeat(121)}`)).toContain('between 1 and 120');
+  expect((await snapshot()).tasks).toHaveLength(before + 2);
 });
 
 it('requires a topic and explicit selection when more than one exists', async () => {

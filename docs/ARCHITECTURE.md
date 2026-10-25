@@ -33,12 +33,21 @@ All records carry `projectId`; repositories always filter by it.
 
 ## The AI action engine
 
-Explicit commands are handled first by `services/brainstorm-commands.ts`, without a model call.
+Explicit commands are handled first by `services/chat-commands.ts`, without a model call.
 `@AI create topic Weekend plans` creates that exact topic; `@AI add idea pool to Weekend plans topic`
 adds a member-authored idea to an exact, case-insensitive topic match. Quotes are optional. An omitted
 topic uses the latest successful command's topic in the same channel, or the only existing topic.
 Missing/ambiguous targets and duplicate titles return a chat explanation without creating records.
 These commands are member instructions; generated proposals still require approval as described below.
+`@AI create task TITLE` uses the validated task defaults (unassigned, To Do, no due date). Without a
+title, it asks for one and reads only that member's next message in the same channel; another member
+or channel cannot supply it. Task creation never infers assignments or dates from the title.
+
+Mute status is stored in `meeting.mutedParticipantIds`. `POST /meetings/:id/mute` atomically updates
+only the authenticated participant in a live meeting. Existing meeting realtime events share it with
+all project viewers and fresh meeting reads include it. Leave/end operations clear mute membership.
+The call provider applies microphone changes immediately and serializes status writes; participant
+tiles use the shared state for other members.
 
 1. `POST …/channels/:id/messages` stores the message and responds immediately.
 2. `services/ai-engine.ts` then runs on the message:

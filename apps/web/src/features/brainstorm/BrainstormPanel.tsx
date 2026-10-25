@@ -16,7 +16,7 @@ import { isCurrentWebSuggestion, isSimilarWebSuggestion } from './similarWebSugg
 import { ActionItemsCard } from '../chat/ActionItemsCard';
 import { readStored, writeStored } from '../../state/storage';
 
-type IdeaTab = 'ideas' | 'mindmap' | 'notes';
+type IdeaTab = 'ideas' | 'notes';
 
 /** Renders the topic-scoped research, strategies, ideas, and pending AI proposals. */
 export function BrainstormPanel({ className = '', headerActions }: { className?: string; headerActions?: ReactNode }) {
@@ -237,7 +237,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
     <div className={`panel brainstorm-panel ${className}`}>
       <div className="panel-tabs">
         {tabButton('ideas', 'Brainstorm')}
-        {tabButton('mindmap', 'Mind Map')}
         {tabButton('notes', 'Notes')}
         <div className="panel-actions">{headerActions}</div>
       </div>
@@ -246,7 +245,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
       )}
       <div className="panel-body">
         {tab !== 'ideas' ? (
-          <div className="empty-state">{tab === 'mindmap' ? 'Mind map' : 'Notes'} isn’t built yet — planned for a later iteration.</div>
+          <div className="empty-state">Notes isn’t built yet — planned for a later iteration.</div>
         ) : (
           <>
             {(pendingTopics.length > 0 || pendingTopicChanges.length > 0) && (

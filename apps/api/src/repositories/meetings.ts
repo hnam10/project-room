@@ -1,6 +1,6 @@
 import type { Meeting, MeetingSummary } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
-import { ConflictError, NotFoundError, rid } from '../db/records.js';
+import { ConflictError, ForbiddenError, NotFoundError, rid } from '../db/records.js';
 
 export async function getMeeting(projectId: string, meetingId: string): Promise<Meeting> {
   const meeting = await queryOne<Meeting>('SELECT * FROM ONLY $id WHERE projectId = $project', {
@@ -82,7 +82,23 @@ export function addParticipant(meetingId: string, memberId: string): Promise<Mee
 }
 
 export function removeParticipant(meetingId: string, memberId: string): Promise<Meeting> {
-  return update(meetingId, 'participantIds = array::complement(participantIds, $m)', { m: [rid('member', memberId)] });
+  return update(
+    meetingId,
+    'participantIds = array::complement(participantIds, $m), mutedParticipantIds = array::complement(mutedParticipantIds ?? [], $m)',
+    { m: [rid('member', memberId)] },
+  );
+}
+
+/** Changes only the caller's mute status, atomically scoped to a live meeting they have joined. */
+export async function setParticipantMuted(projectId: string, meetingId: string, memberId: string, muted: boolean): Promise<Meeting> {
+  await getMeeting(projectId, meetingId);
+  const [meeting] = await queryMany<Meeting>(
+    `UPDATE $id SET mutedParticipantIds = ${muted ? 'array::union' : 'array::complement'}(mutedParticipantIds ?? [], [$member])
+     WHERE projectId = $project AND status = 'live' AND $member IN participantIds RETURN AFTER`,
+    { id: rid('meeting', meetingId), project: rid('project', projectId), member: rid('member', memberId) },
+  );
+  if (!meeting) throw new ForbiddenError('Join the live meeting to share mute status');
+  return meeting;
 }
 
 /**
@@ -93,7 +109,7 @@ export function removeParticipant(meetingId: string, memberId: string): Promise<
 export async function beginSummarizing(meetingId: string, onlyIfEmpty = false): Promise<Meeting | null> {
   const [meeting] = await queryMany<Meeting>(
     `BEGIN;
-     LET $updated = (UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [] WHERE status = 'live'${onlyIfEmpty ? ' AND array::len(participantIds) = 0' : ''} RETURN AFTER);
+     LET $updated = (UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [], mutedParticipantIds = [] WHERE status = 'live'${onlyIfEmpty ? ' AND array::len(participantIds) = 0' : ''} RETURN AFTER);
      IF array::len($updated) > 0 { DELETE live_meeting WHERE meetingId = $id; };
      COMMIT;
      RETURN $updated;`,

@@ -35,7 +35,12 @@ export function Participants({ meeting, localStream, remoteStreams, muted }: Pro
   return (
     <ul className="meeting-people">
       {meeting.participantIds.map((id) => (
-        <Tile key={id} id={id} stream={id === memberId ? localStream : (remoteStreams.get(id) ?? null)} muted={id === memberId && muted} />
+        <Tile
+          key={id}
+          id={id}
+          stream={id === memberId ? localStream : (remoteStreams.get(id) ?? null)}
+          muted={id === memberId ? muted : (meeting.mutedParticipantIds ?? []).includes(id)}
+        />
       ))}
       <li className={`meeting-tile ai${meeting.aiEnabled ? '' : ' off'}`}>
         <Avatar id={AI_AUTHOR} />
