@@ -50,7 +50,7 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
   };
 
   return (
-    <article className="idea ai-idea-draft">
+    <article className={`idea ai-idea-draft${draftKind === 'strategy' ? ' direction' : ''}`}>
       <span className="ai-draft-label">
         <Icon name="sparkle" /> AI {draftKind} · review required
       </span>
@@ -75,7 +75,11 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
         </div>
       )}
       <div className="action-buttons">
-        <button className="btn success sm" disabled={busy} onClick={() => setEditing(true)}>
+        <button
+          className={`btn ${draftKind === 'strategy' ? 'direction-btn' : 'idea-btn'} sm`}
+          disabled={busy}
+          onClick={() => setEditing(true)}
+        >
           Review &amp; approve
         </button>
         <button className="btn sm" disabled={busy} onClick={() => void dismiss()}>
@@ -94,7 +98,10 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
             <button type="button" className="btn" onClick={() => setEditing(false)}>
               Cancel
             </button>
-            <button className="btn primary" disabled={busy || !form.title.trim() || (!suggestion.ideaId && !topicId)}>
+            <button
+              className={`btn ${draftKind === 'strategy' ? 'direction-btn' : 'idea-btn'}`}
+              disabled={busy || !form.title.trim() || (!suggestion.ideaId && !topicId)}
+            >
               {suggestion.ideaId ? 'Update idea' : 'Add to Brainstorm'}
             </button>
           </>

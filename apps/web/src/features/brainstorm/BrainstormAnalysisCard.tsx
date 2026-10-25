@@ -52,11 +52,11 @@ export function BrainstormAnalysisCard({ suggestion }: { suggestion: Suggestion 
       </a>
       <div className="action-buttons">
         {!hasSummary && (
-          <button className="btn primary sm" disabled={busy} onClick={() => void summarize()}>
+          <button className="btn research-btn sm" disabled={busy} onClick={() => void summarize()}>
             Summarize source
           </button>
         )}
-        <button className="btn success sm" disabled={busy} onClick={() => void act(true)}>
+        <button className="btn research-btn sm" disabled={busy} onClick={() => void act(true)}>
           Save source
         </button>
         <button className="btn sm" disabled={busy} onClick={() => void act(false)}>

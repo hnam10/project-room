@@ -84,7 +84,7 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
       )}
       {!suggestion.ideaId && <p>Creates a separate topic tab with its own brainstorming board.</p>}
       <div className="action-buttons">
-        <button className="btn success sm" disabled={busy || (!!suggestion.ideaId && !target)} onClick={() => setReviewing(true)}>
+        <button className="btn idea-btn sm" disabled={busy || (!!suggestion.ideaId && !target)} onClick={() => setReviewing(true)}>
           Review &amp; {suggestion.ideaId ? 'update topic' : 'add topic'}
         </button>
         <button className="btn sm" disabled={busy} onClick={() => void dismiss()}>
@@ -102,7 +102,7 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
             <button type="button" className="btn" onClick={() => setReviewing(false)}>
               Cancel
             </button>
-            <button className="btn primary" disabled={busy || !title.trim() || (!!suggestion.ideaId && !target)}>
+            <button className="btn idea-btn" disabled={busy || !title.trim() || (!!suggestion.ideaId && !target)}>
               {suggestion.ideaId ? 'Update topic' : 'Add topic'}
             </button>
           </>

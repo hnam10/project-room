@@ -35,7 +35,7 @@ function NotesChecklist({ suggestion }: { suggestion: Suggestion }) {
   };
 
   return (
-    <div className="ai-card">
+    <div className="ai-card notes">
       <span className="ai-badge">
         <Icon name="sparkle" />
         Notes for next time
@@ -47,7 +47,7 @@ function NotesChecklist({ suggestion }: { suggestion: Suggestion }) {
         </label>
       ))}
       <div className="action-buttons">
-        <button className="btn success sm" disabled={busy} onClick={() => void confirm()}>
+        <button className="btn primary sm" disabled={busy} onClick={() => void confirm()}>
           Confirm notes
         </button>
       </div>

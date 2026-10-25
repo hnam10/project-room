@@ -32,7 +32,7 @@ export function ActionItemsCard({ suggestion }: { suggestion: Suggestion }) {
 
   return (
     <>
-      <div className="action-card">
+      <div className={`action-card${suggestion.status === 'pending' ? ' pending' : ''}`}>
         {suggestion.items.map((item, i) => (
           <div key={i} className={`action-item${item.include ? '' : ' off'}`}>
             <span className="check">
@@ -66,7 +66,7 @@ export function ActionItemsCard({ suggestion }: { suggestion: Suggestion }) {
           <p className="action-question">Would you like to add these to the board?</p>
           <div className="action-buttons">
             <button
-              className="btn success sm"
+              className="btn primary sm"
               disabled={busy}
               onClick={() =>
                 run(

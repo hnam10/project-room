@@ -8,10 +8,21 @@
   border-radius: 9px;
   background: var(--surface);
 }
+/* AI research is blue on every page; a research result waiting to be saved is dashed. */
+.brainstorm-guide {
+  border-left: 3px solid var(--research);
+}
+.brainstorm-analysis {
+  border: 1.5px dashed var(--research);
+}
+.brainstorm-research h3,
+.brainstorm-research-status {
+  color: var(--research);
+}
 .brainstorm-topic-draft {
   margin: 14px 16px 0;
   padding: 14px 16px;
-  border: 1.5px dashed var(--accent);
+  border: 1.5px dashed var(--amber);
   border-radius: 9px;
   background: var(--surface);
 }
@@ -131,10 +142,12 @@
   color: var(--ink-2);
   font-size: 12px;
 }
-.brainstorm-guide-head strong,
-.brainstorm-problem strong,
-.brainstorm-analysis strong {
+.brainstorm-problem strong {
   color: var(--accent);
+}
+.brainstorm-guide-head strong,
+.brainstorm-analysis strong {
+  color: var(--research);
   font-size: 12px;
 }
 .brainstorm-problem {
@@ -182,7 +195,7 @@
 .brainstorm-source-link {
   display: inline-block;
   margin: 8px 0;
-  color: var(--accent);
+  color: var(--research);
   font-size: 12px;
   text-decoration: underline;
 }
@@ -350,23 +363,24 @@
 }
 .ai-idea-draft {
   --paper: var(--surface);
-  border: 1.5px dashed var(--accent);
+  border: 1.5px dashed var(--amber);
   grid-column: span 2;
 }
+/* AI idea drafts are yellow like the idea tickets on every page; topics stay purple and research is blue. */
 .ai-draft-label {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--accent);
+  color: var(--brainstorm);
   font-size: 11px;
   font-weight: 650;
 }
-/* The idea wall is yellow like its tickets, so it stands apart from the purple topic and research cards. */
-.idea-grid .ai-idea-draft {
-  border-color: var(--amber);
+.ai-idea-draft.direction {
+  border-color: var(--direction);
 }
-.idea-grid .ai-draft-label {
-  color: var(--brainstorm);
+.ai-idea-draft.direction .ai-draft-label,
+.idea.direction .ai-draft-label {
+  color: var(--direction);
 }
 .ai-draft-label .icon {
   width: 13px;
@@ -382,12 +396,12 @@
   font-size: 11px;
 }
 .idea-sources a {
-  color: var(--accent);
+  color: var(--research);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 .idea-foot button.start-vote {
-  color: var(--accent);
+  color: var(--green);
   font-weight: 600;
 }
 .brainstorm-topic-navigation {
