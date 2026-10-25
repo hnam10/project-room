@@ -11,8 +11,8 @@ import { readFile } from 'node:fs/promises';
 import { config } from '../config.js';
 import { mockProvider } from '../ai/mock.js';
 import { createOpenAiClient } from '../ai/openai.js';
-import type { AiProvider } from '../ai/provider.js';
-import { createStructuredProvider } from '../ai/structured.js';
+import type { AiProvider, ConversationMessage, ProjectLookup } from '../ai/provider.js';
+import { composeAiProvider } from '../ai/routing.js';
 import { MATCH_AT, rates, scoreCase, similarity, sum, type ExpectedItem, type Score } from './score.js';
 
 interface EvalCase {
@@ -27,18 +27,29 @@ const details = args.includes('--details');
 const path = args.find((a) => !a.startsWith('--')) ?? new URL('./sample.json', import.meta.url);
 const dataset = JSON.parse(await readFile(path, 'utf8')) as { source?: string; cases: EvalCase[] };
 
+// Each host is built the way getAiProvider() builds it, so real hosts answer through runMention like @AI in chat.
+const host = (label: string, apiKey: string, baseUrl: string, model: string): [string, AiProvider] => {
+  const routed = { label, client: createOpenAiClient(apiKey, baseUrl), model, fastModel: model };
+  return [`${label}:${model}`, composeAiProvider(routed, routed)];
+};
 const providers: [string, AiProvider][] = [['mock', mockProvider]];
-if (config.openaiApiKey) {
-  providers.push([
-    `openai:${config.openaiModel}`,
-    createStructuredProvider(createOpenAiClient(config.openaiApiKey, config.openaiBaseUrl), config.openaiModel),
-  ]);
-}
-if (config.nebiusApiKey) {
-  providers.push([
-    `nebius:${config.nebiusModel}`,
-    createStructuredProvider(createOpenAiClient(config.nebiusApiKey, config.nebiusBaseUrl), config.nebiusModel),
-  ]);
+if (config.openaiApiKey) providers.push(host('openai', config.openaiApiKey, config.openaiBaseUrl, config.openaiModel));
+if (config.nebiusApiKey) providers.push(host('nebius', config.nebiusApiKey, config.nebiusBaseUrl, config.nebiusModel));
+
+/** The same call ai-engine makes for an @AI mention: the agent when the host has one, the one-shot analysis otherwise. */
+async function actionItems(ai: AiProvider, c: EvalCase, messages: ConversationMessage[]) {
+  const members = c.members.map((m) => ({ id: m.id, name: m.name, role: m.role ?? '' }));
+  if (!ai.runMention) return (await ai.analyzeConversation({ messages, tasks: [], members })).actionItems;
+  // An empty project apart from the case's members: no tasks, ideas or older messages to look up.
+  const lookup: ProjectLookup = {
+    listMembers: async () => members,
+    listTasks: async () => [],
+    searchMessages: async () => [],
+    listPendingSuggestions: async () => [],
+    listIdeas: async () => [],
+  };
+  const ask = { id: `${c.id}-ask`, authorId: c.members[0]!.id, authorName: c.members[0]!.name, text: '@AI what are our action items?' };
+  return (await ai.runMention({ messages: [...messages, ask], lookup })).actionItems;
 }
 
 console.log(`Dataset: ${dataset.source ?? path} (${dataset.cases.length} cases)\n`);
@@ -53,15 +64,13 @@ for (const [name, ai] of providers) {
     const nameOf = (id: string) => c.members.find((m) => m.id === id)?.name ?? id;
     let proposed: { title: string; assigneeId: string | null }[] = [];
     try {
-      const out = await ai.analyzeConversation({
-        messages: c.messages.map((m, i) => ({ id: `${c.id}-${i}`, authorId: m.author, authorName: nameOf(m.author), text: m.text })),
-        tasks: [],
-        members: c.members.map((m) => ({ id: m.id, name: m.name, role: m.role ?? '' })),
-      });
-      proposed = out.actionItems;
+      const messages = c.messages.map((m, i) => ({ id: `${c.id}-${i}`, authorId: m.author, authorName: nameOf(m.author), text: m.text }));
+      proposed = await actionItems(ai, c, messages);
     } catch (error) {
       failed++;
       console.error(`${name} failed on ${c.id}:`, error instanceof Error ? error.message : error);
+      // A failed call (rate limit, timeout) says nothing about extraction; it only shows in the failed column.
+      continue;
     }
     scores.push(scoreCase(c.expected, proposed));
     if (details) {
