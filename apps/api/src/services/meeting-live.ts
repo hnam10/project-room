@@ -70,7 +70,11 @@ async function sharedFileExcerpts(
     if (!memory || !documentIds.size) return whole;
     const query = [...files.map((f) => f.name), ...lines.map((l) => l.text)].join('\n');
     // The search covers every project file; keep passages from this meeting's files only.
-    const excerpts = await memory.excerpts(projectId, query);
+    const excerpts = await memory.excerpts(projectId, query).catch((error: unknown) => {
+      // Files read whole above still reach the model when Agent Memory is down.
+      console.error(`Agent Memory search failed for ${meetingId}`, error);
+      return [];
+    });
     return [...whole, ...excerpts.filter((e) => e.documentId && documentIds.has(e.documentId))];
   } catch (error) {
     console.error(`Could not read meeting files for ${meetingId}`, error);
@@ -89,7 +93,13 @@ export async function answerMeetingMention(
   ai: AiProvider = getAiProvider(),
   memory: ProjectMemory | null = getProjectMemory(),
 ): Promise<TranscriptLine[]> {
+  // Turning the AI off (or ending the meeting) stops @AI too: nothing is sent to the model or written back.
+  const aiOn = async () => {
+    const meeting = await getMeeting(projectId, meetingId);
+    return meeting.status === 'live' && meeting.aiEnabled;
+  };
   try {
+    if (!(await aiOn())) return [];
     const lines = (await listLines(projectId, meetingId)).slice(-MENTION_LINES);
     const project = await getProject(projectId);
     const members = new Map<string, Member>((await listMembers(project?.memberIds ?? [])).map((m) => [m.id, m]));
@@ -110,6 +120,8 @@ export async function answerMeetingMention(
         ? `(Mock AI) I can see ${[...new Set(files.map((f) => f.name))].join(', ')}, but reading files needs a real model. Set OPENAI_API_KEY.`
         : '(Mock AI) Set OPENAI_API_KEY for real answers.';
     }
+    // The meeting may have ended (and been summarised) while the model was answering.
+    if (!(await aiOn())) return [];
     const created: TranscriptLine[] = [];
     for (const chunk of splitLine(reply)) created.push(await createLine(projectId, meetingId, askerId, chunk, 'ai'));
     return created;

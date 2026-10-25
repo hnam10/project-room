@@ -38,7 +38,8 @@ export async function summarize(
       listIdeas(projectId),
       listTasks(projectId),
       listSuggestions(projectId),
-      listLinesAfter(projectId, meetingId, null, MAX_LINES),
+      // @AI replies aren't the team's words; leave them out, as the live ticks do.
+      listLinesAfter(projectId, meetingId, null, MAX_LINES).then((all) => all.filter((l) => l.source !== 'ai')),
       meeting.previousMeetingId ? getMeeting(projectId, meeting.previousMeetingId) : null,
     ]);
     const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? 'Someone';
