@@ -5,6 +5,39 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Capture natural direct and tentative chat ideas.** “I want to add no-equipment dorm
+  workouts to the fitness app” adds the member's idea; “I am thinking of adding…” saves a pending
+  review draft. The interpreter uses topic names/descriptions and recent chat; the service fills omitted
+  ids for a unique target-reference match or a sole implicit topic, preserving unknown/ambiguous targets.
+  Drafts retain source messages, quotes, reasons and topic versions, suppress duplicate pending titles,
+  and create cards only after approval. The Assistant badge now counts the same pending cards its panel
+  shows, including idea drafts. Regression and HTTP/realtime tests cover direct creation, tentative
+  capture/approval, sole-topic defaults, semantic selection and ambiguous/unknown references.
+  Full check passes with 284 tests and the web production bundle builds with local environment loading
+  disabled. Browser control could not start, so live model/browser verification remains unconfirmed.
+  No new dependencies.
+
+- 2026-10-25 — **Accept sufficiently named chat topics.** The lowercase fitness-app request exposed a
+  brittle exact-case excerpt check: model capitalization/spacing could trigger the generic clarification.
+  Excerpt verification now accepts those presentation differences and stores the original member text.
+  The intent prompt explicitly treats a named project goal as enough to create a topic without an idea
+  or existing topic id. Unusable extractions/clarifications get one bounded recheck with validation feedback;
+  unsupported titles and targets remain rejected. Regression tests cover the exact reported wording,
+  normalized model output, clarification recovery and bounded failure. Full check passes with 278 tests.
+  Live model response remains unverified. The earlier app permission-helper failure was resolved before publishing the branch.
+
+- 2026-10-25 — **Contextual chat intent replaces template-only natural requests.** The frequent AI host
+  interprets the latest member message with recent channel history and existing topic titles/descriptions,
+  including typos such as `woiuld`, contribution/creation verbs, contextual references and semantic topic
+  duplicates. The server verifies request/title excerpts, same-member title provenance, shared validation
+  and current project topic ids before writing. Unclear targets ask for clarification; reused boards are
+  preserved. Generated AI ideas stay pending. Literal commands survive model outages; the labelled mock
+  retains template-only support. Tests cover interpretation routing, context, invalid/foreign ids,
+  fabricated titles, uncertainty and outages. Tests disable local environment loading; formatting excludes
+  environment files, so validation does not read developer credentials. Full check passes with 275 tests.
+  Model responses in intent tests are simulated; live-model/browser verification remains unconfirmed.
+  No new dependencies.
+
 - 2026-10-25 — **Brainstorm requests without @AI.** Chat recognizes explicit natural creation goals
   (`I would like to create a Fitness app for students with limited equipment`) and member ideas
   (`I have an idea for No-equipment dorm workouts to Fitness app for students`). Existing topic lookup
@@ -525,6 +558,15 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
+
+- 2026-10-25 — **Capture tentative concrete ideas as suggestions.** Members naturally say “thinking of
+  adding” rather than issuing commands. Preserve that contribution for review while direct “want to add”
+  requests create member-authored cards; use a sole topic by default unless an explicit target conflicts.
+
+- 2026-10-25 — **Use contextual intent extraction for natural chat.** Exact phrase templates missed
+  misspellings and semantic references. A structured model interprets the request, but only grounded
+  member-authored titles and validated project topic ids reach repositories; generated content stays pending.
+  This supersedes template-only natural request handling below.
 
 - 2026-10-25 — **Explicit natural chat requests count as member input.** Brainstorm creation needs no
   AI tag or model call; anchored wording and conservative topic matching avoid interpreting ordinary

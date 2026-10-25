@@ -44,6 +44,25 @@ describe('AI host routing', () => {
     expect(openai.chat).toHaveBeenCalled();
     expect(nebius.chat).not.toHaveBeenCalled();
     expect(vi.mocked(openai.chat).mock.calls[0]?.[0].model).toBe('gpt-4.1-mini');
+    vi.mocked(nebius.parse).mockResolvedValue({
+      output: {
+        action: 'none',
+        explicitRequest: false,
+        requestQuote: null,
+        title: null,
+        titleSourceMessageId: null,
+        topicId: null,
+        topicReference: null,
+      },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    });
+    await ai.interpretChatIntent({
+      message: { id: 'm2', authorId: 'a', authorName: 'A', text: 'What if we built a fitness app?' },
+      recentMessages: [],
+      topics: [],
+    });
+    expect(vi.mocked(nebius.parse).mock.calls.at(-1)?.[0].model).toBe('openai/gpt-oss-120b');
+    expect(openai.parse).toHaveBeenCalledOnce();
   });
 
   it('sends live meeting ticks to Nebius and the end summary to OpenAI', async () => {

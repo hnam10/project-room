@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import type { Idea, Suggestion, WorkspaceSnapshot } from '@project-room/shared';
 import { createApp } from './app.js';
 import { closeDb, connectDb, getDb } from './db/client.js';
@@ -17,8 +17,10 @@ import { parseChatCommand } from './services/chat-commands.js';
 import { readStrategyPlan } from '@project-room/shared';
 import { getAiProvider } from './ai/index.js';
 import { AiRequestError } from './ai/openai.js';
+import type { ChatIntent } from './ai/provider.js';
 
 vi.mock('./services/research.js', () => ({ researchWeb: vi.fn() }));
+afterEach(() => vi.restoreAllMocks());
 let server: Server;
 let base: string;
 const web = vi.mocked(researchWeb);
@@ -50,6 +52,316 @@ const topic = async (title = 'Student deadline planning') => (await call<Idea>('
 const card = async (topicId: string, theme = 'Option') =>
   (await call<Idea>('POST', '/ideas', { topicId, title: 'A concrete approach', theme })).body;
 const snapshot = async () => (await call<WorkspaceSnapshot>('GET', '/snapshot')).body;
+
+const extracted = (overrides: Partial<ChatIntent> = {}): ChatIntent => ({
+  action: 'none',
+  explicitRequest: false,
+  requestQuote: null,
+  title: null,
+  titleSourceMessageId: null,
+  topicId: null,
+  topicReference: null,
+  ...overrides,
+});
+
+it('adds the reported direct contribution using a shortened target among several topics', async () => {
+  await getDb().query('DELETE message;').collect();
+  const fitness = await topic('Fitness app for students with limited equipment');
+  await topic('Student meal planning');
+  const interpret = vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'add_idea',
+      explicitRequest: true,
+      requestQuote: message.text,
+      title: 'no-equipment dorm workouts',
+      titleSourceMessageId: message.id,
+      topicReference: 'the fitness app',
+    }),
+  );
+  expect(await command('I want to add no-equipment dorm workouts to the fitness app')).toBe(
+    'Added idea “no-equipment dorm workouts” to topic “Fitness app for students with limited equipment”.',
+  );
+  expect(interpret).toHaveBeenCalledOnce();
+  expect((await snapshot()).ideas.find((item) => item.title === 'no-equipment dorm workouts')).toMatchObject({
+    kind: 'idea',
+    topicId: fitness.id,
+    authorId: 'alex',
+  });
+});
+
+it('uses the sole topic for an implicit direct contribution', async () => {
+  const fitness = await topic('Fitness app for students with limited equipment');
+  vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'add_idea',
+      explicitRequest: true,
+      requestQuote: message.text,
+      title: 'no-equipment dorm workouts',
+      titleSourceMessageId: message.id,
+    }),
+  );
+  expect(await command('I want to add no-equipment dorm workouts')).toContain('Added idea');
+  expect((await snapshot()).ideas.find((item) => item.title === 'no-equipment dorm workouts')?.topicId).toBe(fitness.id);
+});
+
+it('captures the reported tentative idea for review and creates a card only after approval', async () => {
+  await getDb().query('DELETE message;').collect();
+  const fitness = await topic('Fitness app for students with limited equipment');
+  vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'suggest_idea',
+      explicitRequest: false,
+      requestQuote: message.text,
+      title: 'no-equipment dorm workouts',
+      titleSourceMessageId: message.id,
+      topicReference: 'the fitness app',
+    }),
+  );
+  const text = 'I am thinking of adding no-equipment dorm workouts to the fitness app';
+  await command(text);
+  await command(text);
+  const before = await snapshot();
+  expect(before.ideas).toHaveLength(1);
+  expect(before.suggestions).toHaveLength(1);
+  const draft = before.suggestions[0]!;
+  expect(draft).toMatchObject({
+    kind: 'idea',
+    status: 'pending',
+    topicId: fitness.id,
+    topicVersion: fitness.boardVersion,
+    quote: text,
+    ideaDraft: { title: 'no-equipment dorm workouts' },
+  });
+  expect(draft.reason).toContain(fitness.title);
+  expect(draft.sourceMessageId).toBeTruthy();
+  // Untagged tentative contributions don't interrupt chat with an assistant reply.
+  expect((await listMessages('hackathon', 'hackathon-general')).at(-1)?.authorId).toBe('alex');
+  expect((await call('POST', `/suggestions/${draft.id}/approve`, {})).status).toBe(200);
+  expect((await snapshot()).ideas.find((item) => item.title === 'no-equipment dorm workouts')).toMatchObject({
+    topicId: fitness.id,
+    sourceSuggestionId: draft.id,
+  });
+});
+
+it('keeps semantic topic selection from the model when the reference uses different words', async () => {
+  const fitness = await topic('Student movement with minimal equipment');
+  await topic('Meal planning');
+  vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'add_idea',
+      explicitRequest: true,
+      requestQuote: message.text,
+      title: 'dorm workouts',
+      titleSourceMessageId: message.id,
+      topicId: fitness.id,
+      topicReference: 'the fitness app',
+    }),
+  );
+  expect(await command('Add dorm workouts to the fitness app')).toContain('Added idea');
+  expect((await snapshot()).ideas.find((item) => item.title === 'dorm workouts')?.topicId).toBe(fitness.id);
+});
+
+it('does not redirect an explicitly unknown target or guess between multiple similar topic names', async () => {
+  const fitness = await topic('Fitness app for students with limited equipment');
+  const interpret = vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'suggest_idea',
+      explicitRequest: false,
+      requestQuote: message.text,
+      title: 'recipe reminders',
+      titleSourceMessageId: message.id,
+      topicReference: 'the meal app',
+    }),
+  );
+  expect(await command('I am considering recipe reminders for the meal app')).toContain('Please clarify');
+  await topic('Fitness app for commuters');
+  interpret.mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'add_idea',
+      explicitRequest: true,
+      requestQuote: message.text,
+      title: 'dorm workouts',
+      titleSourceMessageId: message.id,
+      topicReference: 'the fitness app',
+    }),
+  );
+  expect(await command('Add dorm workouts to the fitness app')).toContain('Please clarify');
+  expect((await snapshot()).ideas).toHaveLength(2);
+  expect((await snapshot()).suggestions).toHaveLength(0);
+  expect((await snapshot()).ideas).toContainEqual(fitness);
+});
+
+it('uses contextual intent extraction for a misspelled creation request and a different contribution verb', async () => {
+  await getDb().query('DELETE message;').collect();
+  const other = await topic('Meal planning');
+  const interpret = vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message, topics }) => {
+    if (message.text.includes('woiuld'))
+      return extracted({
+        action: 'create_topic',
+        explicitRequest: true,
+        requestQuote: message.text,
+        title: 'Fitness app for students with limited equipment',
+        titleSourceMessageId: message.id,
+      });
+    return extracted({
+      action: 'add_idea',
+      explicitRequest: true,
+      requestQuote: message.text,
+      title: 'No-equipment dorm workouts',
+      titleSourceMessageId: message.id,
+      topicId: topics.find((item) => item.id !== other.id)!.id,
+    });
+  });
+  expect(await command('I woiuld like to create a Fitness app for students with limited equipment')).toContain('Created topic');
+  expect(await command('Put No-equipment dorm workouts under the fitness thing we just discussed')).toContain('Added idea');
+  const input = interpret.mock.calls[1]![0];
+  expect(input.recentMessages.some((item) => item.text.includes('woiuld'))).toBe(true);
+  expect(input.topics.map((item) => item.title)).toEqual(['Meal planning', 'Fitness app for students with limited equipment']);
+  const board = await snapshot();
+  const fitness = board.ideas.find((item) => item.title.startsWith('Fitness'))!;
+  expect(board.ideas.find((item) => item.title === 'No-equipment dorm workouts')?.topicId).toBe(fitness.id);
+  expect(board.suggestions).toHaveLength(0);
+  expect(web).not.toHaveBeenCalled();
+});
+
+it('uses semantic existing-topic selection without resetting its saved cards', async () => {
+  const fitness = await topic('Student fitness with minimal gear');
+  const saved = await card(fitness.id);
+  vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'use_topic',
+      explicitRequest: true,
+      requestQuote: message.text,
+      topicId: fitness.id,
+    }),
+  );
+  expect(await command('I want to build an exercise app for students who have little equipment')).toContain('already exists');
+  expect((await snapshot()).ideas).toEqual(expect.arrayContaining([fitness, saved]));
+  expect((await snapshot()).ideas).toHaveLength(2);
+});
+
+it('uses same-member history for an explicit contextual follow-up but rejects a different member’s title', async () => {
+  await getDb().query('DELETE message;').collect();
+  const titleMessage = await createMessage({
+    projectId: 'hackathon',
+    channelId: 'hackathon-general',
+    authorId: 'alex',
+    text: 'A campus workout planner',
+  });
+  vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'create_topic',
+      explicitRequest: true,
+      requestQuote: message.text,
+      title: titleMessage.text,
+      titleSourceMessageId: titleMessage.id,
+    }),
+  );
+  expect(await command('Yes, make that a topic', 'hackathon-general', 'jamie')).toContain('Please clarify');
+  expect((await snapshot()).ideas).toHaveLength(0);
+  expect(await command('Yes, make that a topic')).toContain('Created topic');
+  expect((await snapshot()).ideas).toHaveLength(1);
+});
+
+it('does not execute uncertain, invented, foreign or unsupported intent extractions', async () => {
+  await getDb().query('DELETE message;').collect();
+  await topic('Dinner');
+  const interpret = vi.spyOn(getAiProvider(), 'interpretChatIntent');
+  const invalid: Partial<ChatIntent>[] = [
+    { action: 'clarify' },
+    { action: 'create_topic', explicitRequest: false },
+    { action: 'create_topic', explicitRequest: true, requestQuote: 'Invented instruction' },
+    { action: 'create_topic', explicitRequest: true, title: 'Invented title' },
+    { action: 'add_idea', explicitRequest: true, title: 'Dorm workouts', topicId: 'foreign-or-deleted' },
+    { action: 'add_idea', explicitRequest: true, title: 'Dorm workouts', topicId: null, topicReference: 'the fitness topic' },
+  ];
+  for (const result of invalid) {
+    interpret.mockImplementation(async ({ message }) =>
+      extracted({
+        requestQuote: message.text,
+        titleSourceMessageId: message.id,
+        ...result,
+      }),
+    );
+    expect(await command('Put Dorm workouts under the fitness topic')).toContain('Please clarify');
+  }
+  expect((await snapshot()).ideas).toHaveLength(1);
+});
+
+it('accepts the reported lowercase creation request when the model capitalizes its quote and title', async () => {
+  await getDb().query('DELETE message;').collect();
+  const request = 'i want to create a fitness app for students with limited equipment';
+  const interpret = vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'create_topic',
+      explicitRequest: true,
+      requestQuote: 'I want to create a Fitness app for students with limited equipment',
+      title: 'Fitness  app for students with limited equipment',
+      titleSourceMessageId: message.id,
+    }),
+  );
+  expect(await command(request)).toBe('Created topic “fitness app for students with limited equipment”.');
+  expect(interpret).toHaveBeenCalledOnce();
+  expect((await snapshot()).ideas).toMatchObject([
+    { kind: 'problem', title: 'fitness app for students with limited equipment', authorId: 'alex' },
+  ]);
+});
+
+it('rechecks an unnecessary clarification once before creating a sufficiently named goal', async () => {
+  const request = 'i want to create a fitness app for students with limited equipment';
+  const interpret = vi
+    .spyOn(getAiProvider(), 'interpretChatIntent')
+    .mockResolvedValueOnce(extracted({ action: 'clarify' }))
+    .mockImplementationOnce(async ({ message }) =>
+      extracted({
+        action: 'create_topic',
+        explicitRequest: true,
+        requestQuote: message.text,
+        title: 'fitness app for students with limited equipment',
+        titleSourceMessageId: message.id,
+      }),
+    );
+  expect(await command(request)).toContain('Created topic');
+  expect(interpret).toHaveBeenCalledTimes(2);
+  expect(interpret.mock.calls[1]![0].validationFeedback).toContain('New topics need neither an idea nor an existing topic id');
+});
+
+it('bounds interpretation repairs and still rejects fabricated title content', async () => {
+  vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) =>
+    extracted({
+      action: 'create_topic',
+      explicitRequest: true,
+      requestQuote: message.text,
+      title: 'Fitness app with fabricated recommendations',
+      titleSourceMessageId: message.id,
+    }),
+  );
+  expect(await command('i want to create a fitness app for students with limited equipment')).toContain('Please clarify');
+  expect(getAiProvider().interpretChatIntent).toHaveBeenCalledTimes(2);
+  expect((await snapshot()).ideas).toHaveLength(0);
+});
+
+it('passes only the current channel history to the interpreter and honors none even for a template-shaped message', async () => {
+  await getDb().query('DELETE message;').collect();
+  await createMessage({ projectId: 'hackathon', channelId: 'hackathon-design', authorId: 'alex', text: 'Secret design channel context' });
+  const interpret = vi.spyOn(getAiProvider(), 'interpretChatIntent').mockResolvedValue(extracted());
+  await command('I would like to create a Fitness app for students');
+  expect((await snapshot()).ideas).toHaveLength(0);
+  expect(interpret.mock.calls[0]![0].recentMessages).toEqual([]);
+  await command('I do not want to build a Fitness app');
+  await command('What if we made a workout app?');
+  expect((await snapshot()).ideas).toHaveLength(0);
+});
+
+it('fails safely when intent interpretation is unavailable, while retaining literal commands', async () => {
+  const interpret = vi.spyOn(getAiProvider(), 'interpretChatIntent').mockRejectedValue(new Error('Unavailable'));
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  await command('I woiuld like to create a Fitness app for students');
+  expect((await snapshot()).ideas).toHaveLength(0);
+  expect(await command('create topic Fitness app for students')).toContain('Created topic');
+  expect(interpret).toHaveBeenCalledTimes(2);
+  expect(warning).toHaveBeenCalled();
+});
 
 /** Runs a posted member command through the same entry point used by the chat route. */
 async function command(text: string, channelId = 'hackathon-general', authorId = 'alex') {

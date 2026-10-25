@@ -6,7 +6,7 @@ import { useFeedback } from '../../components/Feedback';
 import { useSession } from '../../state/session';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 import { BrainstormAnalysisCard } from '../brainstorm/BrainstormAnalysisCard';
-import { isCurrentWebSuggestion } from '../brainstorm/similarWebSuggestion';
+import { pendingAssistantSuggestions } from './assistantSuggestions';
 import { BrainstormSuggestionCard } from '../brainstorm/BrainstormSuggestionCard';
 import { BrainstormTopicSuggestionCard } from '../brainstorm/BrainstormTopicSuggestionCard';
 
@@ -14,11 +14,7 @@ import { BrainstormTopicSuggestionCard } from '../brainstorm/BrainstormTopicSugg
 export function AssistantTab() {
   const { me } = useSession();
   const { ideas, suggestions } = useSnapshot();
-  const pending = suggestions.filter(
-    (s) =>
-      s.status === 'pending' &&
-      (s.kind === 'risk' || s.kind === 'idea' || s.kind === 'brainstorm_topic' || isCurrentWebSuggestion(s, ideas, suggestions)),
-  );
+  const pending = pendingAssistantSuggestions(suggestions, ideas);
 
   return (
     <div className="list-pad">

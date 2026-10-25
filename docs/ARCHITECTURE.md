@@ -58,15 +58,32 @@ retain their short limit. Preparation cannot create
 direct ideas or tasks; the plan remains a reviewable Strategy draft. Manual refresh keys the draft by its
 content, preserving saved guidance while allowing an existing topic to receive the updated roadmap format.
 
-Explicit requests are handled first by `services/chat-commands.ts`, without a model call or `@AI` requirement
-for brainstorming. `create topic Weekend plans` names a board directly; `I would like to create a Fitness app
-for students` uses the stated goal as its title. `I have an idea for Dorm workouts to Fitness app for students`
-and `add idea pool to Weekend plans topic` add member-authored ideas. Quotes and polite prefixes are optional.
-Anchored patterns leave questions, reported/quoted instructions, negations and tentative discussion alone.
-Topic lookup normalizes case, punctuation and spacing, preferring exact titles before distinctive prefixes
-containing at least two meaningful words. Repeated topic requests reuse an existing board without resetting
-it; multiple matches ask for a full name. An omitted topic uses the latest successful command's topic
-(including an existing-topic reply) in the same channel, or the only existing topic.
+Explicit requests are handled first by `services/chat-commands.ts`, without an `@AI` requirement for
+brainstorming. `AiProvider.interpretChatIntent` uses the frequent model host to read the latest message,
+the preceding 20 channel messages (up to 2,000 characters each), and all project topic titles/descriptions.
+`ai/chat-intent.ts` requests a structured instruction extraction: none, create_topic, add_idea, suggest_idea, use_topic
+or clarify. Its prompt interprets typos, creation/contribution verbs, semantic topic matches and explicit
+contextual follow-ups while excluding negations, quoted requests and requests for generated ideas.
+Direct contributions use add_idea; tentative concrete ideas use suggest_idea and remain pending.
+`topicReference` carries the member's target phrase. The model matches topic meaning with chat context;
+if it omits an id, the service can resolve a unique reference-word match or default an implicit/generic
+reference to the sole topic. An explicitly unknown target never falls back to another board.
+The service verifies a nonempty request quote against the latest member message and a verbatim title against
+that member's latest/recent messages. Excerpt validation tolerates casing/spacing changes and saves the matched member text rather than
+the model's presentation. An unusable extraction or unnecessary clarification gets one bounded recheck
+with server validation feedback; a named creation goal needs no existing board or separate idea.
+It rechecks selected ids against current project topics after the model call; missing, foreign and removed
+targets cannot receive ideas. Existing-topic reuse never resets a board.
+Member titles then pass shared creation validation and existing project-scoped repositories/realtime.
+Tentative ideas use the existing idea suggestion shape, with reason, quote, source message, topic id and
+board version. A per-message suggestion id plus pending-title checks suppress duplicates; the repository's
+atomic version guard rejects stale boards. Only member approval creates the idea. Untagged suggestions
+stay in the Assistant/Brainstorm review panels without a chat interruption. The Assistant tab and badge
+share `pendingAssistantSuggestions`, so newly captured drafts are discoverable immediately.
+Literal create/add topic/idea commands remain available if intent interpretation fails. The labelled mock
+returns no interpretation and retains template-only commands. Their fallback topic lookup normalizes case,
+punctuation and spacing, preferring exact titles before distinctive prefixes with two meaningful words.
+An omitted fallback target uses the latest successful command's topic in the same channel, or a sole topic.
 Missing/ambiguous targets and duplicate titles return a chat explanation without creating records.
 These commands are member instructions; generated proposals still require approval as described below.
 `@AI create task TITLE` uses the validated task defaults (unassigned, To Do, no due date). Without a

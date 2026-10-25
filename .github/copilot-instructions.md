@@ -38,9 +38,16 @@ The rules that matter most when suggesting code:
   topic's board on approval. Inbox idea drafts need a topic selection when approved.
 - Explicit brainstorm requests work without `@AI`: `create topic TITLE`, `I would like to create a Fitness
 app for students`, `add idea TITLE to TOPIC topic`, or `I have an idea for TITLE to TOPIC`. These create
-  validated member-authored records without model calls. Reuse exact or unique distinctive shortened
-  existing topic names without resetting boards; clarify unknown/ambiguous targets. Ordinary discussion
-  never authorizes creation, and AI-generated drafts remain pending. Task commands still require `@AI`.
+  validated member-authored records. Natural requests use structured AI intent extraction over the latest
+  message, recent channel history and existing topics, tolerating typos, verbs and semantic references.
+  Verify the latest request quote, a verbatim same-member title and current project topic ids before writes.
+  Reuse existing boards without resetting them; clarify unknown/ambiguous targets. Literal commands work
+  without AI; the labelled mock has template-only support. Ordinary discussion never authorizes creation,
+  and AI-generated drafts remain pending. Task commands still require `@AI`.
+- Capture concrete ideas without requiring the word `idea`: direct “I want to add X” creates a card;
+  tentative “I am thinking of adding X” creates a pending draft. Deduce the topic semantically from
+  its name/description and chat. A sole topic is the default for an implicit target; explicitly unknown
+  or genuinely ambiguous targets still need clarification. Include pending ideas in the Assistant badge.
 - `@AI create task TITLE` creates an unassigned To Do task without scheduling. With no title, only the
   requesting member's next message in that channel supplies it.
 - Meeting idea proposals must identify a relevant existing topic and store its `topicId`; skip ideas

@@ -3,6 +3,8 @@ import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Tests use the explicit environment below, never a developer's local credentials.
+  envDir: false,
   resolve: { conditions: ['development'] },
   ssr: { resolve: { conditions: ['development'] } },
   test: {

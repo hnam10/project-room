@@ -4,3 +4,5 @@ package-lock.json
 apps/api/data
 prototype
 docs/PRODUCT_BRIEF.md
+**/.env*
+**/*.env
