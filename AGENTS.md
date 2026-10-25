@@ -101,6 +101,8 @@ prototype/         the first static prototype; do not build on it
   reviewable strategies come first, then member ideas and iteration. Changing or deleting a topic
   clears its board; clearing only ideas preserves its research and strategies. Other topics and
   tasks or decisions already created are unaffected. New AI topics never replace a topic automatically.
+- Meeting idea suggestions must identify a relevant existing topic, retain its `topicId`, and display
+  its title. Skip ideas without a clear topic match; a proposed new topic must be approved first.
 
 ## Engineering conventions
 

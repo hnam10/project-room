@@ -264,7 +264,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                     {topic.title}
                   </button>
                 ))}
-                <button className="btn sm" onClick={() => setDialog({ kind: 'problem' })}>
+                <button className="brainstorm-topic-tab brainstorm-topic-new" onClick={() => setDialog({ kind: 'problem' })}>
                   <Icon name="plus" /> New topic
                 </button>
               </div>

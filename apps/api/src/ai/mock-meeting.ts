@@ -41,14 +41,31 @@ export const mockMeetingAi: MeetingAi = {
         });
       }
       if (IDEA.test(text)) {
-        raw.ideas.push({
-          ideaId: null,
-          title: text.replace(/[?!.]+$/, '').slice(0, 80),
-          description: '',
-          theme: 'Product',
-          reason: `${line.speakerName} floated this idea.`,
-          quote: text,
-        });
+        const words = new Set(text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
+        const matches = (input.topics ?? [])
+          .map((topic) => ({
+            topic,
+            score: (topic.title.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter(
+              (word) =>
+                (word.length > 2 || /\p{Script=Hangul}/u.test(word)) &&
+                !['what', 'should', 'about', 'ideas', 'could', 'with', 'the', 'for', 'how'].includes(word) &&
+                words.has(word),
+            ).length,
+          }))
+          .filter((match) => match.score > 0)
+          .sort((a, b) => b.score - a.score);
+        const matched = matches[0] && matches[0].score !== matches[1]?.score ? matches[0].topic : null;
+        if (matched) {
+          raw.ideas.push({
+            topicId: matched.id,
+            ideaId: null,
+            title: text.replace(/[?!.]+$/, '').slice(0, 80),
+            description: '',
+            theme: 'Product',
+            reason: `${line.speakerName} floated this idea.`,
+            quote: text,
+          });
+        }
       }
       const other = input.lines
         .slice(0, i)

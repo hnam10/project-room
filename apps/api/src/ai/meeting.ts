@@ -22,7 +22,8 @@ export interface MeetingTickInput {
   lines: { id: string; speakerId: string; speakerName: string; text: string }[];
   runningSummary: string;
   carryOver: string[];
-  ideas: { id: string; title: string }[];
+  ideas: { id: string; title: string; topicId?: string | null }[];
+  topics?: { id: string; title: string; description: string }[];
   currentTopic?: { id: string; title: string } | null;
   taskTitles: string[];
   /** Titles of suggestions already made, so the AI doesn't repeat them. */
@@ -34,7 +35,7 @@ export interface MeetingTickResult {
   topic?: MeetingTopic | null;
   actionItems: (ActionItem & { sourceLineId: string | null })[];
   /** ideaId is set when the AI proposes developing an existing idea, null for a new one. */
-  ideas: { ideaId: string | null; draft: IdeaDraft; reason: string; quote: string | null; sourceLineId: string | null }[];
+  ideas: { topicId: string; ideaId: string | null; draft: IdeaDraft; reason: string; quote: string | null; sourceLineId: string | null }[];
   polls: { draft: PollDraft; reason: string; quote: string | null; sourceLineId: string | null }[];
   runningSummary: string;
   usage: { inputTokens: number; outputTokens: number };
@@ -77,7 +78,15 @@ export interface MeetingTopic {
 export interface RawTick {
   topic?: { title: string; description: string; reason: string; quote: string | null } | null;
   actionItems: { title: string; assigneeId: string | null; priority: string; reason: string; quote: string | null }[];
-  ideas: { ideaId: string | null; title: string; description: string; theme: string; reason: string; quote: string | null }[];
+  ideas: {
+    topicId?: string | null;
+    ideaId: string | null;
+    title: string;
+    description: string;
+    theme: string;
+    reason: string;
+    quote: string | null;
+  }[];
   polls: { question: string; options: string[]; reason: string; quote: string | null }[];
   runningSummary: string;
   usage?: { inputTokens: number; outputTokens: number };
@@ -101,6 +110,7 @@ const MAX_SUMMARY_WORDS = 150;
 export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTickResult {
   const memberIds = new Set(input.members.map((m) => m.id));
   const ideaIds = new Set(input.ideas.map((i) => i.id));
+  const topicIds = new Set(input.topics?.map((topic) => topic.id) ?? []);
   const seen = new Set(input.alreadySuggested.map((s) => norm(s.replace(PREFIXES, ''))));
   /** True the first time a non-empty title is seen; repeats and already-suggested titles are dropped. */
   const fresh = (title: string) => {
@@ -137,8 +147,15 @@ export function validateTick(raw: RawTick, input: MeetingTickInput): MeetingTick
         ...cite(i.quote),
       })),
     ideas: raw.ideas
-      .filter((i) => (!i.ideaId || ideaIds.has(i.ideaId)) && fresh(i.title))
+      .filter(
+        (i) =>
+          !!i.topicId &&
+          topicIds.has(i.topicId) &&
+          (!i.ideaId || (ideaIds.has(i.ideaId) && input.ideas.find((idea) => idea.id === i.ideaId)?.topicId === i.topicId)) &&
+          fresh(i.title),
+      )
       .map((i) => ({
+        topicId: i.topicId!,
         ideaId: i.ideaId,
         draft: { title: i.title.trim().slice(0, 80), description: i.description.slice(0, 2000), theme: toTheme(i.theme) },
         reason: i.reason.slice(0, 400),

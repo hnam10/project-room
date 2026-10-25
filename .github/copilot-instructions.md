@@ -26,3 +26,5 @@ The rules that matter most when suggesting code:
 - Chat `@AI brainstorm` creates a reviewable `brainstorm_topic` suggestion alongside idea drafts. Only
   approval creates a separate topic tab. Explicitly targeted older topic-change proposals clear that
   topic's board on approval. Inbox idea drafts need a topic selection when approved.
+- Meeting idea proposals must identify a relevant existing topic and store its `topicId`; skip ideas
+  without a clear match. Show that topic on the suggestion. New topic proposals stay separate until approved.

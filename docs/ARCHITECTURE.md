@@ -141,6 +141,11 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
   from the full transcript if live analysis missed it. New proposals appear in the meeting and in a shared
   inbox above Brainstorm's topic tabs. Approval creates a separate board; existing topics and pending idea
   drafts remain intact.
+- **Meeting idea scope:** the model receives all existing topic titles and descriptions and each existing
+  idea's topic. Every idea proposal must return a matching existing `topicId`; validation and the live
+  service reject missing/unknown topics and developments belonging to a different topic. The stored
+  suggestion carries the topic and board version, and its topic is labelled on meeting and board cards.
+  A pending topic proposal cannot receive idea suggestions until a member approves it.
 - **End:** `POST /meetings/:id/end` summarizes on the main model into `meeting.summary` plus a `meeting_notes`
   suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
   shows a "Last time" card. Summary suggestions use fixed ids (`<meetingId>-summary-topic` / `-summary-actions` / `-summary-notes`) and are

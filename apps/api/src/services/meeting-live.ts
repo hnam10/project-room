@@ -36,7 +36,8 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
       lines: lines.map((l) => ({ id: l.id, speakerId: l.speakerId, speakerName: speakerName(nameOf(l.speakerId), l), text: l.text })),
       runningSummary: meeting.runningSummary ?? '',
       carryOver: previous?.carryOver ?? [],
-      ideas: ideas.map((i) => ({ id: i.id, title: i.title })),
+      ideas: ideas.filter((i) => i.kind === 'idea').map((i) => ({ id: i.id, title: i.title, topicId: i.topicId })),
+      topics: ideas.filter((i) => i.kind === 'problem').map((i) => ({ id: i.id, title: i.title, description: i.description })),
       currentTopic: ideas.find((idea) => idea.kind === 'problem') ?? null,
       taskTitles: tasks.map((t) => t.title),
       alreadySuggested: suggestions.filter((s) => s.meetingId === meetingId).map((s) => s.title),
@@ -79,11 +80,15 @@ export async function runLiveTick(projectId: string, meetingId: string, ai: Meet
       );
     }
     for (const idea of result.ideas) {
-      const existing = idea.ideaId ? ideas.find((i) => i.id === idea.ideaId) : null;
+      const topic = ideas.find((i) => i.kind === 'problem' && i.id === idea.topicId);
+      const existing = idea.ideaId ? ideas.find((i) => i.kind === 'idea' && i.id === idea.ideaId) : null;
+      if (!topic || (idea.ideaId && (!existing || existing.topicId !== topic.id))) continue;
       created.push(
         await createSuggestion(projectId, {
           ...base,
           kind: 'idea',
+          topicId: topic.id,
+          topicVersion: topic.boardVersion,
           title: `${existing ? 'Develop' : 'New idea'}: ${existing?.title ?? idea.draft.title}`,
           reason: idea.reason,
           quote: idea.quote,

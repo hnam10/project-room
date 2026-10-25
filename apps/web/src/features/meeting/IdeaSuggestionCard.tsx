@@ -18,6 +18,7 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   const [busy, setBusy] = useState(false);
   const draft = suggestion.ideaDraft;
   const existing = suggestion.ideaId ? ideas.find((i) => i.id === suggestion.ideaId) : undefined;
+  const suggestedTopic = topics.find((topic) => topic.id === (suggestion.topicId ?? existing?.topicId));
   const [form, setForm] = useState<IdeaDraft>(draft ?? { title: '', description: '', theme: IDEA_THEME_CHOICES[0] });
   if (!draft) return null;
   const themeChoices: IdeaTheme[] = IDEA_THEME_CHOICES.some((choice) => choice === form.theme)
@@ -51,6 +52,9 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
         <Icon name="sparkle" />
         {existing ? `Develop: ${existing.title}` : `New idea: ${draft.title}`}
       </span>
+      <p className="meeting-idea-topic">
+        <strong>Topic:</strong> {suggestedTopic?.title ?? 'Choose a topic during review'}
+      </p>
       <p>{draft.description}</p>
       <SuggestionWhy suggestion={suggestion} />
       <div className="action-buttons">
@@ -82,6 +86,11 @@ export function IdeaSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
           </>
         }
       >
+        {suggestedTopic && (
+          <p>
+            <strong>Brainstorm topic:</strong> {suggestedTopic.title}
+          </p>
+        )}
         {!existing && !suggestion.topicId && (
           <label className="form-row">
             Brainstorm topic

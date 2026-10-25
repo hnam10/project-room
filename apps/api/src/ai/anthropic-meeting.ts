@@ -18,6 +18,10 @@ Rules:
 - Every item needs a short "reason" and a "quote": the exact words from one transcript line, copied verbatim.
   Use null only if no single line supports it.
 - Never invent members, ideas or facts. Use only the ids you are given. To develop an existing idea, set its ideaId.
+- For each idea, identify the existing topic being discussed using <topics>, transcript and running summary.
+  Set topicId to that topic's exact id. Suggest ideas only when a relevant existing topic is clear; otherwise return no ideas.
+  A proposed new topic is not yet an existing topic. Never assign an idea to it or to an unrelated board.
+  When developing an existing idea, keep its topicId. Topic records are not ideas to develop.
 - Propose a poll only when two or more people are choosing between concrete options (2 to 5 options).
 - topic: the team's specific question, problem, or goal for brainstorming, when the transcript clearly establishes one.
   Propose it separately from direct ideas. Use null for general meeting talk, or when it matches <current_topic>.
@@ -47,6 +51,7 @@ const TickSchema = z.object({
   ideas: z.array(
     z.object({
       ideaId: z.string().nullable().describe('The id of an existing idea to develop, or null for a new idea'),
+      topicId: z.string().describe('The exact id of the relevant existing topic in <topics>'),
       title: z.string().describe('At most 80 characters'),
       description: z.string(),
       theme: z.string().describe(`One of: ${IDEA_THEME_CHOICES.join(', ')}. Use Option for a direct choice and Strategy for a plan`),
@@ -103,8 +108,11 @@ function tickPrompt(input: MeetingTickInput) {
 ${list(input.members.map((m) => `${m.id}: ${m.name}${m.role ? ` (${m.role})` : ''}`))}
 </members>
 <ideas>
-${list(input.ideas.map((i) => `${i.id}: ${i.title}`))}
+${list(input.ideas.map((i) => `${i.id}: ${i.title} (topicId: ${i.topicId ?? 'none'})`))}
 </ideas>
+<topics>
+${list((input.topics ?? []).map((topic) => `${topic.id}: ${topic.title} — ${topic.description}`))}
+</topics>
 <current_topic>
 ${input.currentTopic?.title ?? '(none)'}
 </current_topic>

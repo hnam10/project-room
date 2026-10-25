@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Meeting, TranscriptLine } from '@project-room/shared';
+import type { Idea, Meeting, TranscriptLine } from '@project-room/shared';
 import type { MeetingAi, MeetingTickInput, MeetingTickResult } from './ai/meeting.js';
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
@@ -162,7 +162,9 @@ describe('live meeting pipeline', () => {
     expect(shouldRun(state, 25_000)).toBe(true);
   });
 
-  it('keeps meeting ideas pending while a reviewable topic is chosen', async () => {
+  it('scopes meeting ideas to an existing topic while new topics remain separate', async () => {
+    const existingTopic = (await post<Idea>('/ideas', { kind: 'problem', title: 'Study group matching', description: '', theme: 'Option' }))
+      .body;
     const line = await speak('How should we help students find study groups?');
     const { ai } = fakeAi(() => ({
       topic: {
@@ -174,6 +176,7 @@ describe('live meeting pipeline', () => {
       },
       ideas: [
         {
+          topicId: existingTopic.id,
           ideaId: null,
           draft: { title: 'Match by course', description: 'Show groups taking the same course.', theme: 'Option' },
           reason: 'One way to address the problem.',
@@ -192,6 +195,7 @@ describe('live meeting pipeline', () => {
       ideaDraft: { title: 'How should students find study groups?' },
     });
     expect(idea.status).toBe('pending');
+    expect(idea.topicId).toBe(existingTopic.id);
     expect((await listIdeas('hackathon')).some((item) => item.sourceSuggestionId === topic.id)).toBe(false);
 
     await speak('We can keep exploring study group options.');
@@ -230,6 +234,37 @@ describe('live meeting pipeline', () => {
 
     await speak('Let us keep exploring mentoring.');
     expect((await runLiveTick('hackathon', meetingId, revised.ai)).some((s) => s.kind === 'brainstorm_topic')).toBe(false);
+    expect((await post(`/suggestions/${idea.id}/approve`)).status).toBe(200);
+    expect((await listIdeas('hackathon')).find((item) => item.sourceSuggestionId === idea.id)).toMatchObject({
+      title: 'Match by course',
+      topicId: existingTopic.id,
+    });
+  });
+
+  it('does not store meeting ideas for missing topics or topic records as developments', async () => {
+    await speak('What if we add a new option?');
+    const topic = (await listIdeas('hackathon')).find((item) => item.kind === 'problem')!;
+    const { ai } = fakeAi(() => ({
+      ideas: [
+        {
+          topicId: 'missing-topic',
+          ideaId: null,
+          draft: { title: 'Unscoped idea', description: '', theme: 'Option' },
+          reason: 'r',
+          quote: null,
+          sourceLineId: null,
+        },
+        {
+          topicId: topic.id,
+          ideaId: topic.id,
+          draft: { title: 'Change topic through idea', description: '', theme: 'Option' },
+          reason: 'r',
+          quote: null,
+          sourceLineId: null,
+        },
+      ],
+    }));
+    expect((await runLiveTick('hackathon', meetingId, ai)).filter((item) => item.kind === 'idea')).toEqual([]);
   });
 
   it('reads typed chat lines like speech, tagged as chat', async () => {

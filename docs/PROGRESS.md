@@ -5,6 +5,14 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Meeting ideas identify an existing topic.** The meeting AI reads all topic titles and
+  descriptions, selects the topic being discussed, and includes its id on idea proposals. Validation
+  rejects absent/unknown topics and developments on the wrong board; new topic proposals cannot receive
+  ideas until approved. Meeting and brainstorm idea suggestions display their topic. Topic tabs and
+  New topic share compact sizing, rounded corners and design tokens. Checked tab switching and opening
+  New topic in Edge; topic routing and approval are covered by API tests. All 198 tests, lint, typecheck
+  and web build pass. Full check still stops at existing repository formatting drift.
+
 - 2026-10-24 — **Meeting topics use a shared proposal inbox.** New topic proposals appear above the
   topic tabs, with an explicit Add topic action that creates a separate board. Meetings can propose
   multiple distinct topics while repeated titles remain suppressed; approval preserves existing topics
