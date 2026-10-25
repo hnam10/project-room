@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { IDEA_THEME_CHOICES, STRATEGY_DESCRIPTION_MAX, type Idea, type IdeaTheme } from '@project-room/shared';
+import { IDEA_THEME_CHOICES, type Idea, type IdeaTheme } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Modal } from '../../components/Modal';
 import { useFeedback } from '../../components/Feedback';
 import { useWorkspace } from '../../state/workspace';
+import { StrategyEditor } from './StrategyEditor';
 
 export function IdeaDialog({
   open,
@@ -102,17 +103,20 @@ export function IdeaDialog({
           autoFocus
         />
       </label>
-      <label>
-        {theme === 'Strategy' && kind !== 'problem' ? 'Strategy JSON (or existing text)' : 'Details'}
-        <textarea
-          className={theme === 'Strategy' && kind !== 'problem' ? 'strategy-json-editor' : undefined}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={theme === 'Strategy' && kind !== 'problem' ? 14 : 3}
-          maxLength={theme === 'Strategy' && kind !== 'problem' ? STRATEGY_DESCRIPTION_MAX : 240}
-          placeholder={kind === 'problem' ? 'Add any context or constraints.' : 'Add any useful details or reasons.'}
-        />
-      </label>
+      {theme === 'Strategy' && kind !== 'problem' ? (
+        <StrategyEditor description={description} onChange={setDescription} />
+      ) : (
+        <label>
+          Details
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            maxLength={240}
+            placeholder={kind === 'problem' ? 'Add any context or constraints.' : 'Add any useful details or reasons.'}
+          />
+        </label>
+      )}
       {kind === 'idea' && (
         <label>
           Category

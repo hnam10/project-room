@@ -113,6 +113,8 @@ prototype/         the first static prototype; do not build on it
   Keep guidance specific and provisional; never invent research or user feedback.
 - New strategies use the shared `strategyPlanSchema` JSON format with plain-text field values, rendered
   as sections and steps. Preserve legacy text strategies; do not require Markdown rendering.
+- Members edit strategies through ordinary text fields for the direction, steps and scope. JSON is an
+  internal storage format, never the normal editing interface.
 - Meeting idea suggestions must identify a relevant existing topic, retain its `topicId`, and display
   its title. Skip ideas without a clear topic match; a proposed new topic must be approved first.
 - Topic-change proposals name the board they replace and require explicit confirmation of that target

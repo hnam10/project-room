@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IDEA_THEME_CHOICES, STRATEGY_DESCRIPTION_MAX, type IdeaDraft, type IdeaTheme, type Suggestion } from '@project-room/shared';
+import { IDEA_THEME_CHOICES, type IdeaDraft, type IdeaTheme, type Suggestion } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
@@ -7,6 +7,7 @@ import { useFeedback } from '../../components/Feedback';
 import { useWorkspace } from '../../state/workspace';
 import { IdeaDetails } from './IdeaDetails';
 import { StrategyDetails } from './StrategyDetails';
+import { StrategyEditor } from './StrategyEditor';
 
 export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   const { projectId, applyRecord, reload, snapshot } = useWorkspace();
@@ -127,16 +128,19 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
           Title
           <input value={form.title} maxLength={80} onChange={(event) => setForm({ ...form, title: event.target.value })} />
         </label>
-        <label className="form-row">
-          {form.theme === 'Strategy' ? 'Strategy JSON (or existing text)' : 'Description'}
-          <textarea
-            className={form.theme === 'Strategy' ? 'strategy-json-editor' : undefined}
-            value={form.description}
-            rows={10}
-            maxLength={form.theme === 'Strategy' ? STRATEGY_DESCRIPTION_MAX : 2000}
-            onChange={(event) => setForm({ ...form, description: event.target.value })}
-          />
-        </label>
+        {form.theme === 'Strategy' ? (
+          <StrategyEditor description={form.description} onChange={(description) => setForm({ ...form, description })} />
+        ) : (
+          <label className="form-row">
+            Description
+            <textarea
+              value={form.description}
+              rows={10}
+              maxLength={2000}
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
+            />
+          </label>
+        )}
         <label className="form-row">
           Category
           <select value={form.theme} onChange={(event) => setForm({ ...form, theme: event.target.value as IdeaTheme })}>

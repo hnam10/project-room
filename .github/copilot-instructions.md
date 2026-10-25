@@ -27,6 +27,7 @@ The rules that matter most when suggesting code:
   fields. Keep guidance specific and realistic; never invent sources or feedback.
 - Strategy generation uses `strategyPlanSchema` JSON with plain-text fields. Render its sections/steps
   directly; legacy text remains readable without Markdown.
+- Edit strategies through ordinary direction, step and scope fields; serialize JSON internally.
 - Chat `@AI brainstorm` creates a reviewable `brainstorm_topic` suggestion alongside idea drafts. Only
   approval creates a separate topic tab. Explicitly targeted older topic-change proposals clear that
   topic's board on approval. Inbox idea drafts need a topic selection when approved.

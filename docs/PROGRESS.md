@@ -27,6 +27,14 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Plain-text strategy editing.** Draft review and saved-strategy editing now use labelled
+  direction, step and scope fields instead of a JSON textarea. Steps can be added/removed within the
+  one-to-four limit; incomplete fields remain editable and native required-field validation prevents
+  incomplete submission. JSON serialization stays internal and old plain-text strategies keep a prose
+  editor. Browser-checked clearing/editing fields, adding/removing steps and saving to the rendered plan
+  with a temporary fixture, then removed the fixture.
+  Full check passes with 259 tests; the web production build passes.
+
 - 2026-10-25 — **Much shorter brainstorming strategies.** New JSON contains only recommended direction,
   up to four short step sentences, and essential scope. Each section/step requests one or two sentences;
   product guidance targets 120–180 words overall and simple decisions less. Removed the repeated

@@ -49,8 +49,11 @@ availability check so teams can add their own ideas even when AI is unavailable.
 Plans are serialized as JSON in the existing strategy description field (up to `STRATEGY_DESCRIPTION_MAX`,
 20,000 characters) through generation, review, approval and editing. `StrategyDetails` reads this schema
 and renders three short sections without Markdown. Older detailed JSON is condensed at read time using
-its direction, action sentences and essential scope; original saved records are not rewritten. Legacy plain
-text remains readable. Malformed JSON objects are rejected on review/edit. Other facilitation summaries
+its direction, action sentences and essential scope; original saved records are not rewritten.
+`StrategyEditor` exposes normal text fields for direction, each step and essential scope in both draft
+review and saved-idea editing. It serializes JSON on change, tolerates incomplete form fields while typing,
+and relies on required fields plus shared API validation before saving. Members can keep one to four steps.
+Legacy plain text remains readable. Malformed JSON objects are rejected on review/edit. Other facilitation summaries
 retain their short limit. Preparation cannot create
 direct ideas or tasks; the plan remains a reviewable Strategy draft. Manual refresh keys the draft by its
 content, preserving saved guidance while allowing an existing topic to receive the updated roadmap format.

@@ -141,10 +141,29 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
-.strategy-json-editor {
-  font-family: ui-monospace, Consolas, monospace;
+.strategy-editor,
+.strategy-editor-steps {
+  min-width: 0;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.strategy-editor legend {
+  padding: 0 4px;
+  color: var(--ink-2);
   font-size: 12px;
-  tab-size: 2;
+  font-weight: 600;
+}
+.strategy-editor .form-row {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+}
+.strategy-editor-step {
+  margin-bottom: 12px;
+}
+.strategy-editor-step > .btn {
+  margin-top: 4px;
 }
 .strategy-plan section {
   margin-top: 16px;
