@@ -95,6 +95,9 @@ prototype/         the first static prototype; do not build on it
 - Don't fake integrations or data. If a feature isn't built, the UI says so (see `PlaceholderPage`
   and the "isn't built yet" toasts). The mock AI is labelled as mock in the UI.
 - Proactive AI goes to the AI Assistant panel; it doesn't interrupt the chat unless @AI is mentioned.
+- Explicit member chat commands (`@AI create topic TITLE`, `@AI add idea TITLE to TOPIC topic`) create
+  member-authored records directly through validated repositories. This is member input, not model output;
+  ordinary AI brainstorming still creates pending suggestions. Unknown or ambiguous topics require clarification.
 - Data never crosses projects: every project route goes through `requireProjectMember`, and every
   repository query filters by `projectId`.
 - Brainstorming starts with a member-selected topic. Each topic has its own board: research and

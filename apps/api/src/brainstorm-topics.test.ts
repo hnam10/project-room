@@ -11,6 +11,9 @@ import * as queries from './db/query.js';
 import { researchWeb } from './services/research.js';
 import { runBrainstormAction } from './services/brainstorm.js';
 import { rid } from './db/records.js';
+import { createMessage, listMessages } from './repositories/messages.js';
+import { onMessagePosted } from './services/ai-engine.js';
+import { parseBrainstormCommand } from './services/brainstorm-commands.js';
 
 vi.mock('./services/research.js', () => ({ researchWeb: vi.fn() }));
 let server: Server;
@@ -44,6 +47,63 @@ const topic = async (title = 'Student deadline planning') => (await call<Idea>('
 const card = async (topicId: string, theme = 'Option') =>
   (await call<Idea>('POST', '/ideas', { topicId, title: 'A concrete approach', theme })).body;
 const snapshot = async () => (await call<WorkspaceSnapshot>('GET', '/snapshot')).body;
+
+/** Runs a posted member command through the same entry point used by the chat route. */
+async function command(text: string, channelId = 'hackathon-general') {
+  const message = await createMessage({ projectId: 'hackathon', channelId, authorId: 'alex', text });
+  await onMessagePosted({ projectId: 'hackathon', channelName: 'general', message, members: new Map() });
+  return (await listMessages('hackathon', channelId)).at(-1)!.text;
+}
+
+it('creates exactly named topics and ideas directly from member commands, with channel context', async () => {
+  expect(await command('@AI create topic Weekend plans')).toBe('Created topic “Weekend plans”.');
+  await topic('Dinner');
+  expect(await command('@AI add idea pool')).toBe('Added idea “pool” to topic “Weekend plans”.');
+  expect(await command('@AI add idea pizza to Dinner topic')).toBe('Added idea “pizza” to topic “Dinner”.');
+  expect(await command('@AI create idea tacos in topic Dinner')).toBe('Added idea “tacos” to topic “Dinner”.');
+  const board = await snapshot();
+  const dinner = board.ideas.find((idea) => idea.title === 'Dinner')!;
+  expect(board.ideas.find((idea) => idea.title === 'pizza')).toMatchObject({ topicId: dinner.id, authorId: 'alex', votingOpen: false });
+  expect(board.ideas.find((idea) => idea.title === 'pool')?.topicId).not.toBe(dinner.id);
+  expect(board.suggestions).toHaveLength(0);
+  expect(web).not.toHaveBeenCalled();
+});
+
+it('does not guess unknown or ambiguous topic targets or reuse context across channels', async () => {
+  await getDb().query('DELETE message;').collect();
+  await command('@AI create topic Weekend plans');
+  await topic('Dinner');
+  expect(await command('@AI add idea pool', 'hackathon-design')).toContain('Which topic');
+  expect(await command('@AI add idea pool to Missing topic')).toContain('couldn’t identify');
+  await topic('weekend plans');
+  expect(await command('@AI add idea pool to Weekend plans topic')).toContain('couldn’t identify');
+  expect((await snapshot()).ideas.every((idea) => idea.kind === 'problem')).toBe(true);
+});
+
+it('rejects duplicate and invalid commands and accepts optional quotes and polite prefixes', async () => {
+  expect(parseBrainstormCommand('Someone said @AI create topic Dinner')).toBeNull();
+  expect(parseBrainstormCommand('@AI can you suggest an idea')).toBeNull();
+  expect(await command('@AI please create topic "Dinner"')).toBe('Created topic “Dinner”.');
+  expect(await command('@AI add topic dinner')).toContain('already exists');
+  expect(await command('@AI add idea pizza to Dinner topic')).toContain('Added idea');
+  expect(await command('@AI add idea PIZZA to topic dinner')).toContain('already exists');
+  expect(await command(`@AI create topic ${'a'.repeat(81)}`)).toContain('between 1 and 80');
+  expect(await command('@AI create topic')).toContain('between 1 and 80');
+  expect((await snapshot()).ideas).toHaveLength(2);
+});
+
+it('resolves a sole topic but never a topic belonging to another project', async () => {
+  await getDb().query('DELETE message;').collect();
+  const only = await topic('Dinner');
+  expect(await command('@AI add idea ramen')).toContain('Added idea “ramen” to topic “Dinner”');
+  await getDb()
+    .query(
+      "CREATE project:private CONTENT { name: 'Private' }; CREATE idea:private CONTENT { projectId: project:private, kind: 'problem', title: 'Private topic', theme: 'Option', authorId: member:alex };",
+    )
+    .collect();
+  expect(await command('@AI add idea pool to Private topic topic')).toContain('couldn’t identify');
+  expect((await snapshot()).ideas.filter((idea) => idea.kind === 'idea')).toMatchObject([{ title: 'ramen', topicId: only.id }]);
+});
 
 it('requires a topic and explicit selection when more than one exists', async () => {
   expect((await call('POST', '/ideas', { title: 'Unscoped' })).status).toBe(409);

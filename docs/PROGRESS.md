@@ -5,6 +5,14 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Explicit brainstorm commands in chat.** `@AI create topic Weekend plans` immediately
+  creates that member-named board; `@AI add idea pool to Weekend plans topic` adds the exact idea.
+  Quotes are optional; add/create and polite prefixes work. Omitted targets use recent successful
+  command context from the same channel or a sole topic; unknown/ambiguous targets ask for clarification.
+  Commands validate titles, reject duplicates and skip all model/research calls. Normal brainstorming
+  remains reviewable. Integration tests cover creation, channel isolation, ambiguity and invalid input.
+  Full check passes with 245 tests; the API production build passes.
+
 - 2026-10-24 — **Quieter brainstorm layout.** Topic tabs sit at the very top of the container, above
   the view tabs. Suggested topics, research and strategies use keyboard-accessible disclosure sections
   closed by default and reset closed when switching topics. Counts and research progress remain visible;

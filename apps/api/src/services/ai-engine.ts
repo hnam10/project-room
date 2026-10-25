@@ -8,6 +8,7 @@ import { createSuggestion, listSuggestions } from '../repositories/suggestions.j
 import { listTasks } from '../repositories/tasks.js';
 import { getProjectMemory } from './project-memory.js';
 import { researchWeb } from './research.js';
+import { runBrainstormCommand } from './brainstorm-commands.js';
 
 // The AI action engine: watches new chat messages and turns what it notices into
 // pending suggestions. It never edits tasks, decisions, or ideas itself.
@@ -69,6 +70,7 @@ export async function onMessagePosted(input: {
   members: Map<string, Member>;
 }): Promise<void> {
   const { projectId, channelName, message, members } = input;
+  if (await runBrainstormCommand(projectId, message)) return;
   const ai = getAiProvider();
   const [conversationMessage] = toConversation([message], members);
   if (!conversationMessage) return;
