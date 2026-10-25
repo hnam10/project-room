@@ -9,7 +9,6 @@ export function IdeaCard(props: {
   author: Member | undefined;
   voted: boolean;
   onVote: () => void;
-  onConvert: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onApprove: () => void;
@@ -17,14 +16,7 @@ export function IdeaCard(props: {
   const { idea } = props;
   return (
     <article className={`idea${idea.theme === 'Strategy' ? ' direction idea-strategy' : ''}`}>
-      {idea.taskId ? (
-        <span className="idea-converted">✓ On the board</span>
-      ) : (
-        <button className="idea-convert" onClick={props.onConvert}>
-          <Icon name="arrow" />
-          Make task
-        </button>
-      )}
+      {idea.taskId && <span className="idea-converted">✓ On the board</span>}
       <h3>{idea.title}</h3>
       {idea.theme === 'Strategy' ? <StrategyDetails description={idea.description} /> : <IdeaDetails description={idea.description} />}
       {idea.researchStale && <span className="idea-stale">Research may be outdated after this edit</span>}

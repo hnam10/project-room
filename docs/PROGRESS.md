@@ -27,6 +27,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Removed Make task shortcuts.** Idea and strategy cards no longer expose a direct
+  task-conversion button; removed its handler and styles. Existing task links remain visible, and
+  relevant approval-generated task suggestions still require review before creating tasks.
+  Browser-checked both card types in a temporary fixture, then removed it. Full check passes with
+  261 tests; the web production build passes.
+
 - 2026-10-25 — **Immediate hearts and direct approval.** Brainstorm cards always show a heart/count,
   with a filled active heart and no Start voting control. Hearts toggle personal support without
   opening a vote or approving the idea. Removed Shortlist; every unapproved card offers Approve

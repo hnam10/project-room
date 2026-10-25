@@ -26,6 +26,7 @@ The rules that matter most when suggesting code:
   one card style; strategies stay separate. Preserve internal themes when editing existing records.
 - Brainstorm hearts toggle personal support immediately; no Start voting stage. Approve is shown directly
   and still requires confirmation, without shortlisting. A heart never approves or creates a decision.
+- No Make task shortcut on idea or strategy cards; approval-generated next-step tasks remain reviewable.
 - Strategies contain only recommended direction, short steps and essential scope. Use one or two
   sentences per section/step, at most four steps, without separate focus/why or deliverable/criteria
   fields. Keep guidance specific and realistic; never invent sources or feedback.

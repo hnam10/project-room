@@ -394,26 +394,6 @@
   width: 13px;
   height: 13px;
 }
-.idea-convert {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  font-size: 11.5px;
-  font-weight: 500;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.idea:hover .idea-convert,
-.idea-convert:focus-visible {
-  opacity: 1;
-}
 .idea-converted {
   font-size: 11px;
   color: #127a4f;

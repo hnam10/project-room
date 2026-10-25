@@ -165,16 +165,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   };
 
   const vote = (ideaId: string) => api.voteIdea(projectId, ideaId).then((idea) => applyRecord('idea', idea), toastError);
-  const convert = async (ideaId: string) => {
-    try {
-      const { idea, task } = await api.convertIdea(projectId, ideaId);
-      applyRecord('idea', idea);
-      applyRecord('task', task);
-      toast(`“${idea.title}” is now task #${task.num}`);
-    } catch (error) {
-      toastError(error);
-    }
-  };
 
   const tabButton = (id: IdeaTab, label: string) => (
     <button className={`panel-tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>
@@ -189,7 +179,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
       author={members.get(idea.authorId)}
       voted={idea.voterIds.includes(memberId)}
       onVote={() => vote(idea.id)}
-      onConvert={() => convert(idea.id)}
       onEdit={() => setDialog({ kind: 'idea', idea })}
       onDelete={() => void remove(idea)}
       onApprove={() => void approve(idea)}

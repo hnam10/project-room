@@ -88,7 +88,7 @@ Users should be able to:
 - Identify problems, possible solutions, advantages, disadvantages, and risks.
 - Compare competing proposals.
 - Heart ideas to show support, or explicitly approve an idea without a shortlist stage.
-- Convert selected ideas into tasks.
+- Review task drafts proposed after approval; brainstorming cards have no separate Make task shortcut.
 
 AI should facilitate productive brainstorming rather than dominate it.
 
