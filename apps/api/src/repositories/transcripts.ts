@@ -2,6 +2,14 @@ import type { TranscriptLine, TranscriptSource } from '@project-room/shared';
 import { queryMany, queryOne } from '../db/query.js';
 import { rid, ridOrNull } from '../db/records.js';
 
+export interface MeetingLineHit {
+  id: string;
+  meetingTitle: string;
+  speakerName: string;
+  spokenAt: string;
+  text: string;
+}
+
 export async function createLine(
   projectId: string,
   meetingId: string,
@@ -29,6 +37,19 @@ export function listLines(projectId: string, meetingId: string): Promise<Transcr
     project: rid('project', projectId),
     meeting: rid('meeting', meetingId),
   });
+}
+
+/** Meeting transcript lines in this project whose text contains the phrase. */
+export function searchMeetingLines(projectId: string, query: string, limit = 12): Promise<MeetingLineHit[]> {
+  const needle = query.trim().toLowerCase().slice(0, 80);
+  if (needle.length < 2) return Promise.resolve([]);
+  return queryMany<MeetingLineHit>(
+    `SELECT id, text, spokenAt, meetingId.title AS meetingTitle, speakerId.name AS speakerName
+     FROM transcript_line
+     WHERE projectId = $project AND source != 'ai' AND string::lowercase(text) CONTAINS $needle
+     ORDER BY spokenAt DESC LIMIT $limit`,
+    { project: rid('project', projectId), needle, limit },
+  );
 }
 
 /**

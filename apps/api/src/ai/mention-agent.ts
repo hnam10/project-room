@@ -29,13 +29,14 @@ Rules:
 - <conversation> is the channel thread, oldest first, including turns from before you last spoke. A line that starts with #channel was recalled from earlier in the project. Read that thread and answer from it.
 - <context> holds retrieved file passages and confirmed decisions. Treat confirmed decisions as durable facts,
   and file passages as evidence; if they conflict, say so instead of guessing.
-- When the teammate asked a question, call reply with a short answer grounded in the thread or a file passage.
+- Meeting transcripts are not included by default. When the question may depend on a meeting, call search_meeting_lines with a distinctive phrase, then answer only from the returned lines.
+- When the teammate asked a question, call reply with a short answer grounded in the thread, a meeting line, or a file passage.
 - Before propose_action_items, call list_tasks and list_pending_suggestions. Skip work that already exists.
 - Before setting an assignee, call list_members and copy an id from the result. Leave the assignee empty when the owner is unclear.
 - Before propose_decision, call list_decisions. Before propose_idea, call list_ideas.
 - propose_risk needs a task id copied from list_tasks.
 - Call search_messages only when the thread and the file passages still do not contain a fact you need.
-- Every proposal needs a short reason and a quote copied exactly from one message or file passage. Leave the quote empty only when no single line supports it.
+- Every proposal needs a short reason and a quote copied exactly from one message, meeting line, or file passage. Leave the quote empty only when no single line supports it.
 - Call finish after you have answered and filed what the conversation supports, or immediately when nothing qualifies.`;
 
 const listFilter = z.object({
@@ -102,6 +103,11 @@ const TOOLS = [
     'search_messages',
     'Find older messages that contain a short phrase. Use this to copy a quote, not to answer from memory.',
     objectSchema({ query: { type: 'string', description: 'A few words that appear in a message.' } }, ['query']),
+  ),
+  tool(
+    'search_meeting_lines',
+    'Find lines from this project’s meeting transcripts. Use this when the question may depend on a meeting; copy quotes exactly.',
+    objectSchema({ query: { type: 'string', description: 'A few words that appear in a meeting transcript.' } }, ['query']),
   ),
   tool('list_decisions', 'Open questions and decisions the team has already recorded.', objectSchema({}, [])),
   tool(
@@ -253,6 +259,22 @@ async function applyTool(name: string, rawArgs: string, lookup: ProjectLookup, d
     const hits = await lookup.searchMessages(phrase);
     for (const hit of hits) corpus.push(hit.text);
     return { messages: hits.slice(0, 8).map((hit) => ({ authorName: hit.authorName, text: hit.text.slice(0, 500) })) };
+  }
+  if (name === 'search_meeting_lines') {
+    const query = searchArgs.safeParse(args);
+    if (!query.success) return { error: 'query is required' };
+    const phrase = query.data.query.trim().slice(0, 80);
+    if (phrase.length < 2) return { error: 'query must be at least 2 characters' };
+    const hits = await lookup.searchMeetingLines(phrase);
+    for (const hit of hits) corpus.push(hit.text);
+    return {
+      meetingLines: hits.slice(0, 12).map((hit) => ({
+        meetingTitle: hit.meetingTitle,
+        speakerName: hit.speakerName,
+        spokenAt: hit.spokenAt,
+        text: hit.text.slice(0, 500),
+      })),
+    };
   }
 
   if (name === 'propose_action_items') {

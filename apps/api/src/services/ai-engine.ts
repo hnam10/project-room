@@ -6,6 +6,7 @@ import { listIdeas } from '../repositories/ideas.js';
 import { createMessage, messagesForMention, searchMessages } from '../repositories/messages.js';
 import { createSuggestion, listSuggestions } from '../repositories/suggestions.js';
 import { listTasks } from '../repositories/tasks.js';
+import { searchMeetingLines } from '../repositories/transcripts.js';
 import { getProjectMemory } from './project-memory.js';
 import { researchWeb } from './research.js';
 import { runChatCommand } from './chat-commands.js';
@@ -410,6 +411,9 @@ export function projectLookup(projectId: string, members: Map<string, Member>): 
     async searchMessages(query) {
       const hits = await searchMessages(projectId, query);
       return hits.map((message) => ({ id: message.id, authorName: nameOf(message.authorId), text: message.text }));
+    },
+    async searchMeetingLines(query) {
+      return searchMeetingLines(projectId, query);
     },
     async listDecisions() {
       const decisions = await listDecisions(projectId);

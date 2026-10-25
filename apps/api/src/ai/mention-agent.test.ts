@@ -10,6 +10,7 @@ function lookup(overrides: Partial<ProjectLookup> = {}): ProjectLookup {
       { id: 't1', num: 1, title: 'Existing task', status: 'todo', priority: 'medium', assigneeId: null, dueDate: null },
     ]),
     searchMessages: vi.fn(async () => []),
+    searchMeetingLines: vi.fn(async () => []),
     listDecisions: vi.fn(async () => []),
     listPendingSuggestions: vi.fn(async () => []),
     listIdeas: vi.fn(async () => []),
@@ -85,6 +86,48 @@ describe('mention agent', () => {
 
     expect(tools.searchMessages).toHaveBeenCalledWith('Fly.io');
     expect(out.decisions).toEqual([{ topic: 'Hosting', outcome: 'Fly.io', reason: 'Jamie said so', quote: 'host on Fly.io' }]);
+  });
+
+  it('searches meeting transcripts when the model needs meeting context', async () => {
+    const tools = lookup({
+      searchMeetingLines: vi.fn(async () => [
+        {
+          id: 'line-1',
+          meetingTitle: 'Demo planning',
+          speakerName: 'Jamie',
+          spokenAt: '2026-10-25T14:00:00.000Z',
+          text: 'We decided to host the demo on Fly.io.',
+        },
+      ]),
+    });
+    const chat = chatReturning([
+      [{ name: 'search_meeting_lines', arguments: JSON.stringify({ query: 'host the demo' }) }],
+      [
+        {
+          name: 'reply',
+          arguments: JSON.stringify({ text: 'The meeting record says the demo will be hosted on Fly.io.' }),
+        },
+        {
+          name: 'propose_decision',
+          arguments: JSON.stringify({
+            topic: 'Demo hosting',
+            outcome: 'Fly.io',
+            reason: 'The meeting recorded this decision.',
+            quote: 'decided to host the demo on Fly.io',
+          }),
+        },
+        { name: 'finish', arguments: '{}' },
+      ],
+    ]);
+
+    const out = await runMentionAgent({ chat }, 'model', {
+      messages: [{ id: 'm1', authorId: 'alex', authorName: 'Alex', text: '@AI what did we decide in the meeting?' }],
+      lookup: tools,
+    });
+
+    expect(tools.searchMeetingLines).toHaveBeenCalledWith('host the demo');
+    expect(out.reply).toContain('Fly.io');
+    expect(out.decisions[0]?.quote).toBe('decided to host the demo on Fly.io');
   });
 
   it('stops after four rounds when the model keeps calling read tools', async () => {
