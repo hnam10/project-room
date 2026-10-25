@@ -366,14 +366,29 @@
   background: var(--surface);
   font-size: 13px;
 }
-.ai-card.idea {
-  border-left-color: var(--amber);
-}
-.ai-card.poll,
 .poll-card {
   border-left-color: var(--green);
 }
-.ai-panel .action-card {
+/* AI suggestions nobody has confirmed yet are dashed, in the colour of where they land once approved:
+   ideas go to Brainstorm (yellow), polls are green, notes and tasks are purple. Confirmed things are solid. */
+.ai-card.idea,
+.ai-card.poll,
+.ai-card.notes {
+  border: 1.5px dashed var(--role);
+}
+.ai-card.idea {
+  --role: var(--amber);
+}
+.ai-card.idea.direction {
+  --role: var(--direction);
+}
+.ai-card.poll {
+  --role: var(--green);
+}
+.ai-card.notes {
+  --role: var(--accent);
+}
+.ai-panel .action-card:not(.pending) {
   max-width: none;
   border-left: 3px solid var(--accent);
 }

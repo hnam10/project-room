@@ -11,7 +11,7 @@ import { BrainstormSuggestionCard } from '../brainstorm/BrainstormSuggestionCard
 import { BrainstormTopicSuggestionCard } from '../brainstorm/BrainstormTopicSuggestionCard';
 
 const KINDS: Record<'decision' | 'risk', { label: string; icon: IconName; color: string }> = {
-  decision: { label: 'Decision', icon: 'flag', color: '#a06c00' },
+  decision: { label: 'Decision', icon: 'flag', color: 'var(--accent)' },
   risk: { label: 'Deadline risk', icon: 'alert', color: '#dc4b4b' },
 };
 

@@ -381,7 +381,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                       ))}
                     </select>
                   </label>
-                  <button className="btn primary" disabled={!prepared} onClick={() => setDialog({ kind: 'idea' })}>
+                  <button className="btn idea-btn" disabled={!prepared} onClick={() => setDialog({ kind: 'idea' })}>
                     <Icon name="plus" />
                     Add Idea
                   </button>
