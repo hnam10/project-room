@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Decision } from '@project-room/shared';
 import { createStructuredProvider } from './structured.js';
 
 // The model is replaced by a fake: these tests check what we do with its output, not the model.
@@ -63,7 +62,6 @@ describe('structured provider', () => {
         },
         { title: 'Landing page UI', assigneeId: null, priority: 'low', reason: 'duplicate of an existing task', quote: null },
       ],
-      decisions: [{ topic: 'Which database', outcome: null, reason: 'Unsettled', quote: 'Landing page UI still has no owner' }],
       risks: [
         {
           taskId: 't18',
@@ -81,7 +79,6 @@ describe('structured provider', () => {
       // Unknown owner -> unassigned, unrecognised priority -> medium, invented quote -> none.
       ['Book a venue', null, 'medium', false],
     ]);
-    expect(out.decisions[0]?.quote).toBe('Landing page UI still has no owner');
     expect(out.risks.map((r) => r.taskId)).toEqual(['t18']);
 
     // Structured output is requested, and the chat text is passed as data inside tags.
@@ -89,14 +86,6 @@ describe('structured provider', () => {
     expect(request.model).toBe('test-model');
     expect(request.schema).toBeDefined();
     expect(request.content).toContain('<conversation>');
-  });
-
-  it('only asks the model about messages that read like open questions', async () => {
-    const { provider, parse } = providerReturning({ actionItems: [], decisions: [], risks: [] });
-    expect(await provider.detectOpenQuestion({ id: 'm', authorId: 'a', authorName: 'A', text: 'Nice work everyone' })).toBeNull();
-    expect(parse).not.toHaveBeenCalled();
-    await provider.detectOpenQuestion({ id: 'm', authorId: 'a', authorName: 'A', text: 'Should we use Postgres?' });
-    expect(parse).toHaveBeenCalledOnce();
   });
 
   it('keeps brainstorm citations only when they came from the supplied research', async () => {
@@ -171,30 +160,6 @@ describe('structured provider', () => {
     const options = await meal.provider.brainstorm({ messages, existingIdeas: [], research: [], mode: 'non_product' });
     expect(options.ideas[0]?.draft.theme).toBe('Option');
     expect(meal.parse.mock.calls[0]![0].content).toContain('cuisine');
-  });
-
-  it('answers from the given decisions and ignores source ids it was not given', async () => {
-    const decided = {
-      id: 'd1',
-      title: 'Where to host',
-      outcome: 'Fly.io',
-      reason: 'Needs a disk',
-      decidedAt: '2026-10-02T00:00:00Z',
-      decidedById: 'jamie',
-    } as Decision;
-    const { provider, parse } = providerReturning({ answer: 'Fly.io, because it needs a disk.', sourceDecisionIds: ['d1', 'd404'] });
-    const out = await provider.answerFromDecisions({ question: 'Where do we host?', decisions: [decided], members });
-    expect(out.sourceDecisionIds).toEqual(['d1']);
-    const prompt: string = parse.mock.calls[0]![0].content;
-    expect(prompt).toContain('<decision id="d1"');
-    expect(prompt).toContain('ONLY the approved decisions');
-  });
-
-  it('does not call the model when there are no approved decisions', async () => {
-    const { provider, parse } = providerReturning({});
-    const out = await provider.answerFromDecisions({ question: 'Anything?', decisions: [], members });
-    expect(out.sourceDecisionIds).toEqual([]);
-    expect(parse).not.toHaveBeenCalled();
   });
 
   it('fails loudly when the model refuses', async () => {

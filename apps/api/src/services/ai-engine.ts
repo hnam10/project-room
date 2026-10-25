@@ -1,7 +1,6 @@
-import { AI_AUTHOR, TASK_STATUSES, type ActionItem, type Decision, type Member, type Message, type Suggestion } from '@project-room/shared';
+import { AI_AUTHOR, TASK_STATUSES, type ActionItem, type Member, type Message, type Suggestion } from '@project-room/shared';
 import { getAiProvider } from '../ai/index.js';
-import type { AiProvider, ConversationMessage, FileExcerpt, IdeaProposal, ProjectLookup } from '../ai/provider.js';
-import { listDecisions } from '../repositories/decisions.js';
+import type { ConversationMessage, FileExcerpt, IdeaProposal, ProjectLookup } from '../ai/provider.js';
 import { listIdeas } from '../repositories/ideas.js';
 import { createMessage, messagesForMention, searchMessages } from '../repositories/messages.js';
 import { createSuggestion, listSuggestions } from '../repositories/suggestions.js';
@@ -11,7 +10,7 @@ import { researchWeb } from './research.js';
 import { runChatCommand } from './chat-commands.js';
 
 // The AI action engine: watches new chat messages and turns what it notices into
-// pending suggestions. It never edits tasks, decisions, or ideas itself.
+// pending suggestions. It never edits tasks or ideas itself.
 
 const MENTIONS_AI = /@ai\b/i;
 const ASKS_TO_BRAINSTORM = /\b(brainstorm|ideas?|ideate)\b/i;
@@ -71,32 +70,6 @@ export async function onMessagePosted(input: {
 }): Promise<void> {
   const { projectId, channelName, message, members } = input;
   if (await runChatCommand(projectId, message)) return;
-  const ai = getAiProvider();
-  const [conversationMessage] = toConversation([message], members);
-  if (!conversationMessage) return;
-
-  // Proactive and quiet: an open question goes to the AI Assistant panel, not into the chat.
-  // A model failure here must not block an @AI request in the same message.
-  if (!(MENTIONS_AI.test(message.text) && ASKS_TO_BRAINSTORM.test(message.text))) {
-    try {
-      const question = await ai.detectOpenQuestion(conversationMessage);
-      if (question) {
-        await createSuggestion(projectId, {
-          kind: 'decision',
-          title: question.outcome ? `Decision made: ${question.topic}` : `Open question: ${question.topic}`,
-          proposal: question.topic,
-          outcome: question.outcome,
-          reason: question.reason,
-          quote: question.quote,
-          cite: question.quote ? `${conversationMessage.authorName} · #${channelName} · ${timeLabel(message.createdAt)}` : null,
-          sourceMessageId: question.quote ? message.id : null,
-        });
-      }
-    } catch (error) {
-      console.error('Open-question check failed for message', message.id, error);
-    }
-  }
-
   if (MENTIONS_AI.test(message.text)) await replyToMention(projectId, message.channelId, channelName, members);
 }
 
@@ -125,23 +98,6 @@ function mentionReply(reply: string, panelCount: number, itemCount: number, isMo
     : 'I didn’t find new action items in the recent messages.';
 }
 
-/**
- * The mock has no model, so a question with no new tasks is answered from approved decisions.
- * A configured model writes this reply itself, from the thread and any file passages.
- */
-async function mockMentionReply(ai: AiProvider, recent: Message[], decisions: Decision[], members: Map<string, Member>): Promise<string> {
-  const ask = [...recent].reverse().find((message) => message.authorId !== AI_AUTHOR && MENTIONS_AI.test(message.text));
-  if (!ask || !/[?]/.test(ask.text)) return '';
-  const draft = await ai.answerFromDecisions({
-    question: ask.text,
-    decisions: decisions.filter((decision) => decision.status === 'decided'),
-    members: [...members.values()].map((member) => ({ id: member.id, name: member.name, role: member.role })),
-  });
-  const note = '(Mock AI — set OPENAI_API_KEY for a reply that also reads the chat.)';
-  if (!draft.sourceDecisionIds.length) return `Nothing in the approved decisions answers that. ${note}`;
-  return `${draft.answer.replace(/\s+/g, ' ')} ${note}`;
-}
-
 /** Drops tasks the team has already been asked to review, or has already approved. */
 function unseenActionItems(items: ActionItem[], suggestions: Suggestion[]): ActionItem[] {
   const covered = suggestions.filter((suggestion) => suggestion.kind === 'action_items' && suggestion.status !== 'dismissed');
@@ -157,12 +113,11 @@ async function replyToMention(projectId: string, channelId: string, channelName:
   const ai = getAiProvider();
   const say = (text: string, suggestionId?: string) => createMessage({ projectId, channelId, authorId: AI_AUTHOR, text, suggestionId });
 
-  const [recent, tasks, pending, boardIdeas, decisions] = await Promise.all([
+  const [recent, tasks, pending, boardIdeas] = await Promise.all([
     messagesForMention(projectId, channelId),
     listTasks(projectId),
     listSuggestions(projectId),
     listIdeas(projectId),
-    listDecisions(projectId),
   ]);
   const conversation = toConversation(recent, members);
   const files = await fileExcerpts(projectId, recent);
@@ -303,14 +258,8 @@ async function replyToMention(projectId: string, channelId: string, channelName:
     return;
   }
 
-  // The thread now includes older turns, so a mention must not file the same decision, risk, or task again.
+  // The thread now includes older turns, so a mention must not file the same risk, idea, or task again.
   const waiting = pending.filter((s) => s.status === 'pending');
-  const seenDecisions = new Set(
-    [
-      ...waiting.filter((s) => s.kind === 'decision').map((s) => s.proposal?.toLowerCase()),
-      ...decisions.map((d) => d.title.toLowerCase()),
-    ].filter((topic): topic is string => Boolean(topic)),
-  );
   const seenRisks = new Set(waiting.filter((s) => s.kind === 'risk').map((s) => s.taskId));
   const seenIdeas = new Set(
     waiting
@@ -321,19 +270,6 @@ async function replyToMention(projectId: string, channelId: string, channelName:
   );
 
   let panelCount = 0;
-  for (const d of analysis.decisions) {
-    if (seenDecisions.has(d.topic.toLowerCase())) continue;
-    await createSuggestion(projectId, {
-      kind: 'decision',
-      title: d.outcome ? `Decision made: ${d.topic}` : `Open question: ${d.topic}`,
-      proposal: d.topic,
-      outcome: d.outcome,
-      reason: d.reason,
-      quote: d.quote,
-      ...citeFor(d.quote, recent, conversation, channelName, files),
-    });
-    panelCount++;
-  }
   for (const r of analysis.risks) {
     if (seenRisks.has(r.taskId)) continue;
     await createSuggestion(projectId, {
@@ -361,7 +297,6 @@ async function replyToMention(projectId: string, channelId: string, channelName:
   }
 
   const items = unseenActionItems(analysis.actionItems, pending);
-  if (!reply.trim() && ai.isMock && !items.length) reply = await mockMentionReply(ai, recent, decisions, members);
   const text = mentionReply(reply, panelCount, items.length, ai.isMock);
   if (!items.length) {
     await say(text);
@@ -401,15 +336,6 @@ export function projectLookup(projectId: string, members: Map<string, Member>): 
     async searchMessages(query) {
       const hits = await searchMessages(projectId, query);
       return hits.map((message) => ({ id: message.id, authorName: nameOf(message.authorId), text: message.text }));
-    },
-    async listDecisions() {
-      const decisions = await listDecisions(projectId);
-      return decisions.slice(0, 30).map((decision) => ({
-        id: decision.id,
-        title: decision.title,
-        status: decision.status,
-        outcome: decision.outcome,
-      }));
     },
     async listPendingSuggestions() {
       const suggestions = await listSuggestions(projectId);

@@ -21,7 +21,6 @@ export interface SuggestionDraft {
   title: string;
   reason: string;
   proposal?: string | null;
-  outcome?: string | null;
   quote?: string | null;
   cite?: string | null;
   researchSources?: ResearchSource[];
@@ -118,7 +117,6 @@ export async function createSuggestion(projectId: string, draft: SuggestionDraft
         title: draft.title,
         reason: draft.reason,
         proposal: draft.proposal ?? null,
-        outcome: draft.outcome ?? null,
         quote: draft.quote ?? null,
         cite: draft.cite ?? null,
         researchSources: draft.researchSources ?? [],

@@ -6,7 +6,6 @@ import { clerk } from './auth/clerk.js';
 import { authMode, config } from './config.js';
 import { authenticate, requireProjectMember } from './http/context.js';
 import { errorHandler, notFoundRoute } from './http/errors.js';
-import { decisionsRouter } from './http/routes/decisions.js';
 import { channelsRouter } from './http/routes/channels.js';
 import { filesRouter } from './http/routes/files.js';
 import { ideasRouter } from './http/routes/ideas.js';
@@ -38,7 +37,6 @@ export function createApp() {
   project.use('/channels', channelsRouter);
   project.use('/ideas', ideasRouter);
   project.use('/files', filesRouter);
-  project.use('/decisions', decisionsRouter);
   project.use('/suggestions', suggestionsRouter);
   project.use('/polls', pollsRouter);
   project.use('/meetings', meetingsRouter);

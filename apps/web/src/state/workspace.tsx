@@ -18,12 +18,12 @@ import { useSession } from './session';
 // One project's data, kept in sync with the server: loaded once as a snapshot, then patched
 // by realtime events and by the records our own API calls return (both are idempotent upserts).
 
-type CollectionTable = 'task' | 'channel' | 'idea' | 'decision' | 'suggestion' | 'file';
-const COLLECTION: Record<CollectionTable, 'tasks' | 'channels' | 'ideas' | 'decisions' | 'suggestions' | 'files'> = {
+type CollectionTable = 'task' | 'channel' | 'idea' | 'poll' | 'suggestion' | 'file';
+const COLLECTION: Record<CollectionTable, 'tasks' | 'channels' | 'ideas' | 'polls' | 'suggestions' | 'files'> = {
   task: 'tasks',
   channel: 'channels',
   idea: 'ideas',
-  decision: 'decisions',
+  poll: 'polls',
   suggestion: 'suggestions',
   file: 'files',
 };
@@ -57,7 +57,7 @@ function withoutRemoved(snapshot: WorkspaceSnapshot, removed: ReadonlySet<string
     channels: keep('channel', snapshot.channels),
     tasks: keep('task', snapshot.tasks),
     ideas: keep('idea', snapshot.ideas),
-    decisions: keep('decision', snapshot.decisions),
+    polls: keep('poll', snapshot.polls),
     suggestions: keep('suggestion', snapshot.suggestions),
     files: keep('file', snapshot.files),
   };
@@ -94,7 +94,7 @@ function reducer(state: State, action: Action): State {
         return { ...state, messages: { ...state.messages, [message.channelId]: next } };
       }
       if (!state.snapshot) return state;
-      // meeting, transcript_line and poll events are not part of the snapshot
+      // meeting and transcript_line events are not part of the snapshot
       const key = COLLECTION[table as CollectionTable] as (typeof COLLECTION)[CollectionTable] | undefined;
       if (!key) return state;
       const list = state.snapshot[key] as { id: string }[];
