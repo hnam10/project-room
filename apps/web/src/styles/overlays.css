@@ -68,6 +68,14 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+/* A label that is itself a form-row (the AI review dialogs) stacks its text over a full-width control. */
+.modal label.form-row {
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+.modal textarea {
+  resize: vertical;
+}
 .modal-actions {
   display: flex;
   align-items: center;
