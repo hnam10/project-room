@@ -9,6 +9,7 @@
     "start": "node --env-file-if-exists=.env dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "seed": "tsx --conditions=development --env-file-if-exists=.env src/db/seed.ts",
+    "eval": "tsx --conditions=development --env-file-if-exists=.env src/eval/run.ts",
     "test": "vitest run"
   },
   "dependencies": {

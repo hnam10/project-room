@@ -8,7 +8,20 @@ import { migrateLegacyTopics } from '../repositories/brainstorm-topics.js';
 // seed with `npm run db:seed -- --org org_xxx` (or set SEED_ORG_ID on the server). The demo teammates are
 // placeholder members; real Clerk users join the project the first time they open it.
 
-const TABLES = ['suggestion', 'message', 'task', 'idea', 'decision', 'channel', 'project', 'member'] as const;
+const TABLES = [
+  'suggestion',
+  'message',
+  'task',
+  'idea',
+  'decision',
+  'poll',
+  'transcript_line',
+  'live_meeting',
+  'meeting',
+  'channel',
+  'project',
+  'member',
+] as const;
 
 const day = (offsetDays: number, time = '10:00') => {
   const d = new Date();
@@ -99,7 +112,6 @@ export async function seedDemoData({ projectId = DEMO_PROJECT_ID }: { projectId?
        INSERT INTO task $tasks;
        INSERT INTO message $messages;
        INSERT INTO idea $ideas;
-       INSERT INTO decision $decisions;
        INSERT INTO suggestion $suggestions;
        CREATE $aiMessageId CONTENT $aiMessage;
        COMMIT;`,
@@ -148,70 +160,6 @@ export async function seedDemoData({ projectId = DEMO_PROJECT_ID }: { projectId?
           researchSources: [],
           createdAt: day(-2, `09:0${i}`),
         })),
-        decisions: [
-          // The project's memory: approved decisions with what was decided and why. Hosting was reversed
-          // on purpose so "where do we host?" has a time-aware answer.
-          {
-            id: rid('decision', scoped('d1')),
-            projectId: p,
-            title: 'Target users',
-            outcome: 'Students working on group projects',
-            reason: 'The sharpest pain we can reach at campus hackathons, and we can interview them this week.',
-            status: 'decided',
-            raisedById: m('alex'),
-            decidedById: m('alex'),
-            createdAt: day(-7),
-            decidedAt: day(-7),
-          },
-          {
-            id: rid('decision', scoped('d2')),
-            projectId: p,
-            title: 'Which frontend framework to use',
-            outcome: 'React + Vite, not Next.js',
-            reason: 'We need an app-like workspace with no SEO or server rendering, and Vite keeps the dev loop fast.',
-            status: 'decided',
-            raisedById: m('jamie'),
-            decidedById: m('jamie'),
-            createdAt: day(-6),
-            decidedAt: day(-5),
-          },
-          {
-            id: rid('decision', scoped('d3')),
-            projectId: p,
-            title: 'Which AI model powers suggestions',
-            outcome: 'An OpenAI-compatible API, behind our AiProvider interface',
-            reason: 'Structured output gives every suggestion a reason and a quote, and the interface lets us swap models.',
-            status: 'decided',
-            raisedById: m('alex'),
-            decidedById: m('alex'),
-            createdAt: day(-4),
-            decidedAt: day(-4),
-          },
-          {
-            id: rid('decision', scoped('d4')),
-            projectId: p,
-            title: 'Where to host the demo',
-            outcome: 'Vercel',
-            reason: 'Free tier and one-click deploys from GitHub.',
-            status: 'decided',
-            raisedById: m('morgan'),
-            decidedById: m('morgan'),
-            createdAt: day(-6),
-            decidedAt: day(-6),
-          },
-          {
-            id: rid('decision', scoped('d5')),
-            projectId: p,
-            title: 'Where to host the demo (revisited)',
-            outcome: 'Fly.io with a persistent volume, replacing Vercel',
-            reason: 'The embedded SurrealDB needs a persistent disk, which Vercel functions do not provide.',
-            status: 'decided',
-            raisedById: m('morgan'),
-            decidedById: m('jamie'),
-            createdAt: day(-2),
-            decidedAt: day(-2),
-          },
-        ],
         suggestions: [
           {
             id: rid('suggestion', scoped('s1')),
@@ -247,19 +195,6 @@ export async function seedDemoData({ projectId = DEMO_PROJECT_ID }: { projectId?
               },
             ],
             createdAt: minutesAgo(35),
-          },
-          {
-            id: rid('suggestion', scoped('s2')),
-            projectId: p,
-            kind: 'decision',
-            status: 'pending',
-            title: 'Open question: Which database to use',
-            proposal: 'Which database to use',
-            reason: 'Morgan raised it in #general and no decision has been recorded. Task #16 “Database schema” depends on it.',
-            quote: "We still haven't decided which database to use, and the demo is due Friday.",
-            cite: `Morgan · #general · ${minutesAgo(37).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
-            sourceMessageId: rid('message', scoped('m4')),
-            createdAt: minutesAgo(34),
           },
           {
             id: rid('suggestion', scoped('s3')),

@@ -41,6 +41,11 @@ export function listPolls(projectId: string, meetingId: string | null): Promise<
   });
 }
 
+/** Every poll in the project, newest first: the Polls tab. */
+export function listProjectPolls(projectId: string): Promise<Poll[]> {
+  return queryMany<Poll>('SELECT * FROM poll WHERE projectId = $project ORDER BY createdAt DESC', { project: rid('project', projectId) });
+}
+
 /** Moves the member's vote to `optionId` (one vote per poll). */
 export async function votePoll(projectId: string, pollId: string, memberId: string, optionId: string): Promise<Poll> {
   const poll = await getPoll(projectId, pollId);

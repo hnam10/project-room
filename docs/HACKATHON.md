@@ -4,7 +4,9 @@ We're entering Project Room for all five non-cash prizes. This file says how eac
 product, so the whole team builds toward the same demo. Status and owners live in
 [PROGRESS.md](PROGRESS.md) ("Next up"); product rules in [AGENTS.md](../AGENTS.md) still apply.
 
-Judges reward depth over checkbox integrations. If time runs short, go deep on steps 1–3, keep step 4
+None of the sponsor tools are mandatory, and Best Overall is open to any stack. For the sponsor prizes (Expo,
+Clerk, Eon, SurrealDB Agent Memory), judges look for **evidence that the platform materially shaped what we
+built**, so each section below names that evidence. Judges reward depth over checkbox integrations. If time runs short, go deep on steps 1–3, keep step 4
 small but real, and only do step 5 if there's time left.
 
 ## Build order (one branch / PR each)
@@ -59,10 +61,16 @@ time-aware memory with provenance. SDK: `@surrealdb/memory` (`remember`, `rememb
 [Era](https://www.eon.io/blog/era-build-and-test-ai-agents) generates simulated companies (Slack, Jira, …)
 with exact answer keys, reachable over MCP/REST, graded by code instead of an LLM judge.
 
-- Feed Era's simulated Slack conversations into our action-item extractor and score the suggestions
-  against Era's Jira tickets as ground truth.
-- Run it as a script / CI job and show a table: mock vs. Claude vs. Claude + Agent Memory. That one
-  number supports the Eon, Agent Memory and Best Overall entries.
+- Access: every team gets free early access to Era at kickoff. Only our own model keys have rate limits
+  (the free hosted model hits 429 at about 8k tokens/minute, so space the calls out).
+- The scorer is in: `npm run eval -w apps/api [dataset.json] [--details]` asks each configured host for action
+  items the way `@AI` does and prints precision, recall, F1 and assignee accuracy. Still to do: convert Era's
+  simulated Slack conversations to its dataset shape, with Era's Jira tickets as the answer key.
+- **Evidence for judges:** a before/after, not a single number. Score with Era, change the prompt or model
+  where the scores point (e.g. wrong assignees), score again, and show both tables with the change that moved
+  them. Add a run with Agent Memory on to support that prize too.
+- Run it by hand before judging. No CI job: real-model runs cost tokens and hit rate limits, and judges need
+  the comparison, not a daily history.
 - Era simulates enterprises, not student teams: use it for evaluation, not as product data.
 
 ## 5. Expo — a mobile companion, not a port

@@ -64,6 +64,7 @@ export function PollSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
         </button>
       </div>
       <Modal
+        wide
         open={open}
         title="Open a poll"
         eyebrow="AI suggestion"

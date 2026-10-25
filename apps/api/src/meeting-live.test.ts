@@ -390,5 +390,19 @@ describe('live meeting pipeline', () => {
     const { ai, inputs } = fakeAi(() => ({}));
     expect(await runLiveTick('hackathon', meetingId, ai)).toEqual([]);
     expect(inputs).toHaveLength(0);
+    // @AI stays quiet too: nothing goes to the model.
+    let asked = false;
+    const mention = { runMention: async () => ((asked = true), { reply: 'x' }) } as unknown as AiProvider;
+    expect(await answerMeetingMention('hackathon', meetingId, 'alex', mention, null)).toEqual([]);
+    expect(asked).toBe(false);
+    // Turned off while the model was answering, and the model fails: no error line either.
+    await post(`/meetings/${meetingId}/ai`, { enabled: true });
+    const failing = {
+      runMention: async () => {
+        await post(`/meetings/${meetingId}/ai`, { enabled: false });
+        throw new Error('timeout');
+      },
+    } as unknown as AiProvider;
+    expect(await answerMeetingMention('hackathon', meetingId, 'alex', failing, null)).toEqual([]);
   });
 });

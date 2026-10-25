@@ -4,14 +4,14 @@ import { Icon } from '../../components/Icon';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 import { AssistantTab } from './AssistantTab';
 import { Composer } from './Composer';
-import { DecisionsTab } from './DecisionsTab';
+import { PollsTab } from './PollsTab';
 import { MessageList } from './MessageList';
 import { useAttachFiles, useFileDrop } from './useAttachFiles';
 
-export type ChatTab = 'chat' | 'assistant' | 'decisions';
+export type ChatTab = 'chat' | 'assistant' | 'polls';
 
 /**
- * Chat, AI Assistant and Decisions in one panel. The same component renders in the dock,
+ * Chat, AI Assistant and Polls in one panel. The same component renders in the dock,
  * as a floating window, in a separate OS window, and as a full page; the container decides
  * which window controls to show (headerActions) and whether the header can be dragged.
  */
@@ -33,7 +33,7 @@ export function ChatPanel(props: {
   );
   // Dropping files anywhere on the chat shares them in the open channel, like the composer's + button.
   const { fileOver, dropProps } = useFileDrop(tab === 'chat' && !!activeChannelId, (dropped) => void files.attach(dropped));
-  const pendingInsights = suggestions.filter((s) => s.status === 'pending' && (s.kind === 'decision' || s.kind === 'risk')).length;
+  const pendingInsights = suggestions.filter((s) => s.status === 'pending' && s.kind === 'risk').length;
 
   const tabButton = (id: ChatTab, label: ReactNode) => (
     <button role="tab" aria-selected={tab === id} className={`panel-tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>
@@ -68,7 +68,7 @@ export function ChatPanel(props: {
             AI Assistant <span className="tab-count">{pendingInsights || ''}</span>
           </>,
         )}
-        {tabButton('decisions', 'Decisions')}
+        {tabButton('polls', 'Polls')}
         <div className="panel-actions window-actions">{props.headerActions}</div>
       </div>
 
@@ -93,8 +93,8 @@ export function ChatPanel(props: {
             <MessageList channelId={activeChannelId} scrollRef={body} />
           </>
         )}
-        {tab === 'assistant' && <AssistantTab onOpenDecisions={() => setTab('decisions')} />}
-        {tab === 'decisions' && <DecisionsTab />}
+        {tab === 'assistant' && <AssistantTab />}
+        {tab === 'polls' && <PollsTab />}
       </div>
       {tab === 'chat' && activeChannelId && <Composer channelId={activeChannelId} files={files} />}
       {props.children}

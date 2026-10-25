@@ -1,6 +1,6 @@
 // Domain model shared by the API and the web app. IDs are plain strings on the wire;
 // the API maps them to SurrealDB record IDs (e.g. "t19" <-> task:t19).
-import type { IdeaDraft, PollDraft } from './meeting.js';
+import type { IdeaDraft, Poll, PollDraft } from './meeting.js';
 
 export const TASK_STATUSES = ['todo', 'progress', 'review', 'done'] as const;
 export const PRIORITIES = ['high', 'medium', 'low'] as const;
@@ -105,27 +105,7 @@ export interface ResearchSource {
   url: string;
 }
 
-export type DecisionStatus = 'open' | 'decided';
-
-export interface Decision {
-  id: string;
-  projectId: string;
-  title: string;
-  status: DecisionStatus;
-  raisedById: string;
-  decidedById: string | null;
-  /** What the team settled on, e.g. "Use SurrealDB". Set when the decision is recorded as decided. */
-  outcome: string | null;
-  /** Why it was decided that way, when someone said so. */
-  reason: string | null;
-  /** Words from the conversation that back the decision. */
-  quote: string | null;
-  createdAt: string;
-  decidedAt: string | null;
-}
-
-export type SuggestionKind =
-  'action_items' | 'decision' | 'risk' | 'idea' | 'brainstorm_topic' | 'poll' | 'meeting_notes' | 'brainstorm_analysis';
+export type SuggestionKind = 'action_items' | 'risk' | 'idea' | 'brainstorm_topic' | 'poll' | 'meeting_notes' | 'brainstorm_analysis';
 export const BRAINSTORM_TRIGGERS = [
   'problem_created',
   'first_idea',
@@ -160,10 +140,8 @@ export interface Suggestion {
   kind: SuggestionKind;
   status: SuggestionStatus;
   title: string;
-  /** What approving creates, when that isn't a list of items (e.g. the decision to log). */
+  /** What approving creates, when that isn't a list of items (e.g. a research summary). */
   proposal: string | null;
-  /** Decisions only: what the conversation already settled on. Null means the question is still open. */
-  outcome: string | null;
   /** Why the AI produced this suggestion. */
   reason: string;
   /** Supporting context from the conversation, when there is any. */
@@ -209,18 +187,8 @@ export interface WorkspaceSnapshot {
   channels: Channel[];
   tasks: Task[];
   ideas: Idea[];
-  decisions: Decision[];
+  /** Every poll opened in a meeting, newest first; the Polls tab lists them. */
+  polls: Poll[];
   suggestions: Suggestion[];
   files: ProjectFile[];
-}
-
-/** The answer to a question about the project, written only from approved decisions. */
-export interface MemoryAnswer {
-  question: string;
-  answer: string;
-  /** False when no approved decision covers the question. */
-  found: boolean;
-  /** The approved decisions the answer relies on. */
-  sources: Decision[];
-  ai: { provider: string; isMock: boolean };
 }

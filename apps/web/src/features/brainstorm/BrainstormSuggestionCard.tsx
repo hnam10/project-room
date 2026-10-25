@@ -88,6 +88,7 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
       </div>
 
       <Modal
+        wide
         open={editing}
         title={`Review AI ${draftKind}`}
         eyebrow={suggestion.ideaId ? 'The existing idea changes only when you approve' : 'Nothing is added until you approve'}
@@ -129,7 +130,7 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
           Description
           <textarea
             value={form.description}
-            rows={4}
+            rows={10}
             maxLength={2000}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
           />

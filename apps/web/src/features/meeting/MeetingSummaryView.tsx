@@ -121,9 +121,6 @@ export function MeetingSummaryView(props: {
             </>
           )}
           <Section title="Decisions" items={summary.decisions} />
-          {summary.decisions.length > 0 && (
-            <p className="meeting-note-small">Decisions become official only when someone records them in the Decisions tab.</p>
-          )}
           <Section title="Open questions" items={summary.openQuestions} />
           <Section title="Next steps" items={summary.nextSteps} />
         </section>

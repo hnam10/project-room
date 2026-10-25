@@ -1,5 +1,5 @@
-import type { ActionItem, Decision } from '@project-room/shared';
-import type { AiProvider, ConversationMessage, MemoryAnswerDraft, ProposedDecision } from './provider.js';
+import type { ActionItem } from '@project-room/shared';
+import type { AiProvider, ConversationMessage } from './provider.js';
 
 const PRODUCT_CUES =
   /\b(app|application|product|platform|software|website|marketplace|dashboard|tracker|calendar|reminder|tool|device|service|prototype)\b|앱|제품|플랫폼|서비스|도구|웹사이트/i;
@@ -21,7 +21,6 @@ const COMMITMENT =
   /\b(?:i'll|i will|i can|i'm going to|let me)\s+(work on|handle|take care of|build|set up|write|design|fix|do)\s+(?:the\s+)?(.+?)(?:[.!?,]|$)/i;
 const UNDECIDED = /\b(?:haven't|have not|didn't|did not)\s+decided?\s+(.+?)(?:[.!?,]|\band\b|$)/i;
 const OPEN_NEED = /\b(?:we need to|we still need to|someone needs to|someone should|nobody has)\s+(.+?)(?:[.!?,]|$)/i;
-const SHOULD_WE = /\bshould we\s+(.+?)(?:[?.!]|$)/i;
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -93,65 +92,6 @@ export function extractActionItemsByRules(messages: ConversationMessage[], exist
   });
 }
 
-export function detectOpenQuestionByRules(text: string): { topic: string } | null {
-  const match = text.match(UNDECIDED) ?? text.match(SHOULD_WE);
-  return match?.[1] ? { topic: match[1].trim() } : null;
-}
-
-function openQuestionProposal(message: ConversationMessage): ProposedDecision | null {
-  const question = detectOpenQuestionByRules(message.text);
-  if (!question) return null;
-  return {
-    topic: capitalize(question.topic),
-    outcome: null,
-    reason: 'This sounds like a choice the team hasn’t settled. Logging it keeps it visible until someone decides.',
-    quote: message.text,
-  };
-}
-
-const STOP_WORDS = new Set([
-  'the',
-  'a',
-  'an',
-  'to',
-  'of',
-  'we',
-  'did',
-  'do',
-  'why',
-  'what',
-  'which',
-  'how',
-  'is',
-  'are',
-  'was',
-  'for',
-  'our',
-  'use',
-  'pick',
-]);
-const words = (text: string) =>
-  text
-    .toLowerCase()
-    .match(/[a-z0-9+.#-]{2,}/g)
-    ?.filter((w) => !STOP_WORDS.has(w)) ?? [];
-
-/** Ranks approved decisions by how many question words they share. Plain keyword overlap, no model. */
-export function answerFromDecisionsByRules(question: string, decisions: Decision[]): MemoryAnswerDraft {
-  const wanted = new Set(words(question));
-  const scored = decisions
-    .map((d) => {
-      const text = new Set(words([d.title, d.outcome, d.reason].filter(Boolean).join(' ')));
-      return { decision: d, score: [...wanted].filter((w) => text.has(w)).length };
-    })
-    .filter((s) => s.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
-  if (!scored.length) return { answer: 'No approved decision covers that yet.', sourceDecisionIds: [] };
-  const lines = scored.map(({ decision: d }) => `• ${d.outcome ?? d.title}${d.reason ? ` — ${d.reason}` : ''}`);
-  return { answer: `Closest approved decisions:\n${lines.join('\n')}`, sourceDecisionIds: scored.map((s) => s.decision.id) };
-}
-
 export const mockProvider: AiProvider = {
   name: 'mock',
   isMock: true,
@@ -175,7 +115,6 @@ export const mockProvider: AiProvider = {
         messages,
         tasks.map((t) => t.title),
       ),
-      decisions: [],
       risks: [],
     };
   },
@@ -304,11 +243,5 @@ export const mockProvider: AiProvider = {
             ]
           : [],
     };
-  },
-  async detectOpenQuestion(message) {
-    return openQuestionProposal(message);
-  },
-  async answerFromDecisions({ question, decisions }) {
-    return answerFromDecisionsByRules(question, decisions);
   },
 };

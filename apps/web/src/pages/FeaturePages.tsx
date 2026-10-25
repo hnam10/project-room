@@ -37,8 +37,8 @@ export function BrainstormPage() {
   );
 }
 
-export function DecisionsPage() {
-  return <ChatPage tab="decisions" />;
+export function PollsPage() {
+  return <ChatPage tab="polls" />;
 }
 
 /** Clearly-labelled stand-in for areas that aren't built yet. */

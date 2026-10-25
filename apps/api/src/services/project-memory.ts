@@ -2,7 +2,7 @@ import type { FileExcerpt } from '../ai/provider.js';
 import { config } from '../config.js';
 
 // Project files are read by SurrealDB Agent Memory. @AI later receives a few short passages.
-// The chat model never sees the file bytes. "Ask the project" still uses approved decisions only.
+// The chat model never sees the file bytes.
 
 const MEDIA_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf',
