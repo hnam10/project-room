@@ -5,6 +5,8 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Header cleanup.** Removed the blue placeholder Share button from the top-right header.
+
 - 2026-10-24 — **Overview navigation label.** Renamed the Tasks navigation tab to Overview.
 
 - 2026-10-24 — **Clean topic overflow navigation.** Topic tabs hide the native horizontal scrollbar,
