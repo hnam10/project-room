@@ -27,6 +27,13 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Category-free brainstorming UI.** Removed category selectors from add/edit and AI
+  review dialogs, the idea category filter and saved-card category tags. Options and ideas share one
+  card style; strategies remain separate. New member ideas use the existing Option default, while editing
+  existing records and reviewing drafts preserves their internal themes and behavior. Full check passes
+  with 259 tests; the web build passes. Browser-checked card rendering in a temporary fixture, then
+  removed it; the authenticated local project remained unavailable in this browser session.
+
 - 2026-10-25 — **Plain-text strategy editing.** Draft review and saved-strategy editing now use labelled
   direction, step and scope fields instead of a JSON textarea. Steps can be added/removed within the
   one-to-four limit; incomplete fields remain editable and native required-field validation prevents

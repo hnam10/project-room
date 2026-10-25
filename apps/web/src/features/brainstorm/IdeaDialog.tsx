@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IDEA_THEME_CHOICES, type Idea, type IdeaTheme } from '@project-room/shared';
+import type { Idea } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Modal } from '../../components/Modal';
 import { useFeedback } from '../../components/Feedback';
@@ -8,7 +8,6 @@ import { StrategyEditor } from './StrategyEditor';
 
 export function IdeaDialog({
   open,
-  defaultTheme,
   kind = 'idea',
   idea,
   topicId,
@@ -16,7 +15,6 @@ export function IdeaDialog({
   onClose,
 }: {
   open: boolean;
-  defaultTheme: IdeaTheme;
   kind?: 'problem' | 'idea';
   idea?: Idea | null;
   topicId?: string;
@@ -28,10 +26,7 @@ export function IdeaDialog({
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [theme, setTheme] = useState<IdeaTheme>(defaultTheme);
-  const themeChoices: IdeaTheme[] = IDEA_THEME_CHOICES.some((choice) => choice === theme)
-    ? [...IDEA_THEME_CHOICES]
-    : [...IDEA_THEME_CHOICES, theme];
+  const theme = idea?.theme ?? 'Option';
 
   // Start empty each time the dialog opens.
   const [wasOpen, setWasOpen] = useState(false);
@@ -40,7 +35,6 @@ export function IdeaDialog({
     if (open) {
       setTitle(idea?.title ?? '');
       setDescription(idea?.description ?? '');
-      setTheme(idea?.theme ?? defaultTheme);
     }
   }
 
@@ -115,16 +109,6 @@ export function IdeaDialog({
             maxLength={240}
             placeholder={kind === 'problem' ? 'Add any context or constraints.' : 'Add any useful details or reasons.'}
           />
-        </label>
-      )}
-      {kind === 'idea' && (
-        <label>
-          Category
-          <select value={theme} onChange={(e) => setTheme(e.target.value as IdeaTheme)}>
-            {themeChoices.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
         </label>
       )}
     </Modal>

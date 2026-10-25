@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { IDEA_THEME_CHOICES, type BrainstormActionInput, type Idea, type IdeaTheme } from '@project-room/shared';
+import type { BrainstormActionInput, Idea } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { useFeedback } from '../../components/Feedback';
@@ -28,7 +28,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const chooseTopic = (id: string) => {
     selectTopic(id);
     writeStored(`brainstorm-topic:${projectId}`, id);
-    setTheme('all');
     setDialog(null);
   };
   const ideas = snapshot.ideas.filter((idea) => idea.id === problem?.id || (problem && idea.topicId === problem.id));
@@ -37,7 +36,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const { memberId } = useSession();
   const { toast, toastError, confirm } = useFeedback();
   const [tab, setTab] = useState<IdeaTab>('ideas');
-  const [theme, setTheme] = useState<IdeaTheme | 'all'>('all');
   const [dialog, setDialog] = useState<{ kind: 'problem' | 'idea'; idea?: Idea } | null>(null);
   const runningTopics = useRef(new Set<string>());
   const automaticAttempts = useRef(new Set<string>());
@@ -54,7 +52,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const pendingTopicChanges = snapshot.suggestions.filter(
     (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic' && suggestion.ideaId === problem?.id,
   );
-  const visible = ideas.filter((i) => i.kind !== 'problem' && i.theme !== 'Strategy' && (theme === 'all' || i.theme === theme));
+  const visible = ideas.filter((i) => i.kind !== 'problem' && i.theme !== 'Strategy');
   const strategies = ideas.filter((idea) => idea.kind !== 'problem' && idea.theme === 'Strategy');
   const pendingIdeas = suggestions.filter((suggestion) => suggestion.status === 'pending' && suggestion.kind === 'idea');
   const pendingAnalyses = suggestions.filter(
@@ -65,15 +63,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   );
   const pendingStrategies = pendingIdeas.filter((suggestion) => suggestion.ideaDraft?.theme === 'Strategy');
   const pendingDirectIdeas = pendingIdeas.filter((suggestion) => suggestion.ideaDraft?.theme !== 'Strategy');
-  const directThemes: IdeaTheme[] = [
-    ...IDEA_THEME_CHOICES.filter((ideaTheme) => ideaTheme !== 'Strategy'),
-    ...new Set(
-      ideas
-        .filter((idea) => idea.kind === 'idea' && idea.theme !== 'Strategy')
-        .map((idea) => idea.theme)
-        .filter((ideaTheme) => !IDEA_THEME_CHOICES.some((choice) => choice === ideaTheme)),
-    ),
-  ];
 
   const runAi = async (input: BrainstormActionInput, automatic = false) => {
     if (!problem || runningTopics.current.has(problem.id)) return;
@@ -380,14 +369,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                         : 'Research and strategy preparation comes first. You can add ideas when it finishes.'}
                     </p>
                   </div>
-                  <label className="select-btn">
-                    <select value={theme} onChange={(e) => setTheme(e.target.value as IdeaTheme | 'all')} aria-label="Filter ideas">
-                      <option value="all">All ideas</option>
-                      {directThemes.map((t) => (
-                        <option key={t}>{t}</option>
-                      ))}
-                    </select>
-                  </label>
                   <button className="btn idea-btn" disabled={!prepared} onClick={() => setDialog({ kind: 'idea' })}>
                     <Icon name="plus" />
                     Add Idea
@@ -421,7 +402,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
       </div>
       <IdeaDialog
         open={!!dialog}
-        defaultTheme={theme === 'all' ? 'Option' : theme}
         kind={dialog?.kind}
         idea={dialog?.idea}
         topicId={problem?.id}

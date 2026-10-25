@@ -4,14 +4,6 @@ import { Icon } from '../../components/Icon';
 import { IdeaDetails } from './IdeaDetails';
 import { StrategyDetails } from './StrategyDetails';
 
-const PAPER: Record<string, string> = {
-  Option: '#f6def8',
-  Product: '#fdf1c4',
-  Strategy: 'var(--direction-weak)',
-  Engagement: '#f6def8',
-  Platform: '#dcefff',
-};
-
 export function IdeaCard(props: {
   idea: Idea;
   author: Member | undefined;
@@ -26,10 +18,7 @@ export function IdeaCard(props: {
 }) {
   const { idea } = props;
   return (
-    <article
-      className={`idea${idea.theme === 'Strategy' ? ' direction' : ''}`}
-      style={{ '--paper': PAPER[idea.theme] ?? PAPER.Product } as React.CSSProperties}
-    >
+    <article className={`idea${idea.theme === 'Strategy' ? ' direction idea-strategy' : ''}`}>
       {idea.taskId ? (
         <span className="idea-converted">✓ On the board</span>
       ) : (
@@ -38,7 +27,6 @@ export function IdeaCard(props: {
           Make task
         </button>
       )}
-      <span className="ai-draft-label">{idea.theme}</span>
       <h3>{idea.title}</h3>
       {idea.theme === 'Strategy' ? <StrategyDetails description={idea.description} /> : <IdeaDetails description={idea.description} />}
       {idea.researchStale && <span className="idea-stale">Research may be outdated after this edit</span>}

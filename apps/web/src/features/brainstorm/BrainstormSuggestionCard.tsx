@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IDEA_THEME_CHOICES, type IdeaDraft, type IdeaTheme, type Suggestion } from '@project-room/shared';
+import type { IdeaDraft, Suggestion } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
@@ -15,13 +15,10 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
   const [topicId, setTopicId] = useState(suggestion.topicId ?? (topics.length === 1 ? topics[0]!.id : ''));
   const { toast, toastError } = useFeedback();
   const draft = suggestion.ideaDraft;
-  const [form, setForm] = useState<IdeaDraft>(draft ?? { title: '', description: '', theme: IDEA_THEME_CHOICES[0] });
+  const [form, setForm] = useState<IdeaDraft>(draft ?? { title: '', description: '', theme: 'Option' });
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   if (!draft) return null;
-  const themeChoices: IdeaTheme[] = IDEA_THEME_CHOICES.some((choice) => choice === form.theme)
-    ? [...IDEA_THEME_CHOICES]
-    : [...IDEA_THEME_CHOICES, form.theme];
   const draftKind = draft.theme === 'Strategy' ? 'strategy' : draft.theme === 'Option' ? 'option' : 'idea';
 
   const dismiss = async () => {
@@ -141,14 +138,6 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
             />
           </label>
         )}
-        <label className="form-row">
-          Category
-          <select value={form.theme} onChange={(event) => setForm({ ...form, theme: event.target.value as IdeaTheme })}>
-            {themeChoices.map((theme) => (
-              <option key={theme}>{theme}</option>
-            ))}
-          </select>
-        </label>
       </Modal>
     </article>
   );

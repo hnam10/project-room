@@ -19,9 +19,11 @@ The rules that matter most when suggesting code:
   that topic's board; clear-ideas preserves research and strategies. Existing tasks/polls remain.
 - Classify the brainstorming goal before developing ideas. Topic preparation can research any goal;
   later non-product idea exploration stays context-based. Keep every AI draft reviewable.
-- Use Option for a direct choice (such as cuisine for dinner), Product for something to build, and Strategy
+- Internally use Option for a direct choice (such as cuisine for dinner), Product for something to build, and Strategy
   for a plan. Research is a sourced evidence section, not an idea theme; older Engagement and Platform
   values remain valid for existing records.
+- Keep category selectors, filters and saved-card tags out of brainstorming. Direct options/ideas share
+  one card style; strategies stay separate. Preserve internal themes when editing existing records.
 - Strategies contain only recommended direction, short steps and essential scope. Use one or two
   sentences per section/step, at most four steps, without separate focus/why or deliverable/criteria
   fields. Keep guidance specific and realistic; never invent sources or feedback.

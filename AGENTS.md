@@ -115,6 +115,9 @@ prototype/         the first static prototype; do not build on it
   as sections and steps. Preserve legacy text strategies; do not require Markdown rendering.
 - Members edit strategies through ordinary text fields for the direction, steps and scope. JSON is an
   internal storage format, never the normal editing interface.
+- Brainstorm categories are internal: do not show category selectors, filters or saved-card tags.
+  Strategies stay in their section; direct options/ideas share a consistent card style. Preserve existing
+  internal themes on edit so older records and AI workflows keep their meaning.
 - Meeting idea suggestions must identify a relevant existing topic, retain its `topicId`, and display
   its title. Skip ideas without a clear topic match; a proposed new topic must be approved first.
 - Topic-change proposals name the board they replace and require explicit confirmation of that target
