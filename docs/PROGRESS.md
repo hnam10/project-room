@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Agent Memory accepts Clerk organization scopes.** Clerk organization ids can contain uppercase
+  letters, while Agent Memory scope segments are lowercase-only. Project scopes now normalize ids consistently
+  before upload and retrieval, with a regression test; rejected scope responses include the service detail.
+
 - 2026-10-24 — **Shared mute, simpler brainstorming, task commands.** Participant tiles show everyone's
   mute status via meeting realtime updates and fresh reads. Only a live participant can update their own
   status; leaving/ending clears it. Local mic changes stay immediate and status writes are serialized.

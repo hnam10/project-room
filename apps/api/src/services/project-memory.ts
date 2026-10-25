@@ -44,7 +44,8 @@ export function memoryMediaType(name: string, contentType: string): string | nul
 /** Scope path for one project. Null when the id could not be a safe path segment. */
 export function projectScope(projectId: string): string | null {
   if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(projectId)) return null;
-  return `project/${projectId}`;
+  // Agent Memory scope segments are lowercase; Clerk organization ids can contain uppercase letters.
+  return `project/${projectId.toLowerCase()}`;
 }
 
 /** Keeps the passages short enough to send on to the chat model. */
@@ -105,7 +106,8 @@ export function createProjectMemory(options: MemoryOptions): ProjectMemory {
       ready.add(path);
       return;
     }
-    throw new Error(`Agent Memory rejected scope ${path} (${response.status})`);
+    const detail = (await response.text()).trim();
+    throw new Error(`Agent Memory rejected scope ${path} (${response.status})${detail ? `: ${detail}` : ''}`);
   }
 
   return {
