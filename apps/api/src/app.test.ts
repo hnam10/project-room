@@ -5,9 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import {
   MAX_FILE_BYTES,
-  type Decision,
   type Idea,
-  type MemoryAnswer,
   type Message,
   type Project,
   type ProjectFile,
@@ -252,7 +250,7 @@ describe('workspace API', () => {
     live.ws.close();
   });
 
-  it('answers a later @AI question from approved decisions without repeating suggestions already waiting', async () => {
+  it('does not repeat suggestions already waiting when @AI is asked again', async () => {
     const live = listen('hackathon');
     await live.ready;
 
@@ -267,10 +265,9 @@ describe('workspace API', () => {
         e.table === 'message' &&
         e.action === 'create' &&
         e.record.authorId === 'ai' &&
-        e.record.text.includes('Fly.io'),
+        e.record.text.includes('Mock AI'),
     )) as Extract<ServerMessage, { table: 'message' }>;
     expect(reply.record.suggestionId).toBeNull();
-    expect(reply.record.text).toContain('Mock AI');
 
     const suggestions = await api<Suggestion[]>('/projects/hackathon/suggestions');
     const pendingTitles = suggestions.body
@@ -289,47 +286,6 @@ describe('workspace API', () => {
     expect(ok.body.status).toBe('approved');
     const tasks = await api<Task[]>('/projects/hackathon/tasks');
     expect(tasks.body.find((t) => t.id === 't18')?.assigneeId).toBe('morgan');
-  });
-
-  it('answers project questions from approved decisions, with the decisions as sources', async () => {
-    const hit = await api<MemoryAnswer>('/projects/hackathon/decisions/ask', {
-      method: 'POST',
-      body: JSON.stringify({ question: 'Where do we host the demo?' }),
-    });
-    expect(hit.status).toBe(200);
-    expect(hit.body.found).toBe(true);
-    expect(hit.body.ai.isMock).toBe(true);
-    expect(hit.body.sources.every((d) => d.status === 'decided')).toBe(true);
-    expect(hit.body.sources.map((d) => d.id)).toContain('d5');
-
-    // The database question is still open, so memory must not invent an answer from the chat log.
-    const miss = await api<MemoryAnswer>('/projects/hackathon/decisions/ask', {
-      method: 'POST',
-      body: JSON.stringify({ question: 'Which database did we pick?' }),
-    });
-    expect(miss.body.found).toBe(false);
-    expect(miss.body.sources).toEqual([]);
-  });
-
-  it('records an open decision with its outcome, after which memory can answer from it', async () => {
-    const approved = await api<Suggestion>('/projects/hackathon/suggestions/s2/approve', { method: 'POST', body: '{}' });
-    expect(approved.body.status).toBe('approved');
-    const decisions = await api<Decision[]>('/projects/hackathon/decisions');
-    const open = decisions.body.find((d) => d.title === 'Which database to use');
-    expect(open?.status).toBe('open');
-
-    const decided = await api<Decision>(`/projects/hackathon/decisions/${open!.id}/decide`, {
-      method: 'POST',
-      body: JSON.stringify({ outcome: 'SurrealDB, embedded', reason: 'Live queries fit our realtime chat' }),
-    });
-    expect(decided.body).toMatchObject({ status: 'decided', outcome: 'SurrealDB, embedded', decidedById: 'alex' });
-
-    const answer = await api<MemoryAnswer>('/projects/hackathon/decisions/ask', {
-      method: 'POST',
-      body: JSON.stringify({ question: 'Which database did we pick?' }),
-    });
-    expect(answer.body.found).toBe(true);
-    expect(answer.body.sources.map((d) => d.id)).toEqual([open!.id]);
   });
 
   it('converts an idea to a task once', async () => {

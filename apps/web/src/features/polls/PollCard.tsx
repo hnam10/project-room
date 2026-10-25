@@ -13,6 +13,7 @@ export function PollCard({ poll, onChange }: { poll: Poll; onChange: (poll: Poll
   const [busy, setBusy] = useState(false);
   const open = poll.status === 'open';
   const total = poll.options.reduce((n, o) => n + o.voterIds.length, 0);
+  const most = Math.max(0, ...poll.options.map((o) => o.voterIds.length));
 
   const run = async (action: () => Promise<Poll>) => {
     setBusy(true);
@@ -30,11 +31,12 @@ export function PollCard({ poll, onChange }: { poll: Poll; onChange: (poll: Poll
       <strong>{poll.question}</strong>
       {poll.options.map((o) => {
         const mine = o.voterIds.includes(memberId);
+        const winner = !open && most > 0 && o.voterIds.length === most;
         return (
           <button
             key={o.id}
             type="button"
-            className={`poll-option${mine ? ' mine' : ''}`}
+            className={`poll-option${mine ? ' mine' : ''}${winner ? ' winner' : ''}`}
             disabled={!open || busy}
             aria-pressed={mine}
             onClick={() => void run(() => meetingsApi.vote(projectId, poll.id, o.id))}

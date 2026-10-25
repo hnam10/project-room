@@ -216,7 +216,7 @@
   background: var(--accent-hover);
 }
 
-/* AI Assistant + decisions */
+/* AI Assistant + polls */
 .list-pad {
   padding: 14px 16px;
   display: grid;
@@ -275,36 +275,6 @@
 .insight .action-buttons {
   margin-top: 10px;
 }
-.decision {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: start;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-}
-.decision strong {
-  display: block;
-}
-.decision span.sub {
-  color: var(--muted);
-  font-size: 12px;
-}
-.status-pill {
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.status-pill.decided {
-  background: var(--green-weak);
-  color: #127a4f;
-}
-.status-pill.open {
-  background: #fff4d6;
-  color: #a06c00;
-}
 .empty-state {
   padding: 28px 16px;
   color: var(--muted);
@@ -336,60 +306,6 @@
 .action-why q {
   color: var(--ink-2);
   font-style: italic;
-}
-
-/* Decisions: record an outcome, ask the project */
-.decision {
-  grid-template-columns: auto 1fr auto;
-}
-.decision span.sub {
-  display: block;
-}
-.decide-form {
-  grid-column: 1 / -1;
-  display: grid;
-  gap: 6px;
-}
-.decide-form input,
-.ask-project input {
-  padding: 6px 9px;
-  border: 1px solid var(--line-strong);
-  border-radius: 7px;
-  font: inherit;
-  background: var(--surface);
-}
-.ask-project {
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--bg);
-}
-.ask-project form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ask-project form input {
-  flex: 1;
-}
-.ask-answer {
-  margin-top: 10px;
-  display: grid;
-  gap: 6px;
-}
-.ask-answer p {
-  margin: 0;
-  white-space: pre-line;
-}
-.ask-answer ul {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--ink-2);
-  font-size: 12.5px;
-}
-.ask-answer .sub {
-  color: var(--muted);
-  font-size: 11.5px;
 }
 
 /* Files dragged over a drop target (chat panel, meeting transcript); the target sets data-drop-label. */

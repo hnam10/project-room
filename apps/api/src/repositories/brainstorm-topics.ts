@@ -28,7 +28,7 @@ export async function assertTopicScope(scope: TopicScope): Promise<void> {
   if (topic.boardVersion !== scope.version) throw new ConflictError('This topic changed while AI was working. Try again.');
 }
 
-/** Reset only this topic. Tasks and decisions already created remain project records. */
+/** Reset only this topic. Tasks and polls already created remain project records. */
 export async function resetTopic(
   projectId: string,
   topicId: string,

@@ -433,6 +433,12 @@
   border-color: var(--accent, currentColor);
   font-weight: 600;
 }
+/* A closed poll's result: the option(s) with the most votes. */
+.poll-option.winner {
+  border-color: var(--green);
+  background: var(--green-weak);
+  font-weight: 600;
+}
 .poll-bar {
   position: absolute;
   inset: 0 auto 0 0;

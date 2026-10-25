@@ -1,6 +1,5 @@
 import type { Suggestion, SuggestionApproveInput } from '@project-room/shared';
 import { ConflictError } from '../db/records.js';
-import { createDecision } from '../repositories/decisions.js';
 import { attachIdeaResearch } from '../repositories/ideas.js';
 import { approveBrainstormTopic, approveIdea, approveMeetingNotes, approvePoll } from './meeting-approvals.js';
 import { getSuggestion, resolveSuggestion } from '../repositories/suggestions.js';
@@ -38,16 +37,6 @@ export async function approveSuggestion(
         memberId,
         created.map((t) => t.id),
       );
-    }
-    case 'decision': {
-      // Approving is the member's confirmation. A settled outcome is recorded as decided; otherwise the
-      // question is logged as open until someone decides it.
-      await createDecision(projectId, memberId, suggestion.proposal ?? suggestion.title, {
-        outcome: suggestion.outcome,
-        quote: suggestion.quote,
-        reason: suggestion.outcome ? suggestion.reason : null,
-      });
-      return resolveSuggestion(suggestion.id, 'approved', memberId);
     }
     case 'risk': {
       // Assigning work to someone needs an explicit choice from the approving member.

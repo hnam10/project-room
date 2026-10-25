@@ -18,27 +18,24 @@ function host(label: string, model: string, api: OpenAiClient): RoutedModel {
 const lookup = {} as ProjectLookup;
 
 describe('AI host routing', () => {
-  it('sends short checks to Nebius and @AI plus Ask the project to OpenAI', async () => {
+  it('sends short checks to Nebius and @AI plus conversation analysis to OpenAI', async () => {
     const openai = client();
     const nebius = client();
-    vi.mocked(nebius.parse).mockResolvedValue({
-      output: { actionItems: [], decisions: [], risks: [] },
-      usage: { inputTokens: 1, outputTokens: 1 },
-    });
+    vi.mocked(nebius.parse).mockResolvedValue({ output: { mode: 'product' }, usage: { inputTokens: 1, outputTokens: 1 } });
     vi.mocked(openai.parse).mockResolvedValue({
-      output: { answer: 'SurrealDB.', sourceDecisionIds: ['d1'] },
+      output: { actionItems: [], risks: [] },
       usage: { inputTokens: 1, outputTokens: 1 },
     });
     const ai = composeAiProvider(host('openai', 'gpt-4.1-mini', openai), host('nebius', 'openai/gpt-oss-120b', nebius));
 
     expect(ai.name).toBe('openai:gpt-4.1-mini; nebius:openai/gpt-oss-120b');
-    await ai.detectOpenQuestion({ id: 'm', authorId: 'a', authorName: 'A', text: 'Should we use Postgres?' });
+    await ai.classifyBrainstorm({ problem: null, ideas: [], request: 'Build a study planner' });
     expect(nebius.parse).toHaveBeenCalledOnce();
     expect(openai.parse).not.toHaveBeenCalled();
 
-    await ai.answerFromDecisions({
-      question: 'Which database?',
-      decisions: [{ id: 'd1', title: 'Database', outcome: 'SurrealDB', reason: null, decidedAt: null, decidedById: null } as never],
+    await ai.analyzeConversation({
+      messages: [{ id: 'm', authorId: 'a', authorName: 'A', text: 'I will write the README' }],
+      tasks: [],
       members: [],
     });
     expect(openai.parse).toHaveBeenCalledOnce();

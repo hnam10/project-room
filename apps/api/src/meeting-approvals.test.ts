@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Idea, Poll, Suggestion } from '@project-room/shared';
+import type { Idea, Poll, Suggestion, WorkspaceSnapshot } from '@project-room/shared';
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
@@ -141,6 +141,9 @@ describe('meeting approvals', () => {
     expect((await vote('o1')).status).toBe(409);
     const final = (await listPolls('hackathon', null)).find((p) => p.id === poll.id)!;
     expect(final.options[1]!.voterIds).toEqual(['alex']);
+    // The Polls tab reads polls from the project snapshot, closed ones included.
+    const snapshot = (await api<WorkspaceSnapshot>('/snapshot')).body;
+    expect(snapshot.polls.find((p) => p.id === poll.id)).toMatchObject({ status: 'closed' });
     expect((await api(`/polls/nope/vote`, { method: 'POST', body: JSON.stringify({ optionId: 'o1' }) })).status).toBe(404);
   });
 

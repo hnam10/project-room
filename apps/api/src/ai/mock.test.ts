@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Decision } from '@project-room/shared';
-import { answerFromDecisionsByRules, detectOpenQuestionByRules, extractActionItemsByRules, mockProvider } from './mock.js';
+import { extractActionItemsByRules, mockProvider } from './mock.js';
 
 const msg = (authorId: string, text: string) => ({ id: text, authorId, authorName: authorId, text });
 
@@ -31,33 +30,5 @@ describe('mock AI rules', () => {
 
   it('skips tasks that already exist', () => {
     expect(extractActionItemsByRules([msg('alex', 'We need to write tests.')], ['Write tests'])).toEqual([]);
-  });
-
-  it('spots open questions', () => {
-    expect(detectOpenQuestionByRules("We still haven't decided which database to use.")).toEqual({ topic: 'which database to use' });
-    expect(detectOpenQuestionByRules('Should we ship dark mode first?')).toEqual({ topic: 'ship dark mode first' });
-    expect(detectOpenQuestionByRules('Nice work everyone')).toBeNull();
-  });
-
-  it('answers memory questions from approved decisions only, and says when none match', () => {
-    const decision = (id: string, title: string, outcome: string, reason: string): Decision => ({
-      id,
-      projectId: 'p',
-      title,
-      status: 'decided',
-      raisedById: 'alex',
-      decidedById: 'alex',
-      outcome,
-      reason,
-      quote: null,
-      createdAt: '2026-10-01T00:00:00Z',
-      decidedAt: '2026-10-01T00:00:00Z',
-    });
-    const decisions = [
-      decision('d1', 'Which frontend framework to use', 'React + Vite, not Next.js', 'No SEO needed'),
-      decision('d2', 'Where to host the demo', 'Fly.io', 'Needs a persistent disk'),
-    ];
-    expect(answerFromDecisionsByRules('why did we choose Vite for the frontend?', decisions).sourceDecisionIds).toEqual(['d1']);
-    expect(answerFromDecisionsByRules('which database did we pick?', decisions).sourceDecisionIds).toEqual([]);
   });
 });
