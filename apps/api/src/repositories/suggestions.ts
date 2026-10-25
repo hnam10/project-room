@@ -74,6 +74,7 @@ export function dismissPendingSuggestionsForIdea(projectId: string, ideaId: stri
 }
 
 /** With a fixed `id`, a retry returns the suggestion already stored under it instead of creating a second one. */
+/** Stores a validated suggestion while guarding its topic board version. */
 export async function createSuggestion(projectId: string, draft: SuggestionDraft, id?: string): Promise<Suggestion> {
   const scope = brainstormScope.getStore();
   if (scope) await assertTopicScope(scope);
@@ -92,11 +93,14 @@ export async function createSuggestion(projectId: string, draft: SuggestionDraft
     const existing = await queryOne<Suggestion>('SELECT * FROM ONLY $id', { id: target });
     if (existing) return existing;
   }
+  // Explicit meeting scopes need the same atomic version guard as board AI scopes.
+  const topic = topicId ? await getTopic(projectId, topicId) : null;
+  const topicVersion = scope?.version ?? draft.topicVersion ?? topic?.boardVersion ?? null;
   const create = `CREATE ONLY ${target ? '$id' : 'suggestion'} CONTENT $content`;
   const suggestion = await queryOne<Suggestion>(
-    scope
+    topic
       ? `
-    IF array::len((SELECT VALUE id FROM idea WHERE id = $topic AND projectId = $project AND boardVersion = $version)) = 1 {
+    IF array::len((SELECT VALUE id FROM idea WHERE id = $topic AND projectId = $project AND kind = 'problem' AND boardVersion = $version)) = 1 {
       ${create}
     } ELSE { THROW 'The brainstorm topic changed'; }`
       : create,
@@ -104,10 +108,10 @@ export async function createSuggestion(projectId: string, draft: SuggestionDraft
       id: target,
       topic: ridOrNull('idea', topicId),
       project: rid('project', projectId),
-      version: scope?.version ?? null,
+      version: topicVersion,
       content: {
         topicId: ridOrNull('idea', topicId),
-        topicVersion: scope?.version ?? draft.topicVersion ?? null,
+        topicVersion,
         projectId: rid('project', projectId),
         kind: draft.kind,
         status: draft.status ?? 'pending',

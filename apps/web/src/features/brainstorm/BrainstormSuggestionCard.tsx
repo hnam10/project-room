@@ -55,6 +55,11 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
         <Icon name="sparkle" /> AI {draftKind} · review required
       </span>
       <h3>{draft.title}</h3>
+      {suggestion.meetingId && (
+        <p className="ai-draft-reason">
+          <strong>Topic:</strong> {topics.find((topic) => topic.id === suggestion.topicId)?.title ?? 'Choose a topic during review'}
+        </p>
+      )}
       <IdeaDetails description={draft.description} />
       <p className="ai-draft-reason">
         <strong>Why:</strong> {suggestion.reason}

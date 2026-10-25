@@ -5,6 +5,46 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **CodeRabbit brainstorm fixes (PR #24).** Topic-change proposals appear on their target
+  board, name that board in the card and modal, and require destructive confirmation and the exact
+  `replaceTopicId` on approval. The shared inbox contains only new-topic proposals. Mock meeting idea
+  routing rejects generic single-word overlaps, repeated-word bias and tied matches. Explicit meeting
+  scopes now use an atomic topic/version guard when storing suggestions, including resets between the
+  validation read and write. Full check passes with 241 tests; API and web builds pass.
+
+- 2026-10-24 — **Brainstorming integrated with current main.** Resolved the meeting provider, tests and
+  documentation conflicts while retaining file context, OpenAI/Nebius routing, topic-scoped ideas and
+  duplicate-topic checks. Full `npm run check` passes with all 235 tests after rebuilding shared outputs
+  and normalizing local checkout line endings (no content-only formatting changes). API and web builds
+  pass; production audit reports zero vulnerabilities. Checked existing topic switching in Edge.
+
+- 2026-10-24 — **Meeting duplicate topics check every board.** Live and summary analysis compare against
+  every existing topic rather than only the first. Summary prompts now include all topic titles and
+  descriptions. The model identifies semantic matches by existing topic id; normalized title checks
+  and a fresh server read block exact duplicates even if the model proposes them. Reworded discussions
+  are directed to existing boards for idea suggestions. All 201 tests, lint and typecheck pass; full
+  check remains blocked by existing repository formatting drift.
+
+- 2026-10-24 — **Meeting ideas identify an existing topic.** The meeting AI reads all topic titles and
+  descriptions, selects the topic being discussed, and includes its id on idea proposals. Validation
+  rejects absent/unknown topics and developments on the wrong board; new topic proposals cannot receive
+  ideas until approved. Meeting and brainstorm idea suggestions display their topic. Topic tabs and
+  New topic share compact sizing, rounded corners and design tokens. Checked tab switching and opening
+  New topic in Edge; topic routing and approval are covered by API tests. All 198 tests, lint, typecheck
+  and web build pass. Full check still stops at existing repository formatting drift.
+
+- 2026-10-24 — **Meeting topics use a shared proposal inbox.** New topic proposals appear above the
+  topic tabs, with an explicit Add topic action that creates a separate board. Meetings can propose
+  multiple distinct topics while repeated titles remain suppressed; approval preserves existing topics
+  and pending ideas. Topic tabs use visible inactive backgrounds and borders, with board-aligned
+  margins. All 195 tests, lint, typecheck and the web build pass. Checked styling and switching two
+  existing topic tabs in Edge; meeting approval isolation is covered by the API regression test.
+
+- 2026-10-24 — **Stable research controls across topic tabs.** Research loading state belongs to each
+  topic, so background work on another board does not flash Working on the selected board. The guide
+  keeps its attempted research states across topic and view switches, and duplicate in-flight requests
+  are blocked. Checked switching to Mind Map/Notes and back on an existing topic in Edge. All 195 tests,
+  lint, typecheck and the web build pass. Full check remains blocked by existing repository formatting drift.
 - 2026-10-24 — **Meeting AI panel no longer overlaps in a narrow column.** The panel stacks cards in a flex
   column instead of a grid, and action items put owner and priority under the title, so cards stay inside the column.
   The ended meeting's summary now scrolls (the page is a fixed-height column), with the scrollbar at the page edge.

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { IDEA_THEME_CHOICES, type BrainstormActionInput, type Idea, type IdeaTheme } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
@@ -17,6 +17,7 @@ import { readStored, writeStored } from '../../state/storage';
 
 type IdeaTab = 'ideas' | 'mindmap' | 'notes';
 
+/** Renders the topic-scoped research, strategies, ideas, and pending AI proposals. */
 export function BrainstormPanel({ className = '', headerActions }: { className?: string; headerActions?: ReactNode }) {
   const { projectId, members, applyRecord, reload } = useWorkspace();
   const snapshot = useSnapshot();
@@ -37,10 +38,16 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const [tab, setTab] = useState<IdeaTab>('ideas');
   const [theme, setTheme] = useState<IdeaTheme | 'all'>('all');
   const [dialog, setDialog] = useState<{ kind: 'problem' | 'idea'; idea?: Idea } | null>(null);
-  const [aiBusy, setAiBusy] = useState(false);
+  const runningTopics = useRef(new Set<string>());
+  const automaticAttempts = useRef(new Set<string>());
+  const [busyTopics, setBusyTopics] = useState<string[]>([]);
+  const aiBusy = !!problem && busyTopics.includes(problem.id);
 
   const pendingTopics = snapshot.suggestions.filter(
-    (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic',
+    (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic' && !suggestion.ideaId,
+  );
+  const pendingTopicChanges = snapshot.suggestions.filter(
+    (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic' && suggestion.ideaId === problem?.id,
   );
   const visible = ideas.filter((i) => i.kind !== 'problem' && i.theme !== 'Strategy' && (theme === 'all' || i.theme === theme));
   const strategies = ideas.filter((idea) => idea.kind !== 'problem' && idea.theme === 'Strategy');
@@ -64,10 +71,12 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   ];
 
   const runAi = async (input: BrainstormActionInput, automatic = false) => {
-    setAiBusy(true);
+    if (!problem || runningTopics.current.has(problem.id)) return;
+    const topicId = problem.id;
+    runningTopics.current.add(topicId);
+    setBusyTopics((current) => [...current, topicId]);
     try {
-      if (!problem) return;
-      const drafts = await api.runBrainstormAction(projectId, { ...input, topicId: problem.id });
+      const drafts = await api.runBrainstormAction(projectId, { ...input, topicId });
       drafts.forEach((draft) => applyRecord('suggestion', draft));
       reload();
       if (!automatic) {
@@ -88,7 +97,8 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
     } catch (error) {
       if (!automatic) toastError(error);
     } finally {
-      setAiBusy(false);
+      runningTopics.current.delete(topicId);
+      setBusyTopics((current) => current.filter((id) => id !== topicId));
     }
   };
 
@@ -235,6 +245,15 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
           <div className="empty-state">{tab === 'mindmap' ? 'Mind map' : 'Notes'} isn’t built yet — planned for a later iteration.</div>
         ) : (
           <>
+            {pendingTopics.length > 0 && (
+              <section className="brainstorm-topic-inbox" aria-label="New topics from conversations">
+                <h2>New topics from conversations</h2>
+                <p>Approve a proposal to add a separate topic tab with its own board.</p>
+                {pendingTopics.map((suggestion) => (
+                  <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
+                ))}
+              </section>
+            )}
             {topics.length > 0 && (
               <div className="brainstorm-topics" role="tablist" aria-label="Brainstorm topics">
                 {topics.map((topic) => (
@@ -249,7 +268,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                     {topic.title}
                   </button>
                 ))}
-                <button className="btn sm" onClick={() => setDialog({ kind: 'problem' })}>
+                <button className="brainstorm-topic-tab brainstorm-topic-new" onClick={() => setDialog({ kind: 'problem' })}>
                   <Icon name="plus" /> New topic
                 </button>
               </div>
@@ -284,7 +303,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                 </>
               )}
             </div>
-            {pendingTopics.map((suggestion) => (
+            {pendingTopicChanges.map((suggestion) => (
               <BrainstormTopicSuggestionCard key={suggestion.id} suggestion={suggestion} />
             ))}
             {problem && (
@@ -294,7 +313,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                     <h2 id="brainstorm-support-title">Research &amp; strategies</h2>
                     <p>Review the evidence and choose an approach, then develop your own ideas below.</p>
                   </div>
-                  <BrainstormGuide key={problem.id} ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} />
+                  <BrainstormGuide ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} attempted={automaticAttempts} />
                   {suggestions.find((item) => item.kind === 'brainstorm_analysis' && item.title === 'Topic research status')?.proposal && (
                     <p className="brainstorm-research-status" role="status">
                       {suggestions.find((item) => item.title === 'Topic research status')?.proposal}

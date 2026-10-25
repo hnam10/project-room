@@ -1,14 +1,10 @@
 import type { Suggestion } from '@project-room/shared';
 import type { MeetingTopic } from '../ai/meeting.js';
 import { createSuggestion } from '../repositories/suggestions.js';
+import { listIdeas } from '../repositories/ideas.js';
+import { matchesMeetingTopic, meetingTopicKey as key } from '../ai/meeting-topics.js';
 
-const key = (title: string) =>
-  title
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
-
-/** Keep one reviewable topic per meeting while leaving all idea suggestions pending. */
+/** Propose distinct new topic boards without changing existing boards or pending ideas. */
 export async function proposeMeetingTopic(
   projectId: string,
   meetingId: string,
@@ -19,12 +15,15 @@ export async function proposeMeetingTopic(
   id?: string,
 ): Promise<Suggestion | null> {
   if (!topic || !key(topic.title) || key(topic.title) === key(currentTopic?.title ?? '')) return null;
+  // Re-read all boards: a member may have approved a topic while the AI was running.
+  const existingTopics = (await listIdeas(projectId)).filter((idea) => idea.kind === 'problem');
+  if (matchesMeetingTopic(topic, existingTopics)) return null;
   if (
     suggestions.some(
       (suggestion) =>
         suggestion.kind === 'brainstorm_topic' &&
-        (suggestion.meetingId === meetingId ||
-          (suggestion.status === 'pending' && key(suggestion.ideaDraft?.title ?? '') === key(topic.title))),
+        key(suggestion.ideaDraft?.title ?? '') === key(topic.title) &&
+        (suggestion.meetingId === meetingId || suggestion.status === 'pending'),
     )
   )
     return null;

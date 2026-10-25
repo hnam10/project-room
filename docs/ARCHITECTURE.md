@@ -156,12 +156,26 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
 
   `brainstorm_topic` / `action_items` / `idea` / `poll` suggestions. A tick runs after 40 new words (at most every 20s) or 15 words then 8s of silence; a meeting is capped at 150 AI calls. Members approve them; AI never writes tasks, ideas or polls.
 
-- **Topic review:** a live meeting proposes at most one pending topic, separate from its ideas. The end summary
-  can propose a topic from the full transcript if live analysis missed it. The topic appears in the meeting and
-  Brainstorm views; idea drafts remain pending after the meeting and after topic approval.
-
+- **Topic review:** a live meeting can propose distinct new topics, separate from its ideas; matching titles
+  from the same meeting and pending matching proposals are suppressed. The end summary can propose a topic
+  from the full transcript if live analysis missed it. New proposals appear in the meeting and in a shared
+  inbox above Brainstorm's topic tabs. Approval creates a separate board; existing topics and pending idea
+  drafts remain intact.
+  Both live and summary prompts include every existing topic and ask for semantic matches by id.
+  `ai/meeting-topics.ts` suppresses normalized title or matched-id duplicates; the topic proposal service
+  re-reads all saved topics before storing output to catch boards approved while the AI was running.
+- **Meeting idea scope:** the model receives all existing topic titles and descriptions and each existing
+  idea's topic. Every idea proposal must return a matching existing `topicId`; validation and the live
+  service reject missing/unknown topics and developments belonging to a different topic. The stored
+  suggestion carries the topic and board version, and its topic is labelled on meeting and board cards.
+  A pending topic proposal cannot receive idea suggestions until a member approves it.
+  Mock topic matching requires multiple distinct meaningful words (or an unambiguous single-word topic)
+  and abstains on ties. Explicit topic ids and versions use the same conditional repository write as
+  board AI scopes, preventing late meeting output from referencing deleted or reset boards.
+  Topic-change proposals appear only on their target board, name it during review, and require a
+  destructive confirmation plus matching `replaceTopicId` in the approval request. New-board proposals
+  alone appear in the shared new-topic inbox.
 - **End:** `POST /meetings/:id/end` summarizes on the OpenAI model (Nebius when that key is the only one) into `meeting.summary` plus a `meeting_notes`
-
   suggestion. Approving it sets `carryOver`; the next meeting's `previousMeetingId` points at it and the web
   shows a "Last time" card. Summary suggestions use fixed ids (`<meetingId>-summary-topic` / `-summary-actions` / `-summary-notes`) and are
   stored before the meeting ends; if a write fails the meeting ends with `summaryError`, and the `/end` rerun skips the

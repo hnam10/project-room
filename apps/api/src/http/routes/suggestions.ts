@@ -1,6 +1,5 @@
 import { Router } from 'express';
-import { z } from 'zod';
-import { suggestionUpdateSchema } from '@project-room/shared';
+import { suggestionApproveSchema, suggestionUpdateSchema } from '@project-room/shared';
 import { ConflictError } from '../../db/records.js';
 import { getSuggestion, listSuggestions, updateSuggestionDrafts, updateSuggestionItems } from '../../repositories/suggestions.js';
 import { approveSuggestion, dismissSuggestion } from '../../services/suggestions.js';
@@ -8,11 +7,6 @@ import { summarizeExistingResearch } from '../../services/brainstorm.js';
 import { ctx } from '../context.js';
 
 export const suggestionsRouter = Router({ mergeParams: true });
-
-const approveSchema = z.object({
-  assigneeId: z.string().min(1).max(64).nullable().optional(),
-  topicId: z.string().min(1).max(64).optional(),
-});
 
 suggestionsRouter.get('/', async (_req, res) => {
   res.json(await listSuggestions(ctx(res).project.id));
@@ -40,14 +34,16 @@ suggestionsRouter.patch('/:suggestionId', async (req, res) => {
   res.json(updated);
 });
 
+/** Validates member approval options before dispatching the suggestion service. */
 suggestionsRouter.post('/:suggestionId/approve', async (req, res) => {
   const { project, memberId, members } = ctx(res);
-  const { assigneeId, topicId } = approveSchema.parse(req.body ?? {});
+  const options = suggestionApproveSchema.parse(req.body ?? {});
+  const { assigneeId } = options;
   if (assigneeId && !members.has(assigneeId)) {
     res.status(400).json({ error: 'Assignee is not a member of this project' });
     return;
   }
-  res.json(await approveSuggestion(project.id, req.params.suggestionId, memberId, { assigneeId, topicId }));
+  res.json(await approveSuggestion(project.id, req.params.suggestionId, memberId, options));
 });
 
 suggestionsRouter.post('/:suggestionId/dismiss', async (req, res) => {

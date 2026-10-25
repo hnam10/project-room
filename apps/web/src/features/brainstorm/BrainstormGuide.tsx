@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, type RefObject } from 'react';
 import {
   hasResearchableDetail,
   type BrainstormActionInput,
@@ -85,13 +85,15 @@ export function BrainstormGuide({
   suggestions,
   onRun,
   busy,
+  attempted,
 }: {
   ideas: Idea[];
   suggestions: Suggestion[];
   onRun: (input: BrainstormActionInput, automatic?: boolean) => Promise<void>;
   busy: boolean;
+  /** Owned by the panel so switching topic or view tabs does not repeat automatic work. */
+  attempted: RefObject<Set<string>>;
 }) {
-  const attempted = useRef(new Set<string>());
   const steps = brainstormGuideSteps(ideas, suggestions);
   const latestIdea = [...ideas].reverse().find((idea) => idea.kind === 'idea' && hasResearchableDetail(idea));
   const problem = ideas.find((idea) => idea.kind === 'problem');
@@ -117,7 +119,7 @@ export function BrainstormGuide({
     if (!next) return;
     attempted.current.add(`${next.trigger}:${next.ideaId}:${next.version}`);
     void onRun({ trigger: next.trigger, ideaId: next.ideaId }, true);
-  }, [busy, onRun, steps, suggestions, ideas, problem]);
+  }, [busy, onRun, steps, suggestions, ideas, problem, attempted]);
 
   return (
     <section className="brainstorm-guide" aria-labelledby="brainstorm-guide-title">

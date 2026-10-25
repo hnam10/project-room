@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Meeting, ProjectFile, TranscriptLine } from '@project-room/shared';
+import type { Idea, Meeting, ProjectFile, TranscriptLine } from '@project-room/shared';
 import type { MeetingAi, MeetingTickInput, MeetingTickResult } from './ai/meeting.js';
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
@@ -12,6 +12,7 @@ import { listSuggestions } from './repositories/suggestions.js';
 import { listIdeas } from './repositories/ideas.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
 import { shouldRun } from './services/meeting-trigger.js';
+import { proposeMeetingTopic } from './services/meeting-topic.js';
 import type { AiProvider, FileExcerpt } from './ai/provider.js';
 import { answerMeetingMention, checkMeeting, noteLine, runLiveTick, triggerState } from './services/meeting-live.js';
 import type { ProjectMemory } from './services/project-memory.js';
@@ -64,6 +65,31 @@ function fakeAi(make: (input: MeetingTickInput) => Partial<MeetingTickResult> | 
 }
 
 describe('live meeting pipeline', () => {
+  it('rechecks every saved topic before storing a new proposal', async () => {
+    const first = (await post<Idea>('/ideas', { kind: 'problem', title: 'Dinner menu', description: '', theme: 'Option' })).body;
+    const second = (await post<Idea>('/ideas', { kind: 'problem', title: 'Fix audio issues', description: '', theme: 'Option' })).body;
+    for (const proposed of [
+      { title: 'FIX AUDIO ISSUES!', existingTopicId: null },
+      { title: 'Resolve sound playback problems', existingTopicId: second.id },
+    ]) {
+      expect(
+        await proposeMeetingTopic(
+          'hackathon',
+          meetingId,
+          {
+            ...proposed,
+            description: '',
+            reason: 'r',
+            quote: null,
+            sourceLineId: null,
+          },
+          first,
+          [],
+          null,
+        ),
+      ).toBeNull();
+    }
+  });
   let meetingId: string;
   const speak = async (text: string) => (await post<TranscriptLine>(`/meetings/${meetingId}/lines`, { text })).body;
 
@@ -165,7 +191,9 @@ describe('live meeting pipeline', () => {
     expect(shouldRun(state, 25_000)).toBe(true);
   });
 
-  it('keeps meeting ideas pending while a reviewable topic is chosen', async () => {
+  it('scopes meeting ideas to an existing topic while new topics remain separate', async () => {
+    const existingTopic = (await post<Idea>('/ideas', { kind: 'problem', title: 'Study group matching', description: '', theme: 'Option' }))
+      .body;
     const line = await speak('How should we help students find study groups?');
     const { ai } = fakeAi(() => ({
       topic: {
@@ -177,6 +205,7 @@ describe('live meeting pipeline', () => {
       },
       ideas: [
         {
+          topicId: existingTopic.id,
           ideaId: null,
           draft: { title: 'Match by course', description: 'Show groups taking the same course.', theme: 'Option' },
           reason: 'One way to address the problem.',
@@ -195,6 +224,7 @@ describe('live meeting pipeline', () => {
       ideaDraft: { title: 'How should students find study groups?' },
     });
     expect(idea.status).toBe('pending');
+    expect(idea.topicId).toBe(existingTopic.id);
     expect((await listIdeas('hackathon')).some((item) => item.sourceSuggestionId === topic.id)).toBe(false);
 
     await speak('We can keep exploring study group options.');
@@ -216,7 +246,54 @@ describe('live meeting pipeline', () => {
         sourceLineId: null,
       },
     }));
+    const previousTopics = (await listIdeas('hackathon')).filter((item) => item.kind === 'problem');
+    const nextTopic = (await runLiveTick('hackathon', meetingId, revised.ai)).find((s) => s.kind === 'brainstorm_topic')!;
+    expect(nextTopic).toMatchObject({
+      status: 'pending',
+      ideaId: null,
+      topicId: null,
+      ideaDraft: { title: 'How should we organize mentoring?' },
+    });
+    expect((await listIdeas('hackathon')).filter((item) => item.kind === 'problem')).toEqual(previousTopics);
+    expect((await post(`/suggestions/${nextTopic.id}/approve`)).status).toBe(200);
+    const topicsAfterApproval = (await listIdeas('hackathon')).filter((item) => item.kind === 'problem');
+    expect(topicsAfterApproval).toHaveLength(previousTopics.length + 1);
+    for (const previousTopic of previousTopics) expect(topicsAfterApproval).toContainEqual(previousTopic);
+    expect((await listSuggestions('hackathon')).find((s) => s.id === idea.id)?.status).toBe('pending');
+
+    await speak('Let us keep exploring mentoring.');
     expect((await runLiveTick('hackathon', meetingId, revised.ai)).some((s) => s.kind === 'brainstorm_topic')).toBe(false);
+    expect((await post(`/suggestions/${idea.id}/approve`)).status).toBe(200);
+    expect((await listIdeas('hackathon')).find((item) => item.sourceSuggestionId === idea.id)).toMatchObject({
+      title: 'Match by course',
+      topicId: existingTopic.id,
+    });
+  });
+
+  it('does not store meeting ideas for missing topics or topic records as developments', async () => {
+    await speak('What if we add a new option?');
+    const topic = (await listIdeas('hackathon')).find((item) => item.kind === 'problem')!;
+    const { ai } = fakeAi(() => ({
+      ideas: [
+        {
+          topicId: 'missing-topic',
+          ideaId: null,
+          draft: { title: 'Unscoped idea', description: '', theme: 'Option' },
+          reason: 'r',
+          quote: null,
+          sourceLineId: null,
+        },
+        {
+          topicId: topic.id,
+          ideaId: topic.id,
+          draft: { title: 'Change topic through idea', description: '', theme: 'Option' },
+          reason: 'r',
+          quote: null,
+          sourceLineId: null,
+        },
+      ],
+    }));
+    expect((await runLiveTick('hackathon', meetingId, ai)).filter((item) => item.kind === 'idea')).toEqual([]);
   });
 
   it('reads typed chat lines like speech, tagged as chat', async () => {

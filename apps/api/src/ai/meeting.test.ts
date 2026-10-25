@@ -11,7 +11,8 @@ const input: MeetingTickInput = {
   ],
   runningSummary: 'Earlier: planning.',
   carryOver: [],
-  ideas: [{ id: 'i1', title: 'Dark mode' }],
+  ideas: [{ id: 'i1', title: 'Dark mode', topicId: 'p1' }],
+  topics: [{ id: 'p1', title: 'Dark mode 다크 모드', description: 'Improve appearance' }],
   taskTitles: [],
   alreadySuggested: ['New idea: Offline sync', 'Poll: Pick a framework'],
   members: [
@@ -27,9 +28,58 @@ const raw = (over: Partial<RawTick> = {}): RawTick => ({
   runningSummary: '',
   ...over,
 });
-const idea = (over = {}) => ({ ideaId: null, title: 'T', description: '', theme: 'product', reason: 'r', quote: null, ...over });
+const idea = (over = {}) => ({
+  topicId: 'p1',
+  ideaId: null,
+  title: 'T',
+  description: '',
+  theme: 'product',
+  reason: 'r',
+  quote: null,
+  ...over,
+});
 
 describe('validateTick', () => {
+  it('suppresses topics matching any board or a semantic match id, while keeping ideas for that board', () => {
+    const topics = [
+      { id: 'first', title: 'Dinner choices', description: '' },
+      { id: 'audio', title: 'Fix audio issues', description: 'Resolve playback problems' },
+    ];
+    for (const proposed of [
+      { title: '  FIX AUDIO ISSUES!  ', existingTopicId: null },
+      { title: 'Resolve sound playback problems', existingTopicId: 'audio' },
+    ]) {
+      const out = validateTick(
+        raw({
+          topic: { ...proposed, description: '', reason: 'Discussed', quote: null },
+          ideas: [idea({ title: 'Check output device', topicId: 'audio' })],
+        }),
+        { ...input, topics, currentTopic: topics[0] },
+      );
+      expect(out.topic).toBeNull();
+      expect(out.ideas).toMatchObject([{ topicId: 'audio', draft: { title: 'Check output device' } }]);
+    }
+  });
+  it('accepts only ideas assigned to existing topics and rejects cross-topic developments', () => {
+    const multiTopicInput = { ...input, topics: [...input.topics!, { id: 'p2', title: 'Study groups', description: '' }] };
+    const out = validateTick(
+      raw({
+        ideas: [
+          idea({ title: 'Appearance', topicId: 'p1' }),
+          idea({ title: 'Course matching', topicId: 'p2' }),
+          idea({ title: 'Unmatched', topicId: null }),
+          idea({ title: 'Invented', topicId: 'foreign-topic' }),
+          idea({ title: 'Wrong development', topicId: 'p2', ideaId: 'i1' }),
+        ],
+      }),
+      multiTopicInput,
+    );
+    expect(out.ideas.map((item) => [item.draft.title, item.topicId])).toEqual([
+      ['Appearance', 'p1'],
+      ['Course matching', 'p2'],
+    ]);
+    expect(validateTick(raw({ ideas: [idea()] }), { ...input, topics: [] }).ideas).toEqual([]);
+  });
   it('keeps a cited topic separate from ideas and drops repeats', () => {
     const topic = {
       title: 'How should we organize study groups?',
@@ -108,13 +158,59 @@ describe('reason and quote caps', () => {
 });
 
 describe('mock meeting AI', () => {
+  it('does not route ideas using generic or repeated words or a tied topic match', async () => {
+    for (const { title, topics } of [
+      { title: 'What if we add student meal discounts?', topics: [{ id: 'housing', title: 'Plan student housing', description: '' }] },
+      { title: 'How about we can add a new app?', topics: [{ id: 'audio', title: 'How can we fix audio?', description: '' }] },
+      {
+        title: 'What if we make a dinner menu?',
+        topics: [
+          { id: 'a', title: 'Dinner dinner dinner planning', description: '' },
+          { id: 'b', title: 'Dinner choices', description: '' },
+        ],
+      },
+      {
+        title: 'How about dark mode?',
+        topics: [
+          { id: 'a', title: 'Dark mode appearance', description: '' },
+          { id: 'b', title: 'Dark mode settings', description: '' },
+        ],
+      },
+    ]) {
+      const out = await mockMeetingAi.meetingTick({
+        ...input,
+        topics,
+        lines: [{ id: 'm1', speakerId: 'alex', speakerName: 'Alex', text: title }],
+      });
+      expect(out.ideas).toEqual([]);
+    }
+  });
+
+  it('routes a specific idea to the matching topic among multiple boards', async () => {
+    const out = await mockMeetingAi.meetingTick({
+      ...input,
+      topics: [
+        { id: 'meals', title: 'Dinner choices', description: '' },
+        { id: 'audio', title: 'Fix audio playback', description: '' },
+      ],
+      lines: [{ id: 'm1', speakerId: 'alex', speakerName: 'Alex', text: 'How about audio playback diagnostics?' }],
+    });
+    expect(out.ideas).toMatchObject([{ topicId: 'audio' }]);
+  });
   it('proposes a ticket, an idea and a poll from cue phrases', async () => {
     const out = await mockMeetingAi.meetingTick(input);
     expect(out.actionItems).toMatchObject([{ assigneeId: 'alex', sourceLineId: 'l1' }]);
-    expect(out.ideas).toMatchObject([{ ideaId: null, sourceLineId: 'l2' }]);
+    expect(out.ideas).toMatchObject([{ topicId: 'p1', ideaId: null, sourceLineId: 'l2' }]);
     expect(out.polls[0]?.draft.options).toEqual(['What if we add a dark mode?', 'I like React, but Vue is simpler.']);
     expect(out.usage).toEqual({ inputTokens: 0, outputTokens: 0 });
     expect(mockMeetingAi.isMock).toBe(true);
+  });
+
+  it('does not suggest ideas without a matching existing topic', async () => {
+    expect((await mockMeetingAi.meetingTick({ ...input, topics: [] })).ideas).toEqual([]);
+    expect((await mockMeetingAi.meetingTick({ ...input, topics: [{ id: 'p2', title: 'Dinner choices', description: '' }] })).ideas).toEqual(
+      [],
+    );
   });
 
   it('understands Korean cues', async () => {
@@ -144,6 +240,8 @@ describe('structured meeting AI', () => {
     expect(req.maxTokens).toBe(4000);
     expect(req.content).toContain('<transcript>');
     expect(req.content).toContain('<current_topic>');
+    expect(req.content).toContain('<topics>');
+    expect(req.content).toContain('p1: Dark mode');
     expect(req.content).toContain("[l1] Alex: I'll set up the CI pipeline.");
     expect(out.usage).toEqual({ inputTokens: 12, outputTokens: 3 });
   });
@@ -175,6 +273,24 @@ const rawSummary = (over: Partial<RawSummary> = {}): RawSummary => ({
 const item = (over = {}) => ({ title: 'T', assigneeId: null, priority: 'high', reason: 'r', quote: null, ...over });
 
 describe('validateSummary', () => {
+  it('does not recreate an existing topic outside the first board, including semantic matches', () => {
+    const topics = [
+      { id: 'first', title: 'Dinner', description: '' },
+      { id: 'audio', title: 'Fix audio issues', description: '' },
+    ];
+    for (const proposed of [
+      { title: 'Fix audio issues?', existingTopicId: null },
+      { title: 'Resolve playback problems', existingTopicId: 'audio' },
+    ]) {
+      expect(
+        validateSummary(rawSummary({ topic: { ...proposed, description: '', reason: 'r', quote: null } }), {
+          ...sumInput,
+          topics,
+          currentTopic: topics[0],
+        }).topic,
+      ).toBeNull();
+    }
+  });
   it('checks quotes, assignees and dedupes against suggestions and itself', () => {
     const out = validateSummary(
       rawSummary({
@@ -236,11 +352,13 @@ describe('structured summarizeMeeting', () => {
       usage: { inputTokens: 40, outputTokens: 9 },
     });
     const ai = createStructuredMeetingAi({ parse }, 'fast', 'gpt-main');
-    const out = await ai.summarizeMeeting(sumInput);
+    const out = await ai.summarizeMeeting({ ...sumInput, topics: input.topics });
     const req = parse.mock.calls[0]![0];
     expect(req).toMatchObject({ model: 'gpt-main', maxTokens: 16000 });
     expect(req.content).toContain('<carry_over>\nOld note\n</carry_over>');
     expect(req.content).toContain('<suggestions>');
+    expect(req.content).toContain('<topics>');
+    expect(req.content).toContain('p1: Dark mode');
     expect(req.content).toContain("[l1] Alex: I'll set up the CI pipeline.");
     expect(out.usage).toEqual({ inputTokens: 40, outputTokens: 9 });
   });

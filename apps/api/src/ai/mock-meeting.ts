@@ -9,7 +9,43 @@ const IDEA = /what if|how about|어때/i;
 const DISAGREE = /\bbut\b|\bdisagree\b|근데/i;
 const TOPIC = /(?:\b(?:brainstorm|ideas? for|how (?:can|should) we|what should we)\b|아이디어|어떻게)/i;
 
+/** Capitalizes the first character for readable mock meeting output. */
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const GENERIC_WORDS = new Set(
+  'what should about ideas could with the for how can would will our your this that from and but want need use add new app application product project feature build create make help users team brainstorm topic'.split(
+    ' ',
+  ),
+);
+/** Extracts distinctive words that can safely associate a transcript with a topic. */
+const topicWords = (text: string) =>
+  new Set(
+    (
+      text
+        .normalize('NFKC')
+        .toLowerCase()
+        .match(/[\p{L}\p{N}]+/gu) ?? []
+    ).filter((word) => (word.length > 2 || /\p{Script=Hangul}/u.test(word)) && !GENERIC_WORDS.has(word)),
+  );
+
+/** A mock cannot infer meaning: require distinctive evidence and abstain on shared or tied matches. */
+function matchTopic(text: string, topics: NonNullable<MeetingTickInput['topics']>) {
+  const words = topicWords(text);
+  const candidates = topics.map((topic) => ({ topic, words: topicWords(topic.title) }));
+  const matches = candidates
+    .map((candidate) => ({
+      ...candidate,
+      score: [...candidate.words].filter((word) => words.has(word)).length,
+    }))
+    .filter(
+      (candidate) =>
+        candidate.score >= 2 ||
+        (candidate.words.size === 1 &&
+          candidate.score === 1 &&
+          !candidates.some((other) => other.topic.id !== candidate.topic.id && [...candidate.words].some((word) => other.words.has(word)))),
+    )
+    .sort((a, b) => b.score - a.score);
+  return matches[0] && matches[0].score !== matches[1]?.score ? matches[0].topic : null;
+}
 
 export const mockMeetingAi: MeetingAi = {
   name: 'mock',
@@ -41,14 +77,18 @@ export const mockMeetingAi: MeetingAi = {
         });
       }
       if (IDEA.test(text)) {
-        raw.ideas.push({
-          ideaId: null,
-          title: text.replace(/[?!.]+$/, '').slice(0, 80),
-          description: '',
-          theme: 'Product',
-          reason: `${line.speakerName} floated this idea.`,
-          quote: text,
-        });
+        const matched = matchTopic(text, input.topics ?? []);
+        if (matched) {
+          raw.ideas.push({
+            topicId: matched.id,
+            ideaId: null,
+            title: text.replace(/[?!.]+$/, '').slice(0, 80),
+            description: '',
+            theme: 'Product',
+            reason: `${line.speakerName} floated this idea.`,
+            quote: text,
+          });
+        }
       }
       const other = input.lines
         .slice(0, i)
