@@ -297,7 +297,8 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
     );
   }
   const output = await ai.facilitateBrainstorm({ trigger: 'problem_created', problem, ideas: [], research: results, mode });
-  if (output.summary.trim())
+  const strategyDescription = output.strategy ? JSON.stringify(output.strategy, null, 2) : output.summary.trim();
+  if (strategyDescription)
     created.push(
       await createSuggestion(
         projectId,
@@ -305,11 +306,11 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
           kind: 'idea',
           title: `Strategy: ${problem.title}`,
           reason: `A starting approach for this topic${ai.isMock ? ' (mock AI)' : ''}. Review before saving.`,
-          ideaDraft: { title: `Approach: ${problem.title}`.slice(0, 80), description: output.summary, theme: 'Strategy' },
+          ideaDraft: { title: `Approach: ${problem.title}`.slice(0, 80), description: strategyDescription, theme: 'Strategy' },
           brainstormTrigger: 'problem_created',
           researchSources: results.map(({ title, url }) => ({ title, url })),
         },
-        idFor(projectId, problem.id, String(problem.boardVersion), 'strategy-roadmap', manual ? output.summary : 'initial'),
+        idFor(projectId, problem.id, String(problem.boardVersion), 'strategy-json', manual ? strategyDescription : 'initial'),
       ),
     );
   created.push(

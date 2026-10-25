@@ -2,6 +2,7 @@ import type { Idea, Member } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { IdeaDetails } from './IdeaDetails';
+import { StrategyDetails } from './StrategyDetails';
 
 const PAPER: Record<string, string> = {
   Option: '#f6def8',
@@ -39,7 +40,7 @@ export function IdeaCard(props: {
       )}
       <span className="ai-draft-label">{idea.theme}</span>
       <h3>{idea.title}</h3>
-      <IdeaDetails description={idea.description} />
+      {idea.theme === 'Strategy' ? <StrategyDetails description={idea.description} /> : <IdeaDetails description={idea.description} />}
       {idea.researchStale && <span className="idea-stale">Research may be outdated after this edit</span>}
       <div className="idea-stage-actions">
         <button type="button" onClick={props.onEdit}>

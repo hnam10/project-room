@@ -25,6 +25,8 @@ The rules that matter most when suggesting code:
 - Strategies are actionable roadmaps: each step names its focus/why, action, deliverable, success criterion
   and next-step gate. Test assumptions, label evidence versus unknowns, and keep product scope realistic;
   simple non-product choices need only a short plan. Never invent sources or feedback.
+- Strategy generation uses `strategyPlanSchema` JSON with plain-text fields. Render its sections/steps
+  directly; legacy text remains readable without Markdown.
 - Chat `@AI brainstorm` creates a reviewable `brainstorm_topic` suggestion alongside idea drafts. Only
   approval creates a separate topic tab. Explicitly targeted older topic-change proposals clear that
   topic's board on approval. Inbox idea drafts need a topic selection when approved.

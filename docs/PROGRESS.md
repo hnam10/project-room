@@ -27,6 +27,16 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Strategies use structured JSON.** A shared schema defines the goal, context,
+  assumptions, evidence, recommendation, steps and scope. Each step has focus/why, action, deliverable,
+  success criterion and a next-step gate. Real and mock providers return the same shape; source URLs
+  are checked against supplied research and unsupported verified findings become unknown. Plans persist
+  as JSON in the existing description field (20,000-character limit); review/edit rejects malformed
+  JSON objects. The UI renders clean sections and steps with a collapsed goal preview, and keeps legacy
+  text readable. No Markdown dependency was installed. Browser-checked expansion and layout using a
+  temporary local fixture without changing project data; removed the fixture afterward.
+  Full check passes with 250 tests; API and web production builds pass.
+
 - 2026-10-25 — **Actionable brainstorm strategies.** Topic preparation now requests a specific goal,
   ranked assumptions, sourced comparisons, a provisional direction and numbered steps with focus/why,
   action, deliverable, success criterion and a next-step gate. Student projects get an evidence-to-MVP

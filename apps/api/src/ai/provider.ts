@@ -1,4 +1,12 @@
-import type { ActionItem, BrainstormTrigger, IdeaDraft, IdeaTheme, Priority, ResearchSource } from '@project-room/shared';
+import type {
+  ActionItem,
+  BrainstormTrigger,
+  IdeaDraft,
+  IdeaTheme,
+  Priority,
+  ResearchSource,
+  StrategyPlan,
+} from '@project-room/shared';
 
 // The contract every AI backend implements. The rest of the API only talks to this interface,
 // so swapping the mock for a real model is a change in src/ai/index.ts alone.
@@ -124,6 +132,7 @@ export interface FacilitateInput {
 }
 
 export interface FacilitateResult {
+  strategy?: StrategyPlan;
   summary: string;
   ideas: ProposedIdea[];
   tasks: ActionItem[];

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { IDEA_THEMES, STRATEGY_DESCRIPTION_MAX, type IdeaTheme } from './domain.js';
+import { readStrategyPlan } from './strategy.js';
 
 // AI Meeting Room: meetings, transcript lines, polls and the WebRTC signalling messages.
 
@@ -147,6 +148,8 @@ export const ideaDraftSchema = z
     theme: z.enum(IDEA_THEMES),
   })
   .superRefine((idea, ctx) => {
+    if (idea.theme === 'Strategy' && idea.description.trim().startsWith('{') && !readStrategyPlan(idea.description))
+      ctx.addIssue({ code: 'custom', path: ['description'], message: 'Strategy JSON must match the roadmap format' });
     if (idea.theme !== 'Strategy' && idea.description.length > 2000)
       ctx.addIssue({ code: 'custom', path: ['description'], message: 'Keep direct idea drafts within 2000 characters' });
   });

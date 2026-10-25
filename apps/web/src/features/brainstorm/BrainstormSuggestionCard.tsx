@@ -6,6 +6,7 @@ import { Modal } from '../../components/Modal';
 import { useFeedback } from '../../components/Feedback';
 import { useWorkspace } from '../../state/workspace';
 import { IdeaDetails } from './IdeaDetails';
+import { StrategyDetails } from './StrategyDetails';
 
 export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   const { projectId, applyRecord, reload, snapshot } = useWorkspace();
@@ -60,7 +61,7 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
           <strong>Topic:</strong> {topics.find((topic) => topic.id === suggestion.topicId)?.title ?? 'Choose a topic during review'}
         </p>
       )}
-      <IdeaDetails description={draft.description} />
+      {draft.theme === 'Strategy' ? <StrategyDetails description={draft.description} /> : <IdeaDetails description={draft.description} />}
       <p className="ai-draft-reason">
         <strong>Why:</strong> {suggestion.reason}
       </p>
@@ -127,8 +128,9 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
           <input value={form.title} maxLength={80} onChange={(event) => setForm({ ...form, title: event.target.value })} />
         </label>
         <label className="form-row">
-          Description
+          {form.theme === 'Strategy' ? 'Strategy JSON (or existing text)' : 'Description'}
           <textarea
+            className={form.theme === 'Strategy' ? 'strategy-json-editor' : undefined}
             value={form.description}
             rows={10}
             maxLength={form.theme === 'Strategy' ? STRATEGY_DESCRIPTION_MAX : 2000}

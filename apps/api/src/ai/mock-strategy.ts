@@ -1,7 +1,8 @@
 import type { BrainstormMode, ExistingIdeaBrief } from './provider.js';
+import type { StrategyPlan } from '@project-room/shared';
 
 /** Provides an honestly labelled planning template when no model is configured. */
-export function mockStrategy(problem: ExistingIdeaBrief | null, mode: BrainstormMode): string {
+export function mockStrategy(problem: ExistingIdeaBrief | null, mode: BrainstormMode): StrategyPlan {
   const topic = problem?.title ?? 'this topic';
   const steps =
     mode === 'product'
@@ -65,21 +66,62 @@ export function mockStrategy(problem: ExistingIdeaBrief | null, mode: Brainstorm
             'Keep the approach if it helps; otherwise revisit the unmet requirement.',
           ],
         ];
-  return [
-    `Goal: ${mode === 'product' ? 'Validate the problem and define the smallest useful version of' : 'Agree on a practical next step for'} “${topic}”.`,
-    'Mock guidance: a planning template, not verified research or user feedback. Check supplied sources before treating any claim as evidence.',
-    ...(mode === 'product'
-      ? [
-          'Assumptions, highest impact first: users experience an important recurring problem; the proposed barrier is the main obstacle; current alternatives leave a meaningful gap; the team can deliver the essential flow. Test these in that order through real examples, source checks and a prototype.',
-          'Provisional direction: focus on one user segment and one repeated, underserved problem. Change direction if interviews or existing solutions contradict the hypothesis.',
-        ]
-      : []),
-    ...steps.map(
-      ([focus, action, deliverable, success, next], index) =>
-        `${index + 1}. ${focus}\nFocus / Why: ${focus} before committing further effort to “${topic}”.\nAction: ${action}\nDeliverable: ${deliverable}\nSuccess: ${success}\nNext: ${next}`,
-    ),
-    mode === 'product'
-      ? 'Essential scope: one user segment, one validated problem and one usable core flow. Defer social feeds, advanced personalization and integrations unless evidence makes them essential; they add work before the core need is established.'
-      : 'Scope: complete this decision or small trial first. Defer elaborate planning or additional work unless the team needs it.',
-  ].join('\n\n');
+  return {
+    goal: `${mode === 'product' ? 'Validate the problem and define the smallest useful version of' : 'Agree on a practical next step for'} “${topic}”.`,
+    context:
+      'Mock guidance: a planning template, not verified research or user feedback. Check supplied sources before treating any claim as evidence.',
+    assumptions:
+      mode === 'product'
+        ? [
+            {
+              rank: 1,
+              assumption: 'Users experience a meaningful recurring problem.',
+              impact: 'Without a real need, there is no useful product.',
+              validation: 'Ask for recent real examples and current workarounds.',
+            },
+            {
+              rank: 2,
+              assumption: 'The proposed barrier is the main obstacle.',
+              impact: 'Solving a secondary barrier may not help.',
+              validation: 'Compare time, space, cost, motivation, access and experience.',
+            },
+            {
+              rank: 3,
+              assumption: 'Existing solutions leave a meaningful gap.',
+              impact: 'An adequate existing solution reduces the need to build.',
+              validation: 'Check official sources and compare user experiences.',
+            },
+          ]
+        : [],
+    evidence: [{ finding: 'No research findings are verified by this mock template.', status: 'unknown', sourceUrls: [] }],
+    recommendation: {
+      direction:
+        mode === 'product'
+          ? 'Focus on one user segment and one repeated, underserved problem.'
+          : 'Agree on one feasible choice that meets the group’s constraints.',
+      rationale: 'Keep the work proportionate and test the important unknowns first.',
+      changeIf: 'Revisit the direction if feedback or checked sources contradict the hypothesis.',
+    },
+    steps: steps.map(([focus, action, deliverable, success, next]) => ({
+      title: focus!,
+      focus: focus!,
+      why: `Resolve this question before committing further effort to “${topic}”.`,
+      action: action!,
+      deliverable: deliverable!,
+      successCriterion: success!,
+      nextStep: next!,
+    })),
+    scope: {
+      essential:
+        mode === 'product'
+          ? ['One user segment', 'One validated problem', 'One usable core flow']
+          : ['One feasible decision or small trial'],
+      deferred: [
+        {
+          item: mode === 'product' ? 'Social feeds, advanced personalization and integrations' : 'Elaborate planning or additional work',
+          reason: 'Add scope only when the evidence and team capacity justify it.',
+        },
+      ],
+    },
+  };
 }

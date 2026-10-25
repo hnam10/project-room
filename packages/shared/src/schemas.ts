@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { readStrategyPlan } from './strategy.js';
 import { ideaDraftSchema, pollDraftSchema } from './meeting.js';
 import {
   BRAINSTORM_TRIGGERS,
@@ -60,15 +61,22 @@ export const ideaCreateSchema = z
     kind: z.enum(['problem', 'idea']).default('idea'),
   })
   .superRefine((idea, ctx) => {
+    if (idea.theme === 'Strategy' && idea.description.trim().startsWith('{') && !readStrategyPlan(idea.description))
+      ctx.addIssue({ code: 'custom', path: ['description'], message: 'Strategy JSON must match the roadmap format' });
     if ((idea.kind === 'problem' || idea.theme !== 'Strategy') && idea.description.length > 240)
       ctx.addIssue({ code: 'custom', path: ['description'], message: 'Keep topic and direct idea details within 240 characters' });
   });
 export type IdeaCreateInput = z.input<typeof ideaCreateSchema>;
-export const ideaUpdateSchema = z.object({
-  title: z.string().trim().min(1).max(80).optional(),
-  description: z.string().trim().max(STRATEGY_DESCRIPTION_MAX).optional(),
-  theme: z.enum(IDEA_THEMES).optional(),
-});
+export const ideaUpdateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(80).optional(),
+    description: z.string().trim().max(STRATEGY_DESCRIPTION_MAX).optional(),
+    theme: z.enum(IDEA_THEMES).optional(),
+  })
+  .superRefine((idea, ctx) => {
+    if (idea.theme === 'Strategy' && idea.description?.trim().startsWith('{') && !readStrategyPlan(idea.description))
+      ctx.addIssue({ code: 'custom', path: ['description'], message: 'Strategy JSON must match the roadmap format' });
+  });
 export type IdeaUpdateInput = z.input<typeof ideaUpdateSchema>;
 export const brainstormActionSchema = z.object({
   topicId: id.nullable().optional(),

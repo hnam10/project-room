@@ -1,4 +1,10 @@
-import { PRIORITIES, STRATEGY_DESCRIPTION_MAX, type ActionItem, type Priority } from '@project-room/shared';
+import {
+  PRIORITIES,
+  STRATEGY_DESCRIPTION_MAX,
+  strategyPlanSchema,
+  type ActionItem,
+  type Priority,
+} from '@project-room/shared';
 import { z } from 'zod';
 import type { OpenAiClient } from './openai.js';
 import type {
@@ -84,10 +90,13 @@ const BrainstormSchema = z.object({
 });
 
 const FacilitateSchema = z.object({
+  strategy: strategyPlanSchema
+    .nullable()
+    .describe('A complete structured roadmap for topic preparation; null for other stages. Plain text values, no Markdown.'),
   summary: z
     .string()
     .describe(
-      'Topic preparation: a specific, numbered team roadmap with evidence, assumptions, actions, deliverables, success criteria and next-step gates. Other stages: concise guidance grounded in supplied data.',
+      'A short goal sentence for topic preparation; other stages use concise guidance grounded in supplied data. The full preparation plan belongs in strategy.',
     ),
   ideas: BrainstormSchema.shape.ideas,
   tasks: z
@@ -278,7 +287,7 @@ ${research.map((result) => `<result url="${result.url}" title="${result.title}">
   async function facilitateBrainstorm(input: FacilitateInput): Promise<FacilitateResult> {
     const goals: Record<FacilitateInput['trigger'], string> = {
       problem_created:
-        'Prepare actionable guidance for this specific team and topic, using the strategy roadmap requirements below. Return the plan in summary, with no separate idea drafts or tasks. A recommended direction is provisional guidance for members to evaluate, not an approved solution.',
+        'Prepare actionable guidance for this specific team and topic, using the strategy roadmap requirements below. Return the plan in strategy, with no separate idea drafts or tasks. A recommended direction is provisional guidance for members to evaluate, not an approved solution.',
       first_idea: 'Propose one distinct direction that builds on the newest idea and the central problem, if useful.',
       multiple_ideas: 'Find specific overlaps, differences, or possible combinations. Propose at most one combined idea if useful.',
       research_completed: 'Suggest a concrete improvement grounded in the supplied research. A new idea draft may express it.',
@@ -316,20 +325,21 @@ If research is missing or weak, explicitly say evidence is missing and make coll
 Recommend one focused direction provisionally; give the evidence or reasoning and what would change the recommendation.
 Then give a numbered roadmap with 4-6 steps for a product, from problem discovery and student/user feedback,
 through evidence review and a small experiment/prototype, to the smallest useful MVP and its evaluation.
-For EVERY step write these labels on separate lines:
-Focus / Why: the specific question and why it matters now.
-Action: a concrete, feasible action using this team's topic and constraints.
-Deliverable: the tangible artifact the team should produce.
-Success: a practical, observable criterion; suggested sample sizes/thresholds are proposed targets, not facts.
-Next: how the result determines whether to proceed, narrow the scope, revisit an assumption or stop.
+For EVERY step provide focus and why (the specific question and why it matters now), action (a feasible
+action using this team's context), deliverable (a tangible artifact), successCriterion (an observable
+criterion; suggested sample sizes/thresholds are targets, not facts), and nextStep (how results determine
+whether to proceed, narrow scope, revisit an assumption or stop).
 End with essential scope versus features/work to defer, with reasons. Keep student-project time and resources realistic;
 do not prescribe dates or assign people. Avoid platform-scale features and unsupported promises.
 For non_product topics, adapt to the actual decision, event or activity: use 2-4 proportionate steps and
 an outcome/trial instead of an MVP. For a simple dinner choice, check preferences/allergies, budget/time,
 compare feasible choices and agree on one; do not impose interviews, market research or a product roadmap.
-Use readable plain text with short headings, numbered steps and line breaks, not Markdown tables.
+Return the roadmap in the strategy JSON object, using goal, context, assumptions, evidence,
+recommendation, steps and scope. Each step has title, focus, why, action, deliverable, successCriterion
+and nextStep. Use plain text field values without Markdown markers or JSON code fences.
+Set summary to one short sentence describing the goal. Do not put the plan in summary.
 Use up to 800 words only when useful; omit irrelevant sections rather than filling them with boilerplate.`
-    : 'Keep the summary under 160 words.'
+    : 'Keep the summary under 160 words and set strategy to null.'
 }
 
 <problem>${input.problem ? `${input.problem.title}: ${input.problem.description}` : '(none)'}</problem>
@@ -338,7 +348,17 @@ Use up to 800 words only when useful; omit irrelevant sections rather than filli
     );
     const knownUrls = new Set(input.research.map((result) => result.url));
     const existing = new Set(input.ideas.map((idea) => norm(idea.title)));
+    const strategy = input.trigger === 'problem_created' ? strategyPlanSchema.parse(output.strategy) : null;
+    if (strategy) {
+      strategy.evidence = strategy.evidence.map((item) => {
+        const sourceUrls = item.sourceUrls.filter((url) => knownUrls.has(url));
+        return { ...item, sourceUrls, status: item.status === 'verified' && !sourceUrls.length ? 'unknown' : item.status };
+      });
+      if (JSON.stringify(strategy, null, 2).length > STRATEGY_DESCRIPTION_MAX)
+        throw new Error('Strategy roadmap exceeds the supported size');
+    }
     return {
+      ...(strategy ? { strategy } : {}),
       summary: output.summary.trim().slice(0, input.trigger === 'problem_created' ? STRATEGY_DESCRIPTION_MAX : 2000),
       ideas: (input.trigger === 'problem_created' ? [] : output.ideas)
         .filter((idea) => idea.title.trim() && !existing.has(norm(idea.title)))

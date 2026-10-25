@@ -33,11 +33,16 @@ All records carry `projectId`; repositories always filter by it.
 
 ## The AI action engine
 
-Topic preparation returns a numbered strategy roadmap in `FacilitateResult.summary`: explicit hypotheses,
+Topic preparation returns a validated JSON roadmap in `FacilitateResult.strategy`: explicit hypotheses,
 evidence/unknowns, a provisional direction, and actions with deliverables, success criteria and decision gates.
 Product plans lead to a realistically scoped MVP; other topics use a proportionate decision/trial plan.
-Strategy text supports up to `STRATEGY_DESCRIPTION_MAX` (10,000 characters) through generation, review,
-approval and editing. Other facilitation summaries retain their short limit. Preparation cannot create
+`strategyPlanSchema` defines goal, context, ranked assumptions, evidence/status/source URLs, recommendation,
+roadmap steps and scope. Each step requires focus, why, action, deliverable, successCriterion and nextStep.
+Plans are serialized as JSON in the existing strategy description field (up to `STRATEGY_DESCRIPTION_MAX`,
+20,000 characters) through generation, review, approval and editing. `StrategyDetails` reads this schema
+and renders sections and labelled steps without Markdown; legacy text still uses the compact text view.
+Malformed JSON objects are rejected on review/edit. Unsupported evidence URLs are removed and unsourced
+verified claims become unknown. Other facilitation summaries retain their short limit. Preparation cannot create
 direct ideas or tasks; the plan remains a reviewable Strategy draft. Manual refresh keys the draft by its
 content, preserving saved guidance while allowing an existing topic to receive the updated roadmap format.
 

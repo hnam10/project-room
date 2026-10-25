@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createStructuredProvider } from './structured.js';
+import { mockStrategy } from './mock-strategy.js';
 
 // The model is replaced by a fake: these tests check what we do with its output, not the model.
 
@@ -25,11 +26,11 @@ const tasks = [
 
 describe('structured provider', () => {
   it('preserves a full preparation roadmap while keeping later guidance short and preparation drafts reviewable', async () => {
-    const roadmap =
-      'Goal: Validate the fitness app hypothesis.\n\n' +
-      'Action: Interview users; Deliverable: notes; Success: repeated barrier; Next: revise or proceed.\n'.repeat(40);
+    const roadmap = mockStrategy({ title: 'Fitness app for students with limited equipment', description: '' }, 'product');
+    roadmap.evidence = [{ finding: 'An unsupported claim', status: 'verified', sourceUrls: ['https://invented.example'] }];
     const { provider, parse } = providerReturning({
-      summary: roadmap,
+      summary: roadmap.goal,
+      strategy: roadmap,
       ideas: [{ title: 'Premature solution' }],
       tasks: [{ title: 'Premature task' }],
     });
@@ -41,13 +42,15 @@ describe('structured provider', () => {
       mode: 'product' as const,
     };
     const result = await provider.facilitateBrainstorm(input);
-    expect(result.summary).toBe(roadmap.trim());
-    expect(result.summary.length).toBeGreaterThan(2000);
+    expect(result.strategy?.steps).toEqual(roadmap.steps);
+    expect(result.strategy?.evidence).toEqual([{ finding: 'An unsupported claim', status: 'unknown', sourceUrls: [] }]);
+    expect(JSON.stringify(result.strategy).length).toBeGreaterThan(2000);
     expect(result.ideas).toEqual([]);
     expect(result.tasks).toEqual([]);
     const prompt = parse.mock.calls[0]![0].content;
     expect(prompt).toContain('equipment as one hypothesis');
-    expect(prompt).toContain('Deliverable:');
+    expect(prompt).toContain('successCriterion');
+    expect(prompt).toContain('without Markdown markers');
     expect(prompt).toContain('what would change the recommendation');
     expect(prompt).toContain('do not impose interviews, market research or a product roadmap');
     expect(prompt).toContain('never invent competitors, interviews, metrics or feedback');

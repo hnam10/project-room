@@ -14,6 +14,7 @@ import { rid } from './db/records.js';
 import { createMessage, listMessages } from './repositories/messages.js';
 import { onMessagePosted } from './services/ai-engine.js';
 import { parseChatCommand } from './services/chat-commands.js';
+import { readStrategyPlan } from '@project-room/shared';
 
 vi.mock('./services/research.js', () => ({ researchWeb: vi.fn() }));
 let server: Server;
@@ -128,21 +129,31 @@ it('generates a step-by-step strategy and preserves it through review, approval 
   const strategy = drafts.body.find((item) => item.ideaDraft?.theme === 'Strategy')!;
   const description = strategy.ideaDraft!.description;
   expect(description.length).toBeGreaterThan(2000);
-  for (const section of ['Assumptions', 'Provisional direction', 'Focus / Why:', 'Action:', 'Deliverable:', 'Success:', 'Next:', 'Defer'])
-    expect(description).toContain(section);
+  const plan = readStrategyPlan(description)!;
+  expect(plan.assumptions.length).toBeGreaterThan(0);
+  expect(plan.steps.length).toBeGreaterThanOrEqual(4);
+  expect(plan.steps.every((step) => step.action && step.deliverable && step.successCriterion && step.nextStep)).toBe(true);
   expect(description).toContain('not verified research');
+  expect((await call('PATCH', `/suggestions/${strategy.id}`, { ideaDraft: { ...strategy.ideaDraft, description: '{}' } })).status).toBe(
+    400,
+  );
   const review = await call<Suggestion>('PATCH', `/suggestions/${strategy.id}`, { ideaDraft: strategy.ideaDraft });
   expect(review.status).toBe(200);
   expect(review.body.ideaDraft?.description).toBe(description);
   expect((await call('POST', `/suggestions/${strategy.id}/approve`, {})).status).toBe(200);
   const saved = (await snapshot()).ideas.find((idea) => idea.theme === 'Strategy')!;
   expect(saved.description).toBe(description);
+  plan.context = 'Team note: start with interviews.';
   const edited = await call<Idea>('PATCH', `/ideas/${saved.id}`, {
-    description: description + '\nTeam note: start with interviews.',
+    description: JSON.stringify(plan, null, 2),
     theme: 'Strategy',
   });
   expect(edited.status).toBe(200);
   expect(edited.body.description).toContain('Team note: start with interviews.');
+  expect((await call('PATCH', `/ideas/${saved.id}`, { description: '{"goal":"Incomplete"}', theme: 'Strategy' })).status).toBe(400);
+  expect((await call('PATCH', `/suggestions/${strategy.id}`, { ideaDraft: { ...strategy.ideaDraft, description: '{}' } })).status).toBe(
+    409,
+  );
   const refreshed = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
   const refreshedStrategy = refreshed.body.find((item) => item.ideaDraft?.theme === 'Strategy')!;
   expect(refreshedStrategy.id).not.toBe(strategy.id);
@@ -159,7 +170,7 @@ it('keeps non-product preparation practical rather than imposing an MVP roadmap'
   const drafts = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
   const guidance = drafts.body.find((item) => item.ideaDraft?.theme === 'Strategy')!.ideaDraft!.description;
   expect(guidance).toContain('allergies');
-  expect(guidance).toContain('Deliverable:');
+  expect(readStrategyPlan(guidance)?.steps[0]?.deliverable).toBeTruthy();
   expect(guidance).not.toContain('MVP');
   expect(guidance).not.toContain('Interview');
 });

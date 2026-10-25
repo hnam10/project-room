@@ -103,8 +103,9 @@ export function IdeaDialog({
         />
       </label>
       <label>
-        Details
+        {theme === 'Strategy' && kind !== 'problem' ? 'Strategy JSON (or existing text)' : 'Details'}
         <textarea
+          className={theme === 'Strategy' && kind !== 'problem' ? 'strategy-json-editor' : undefined}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={theme === 'Strategy' && kind !== 'problem' ? 14 : 3}

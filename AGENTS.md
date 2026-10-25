@@ -111,6 +111,8 @@ prototype/         the first static prototype; do not build on it
   and next-step gate. Product guidance tests the problem hypothesis, ranks assumptions, distinguishes sourced
   findings from unknowns, recommends a provisional direction and scopes a realistic MVP. Simple non-product
   choices get a short practical plan. Never invent research or user feedback.
+- New strategies use the shared `strategyPlanSchema` JSON format with plain-text field values, rendered
+  as sections and steps. Preserve legacy text strategies; do not require Markdown rendering.
 - Meeting idea suggestions must identify a relevant existing topic, retain its `topicId`, and display
   its title. Skip ideas without a clear topic match; a proposed new topic must be approved first.
 - Topic-change proposals name the board they replace and require explicit confirmation of that target
