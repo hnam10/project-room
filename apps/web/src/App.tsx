@@ -4,7 +4,7 @@ import { CalendarPage } from './features/calendar/CalendarPage';
 import { WorkspaceLayout } from './layouts/WorkspaceLayout';
 import { BoardPage } from './pages/BoardPage';
 import { ChatPopoutPage } from './pages/ChatPopoutPage';
-import { BrainstormPage, ChatPage, DecisionsPage, PlaceholderPage } from './pages/FeaturePages';
+import { BrainstormPage, ChatPage, PlaceholderPage, PollsPage } from './pages/FeaturePages';
 import { MeetingPage } from './pages/MeetingPage';
 import { FilesPage } from './features/files/FilesPage';
 import { useSession } from './state/session';
@@ -19,7 +19,7 @@ export function App() {
         <Route path="board" element={<BoardPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="brainstorm" element={<BrainstormPage />} />
-        <Route path="decisions" element={<DecisionsPage />} />
+        <Route path="polls" element={<PollsPage />} />
         <Route path="meeting" element={<MeetingPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="files" element={<FilesPage />} />
@@ -28,6 +28,7 @@ export function App() {
           element={<PlaceholderPage icon="tasks" title="Overview" text="A project summary dashboard is planned for a later iteration." />}
         />
         <Route path="team" element={<Navigate to="../settings" replace />} />
+        <Route path="decisions" element={<Navigate to="../polls" replace />} />
         <Route
           path="settings"
           element={

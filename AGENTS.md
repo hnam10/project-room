@@ -8,7 +8,7 @@ imports this file, so there is one source of truth.
 
 Project Room is an AI-powered collaborative workspace for student and hackathon teams. Chat,
 a task board and a brainstorming board are connected by an **AI action engine** that turns
-conversation into structured suggestions (tasks, open decisions, risks) which the team reviews
+conversation into structured suggestions (tasks, ideas, polls, risks) which the team reviews
 and approves. Core loop: **Conversations → Insights → Decisions → Actions → Progress**.
 
 - Product spec (what & why): [docs/PRODUCT_BRIEF.md](docs/PRODUCT_BRIEF.md)
@@ -74,7 +74,7 @@ apps/api/          Express 5 + SurrealDB (embedded or remote) + WebSocket realti
   src/http/        project-membership middleware, error mapping, routes per feature
   src/realtime/    LIVE SELECT → WebSocket fan-out
 apps/web/          React 19 + Vite + React Router
-  src/pages/       one route per feature (Board, Chat, Brainstorm, Decisions, placeholders)
+  src/pages/       one route per feature (Board, Chat, Brainstorm, Polls, placeholders)
   src/features/    feature components: board/, chat/, brainstorm/, dock/
   src/components/  shared UI primitives (Icon, Avatar, Modal, Feedback = toast/confirm)
   src/state/       session (current member), workspace (project data + realtime), chatWindow, meetingCall
@@ -86,10 +86,10 @@ prototype/         the first static prototype; do not build on it
 ## Product rules (non-negotiable — from the brief)
 
 - **AI suggests, people decide.** AI output is stored as a `suggestion` record. Only an explicit
-  member action (`POST /suggestions/:id/approve`) may create or change tasks, decisions or
-  assignments. Never let AI code write to `task`/`decision`/`idea` directly.
-- Assigning people, scheduling, notifying, starting votes, and making something an official
-  decision always need confirmation from a member.
+  member action (`POST /suggestions/:id/approve`) may create or change tasks, polls, ideas or
+  assignments. Never let AI code write to `task`/`poll`/`idea` directly.
+- Assigning people, scheduling, notifying and starting votes always need confirmation from a member.
+  The team decides by voting: polls opened in meetings are listed in the Polls tab with their results.
 - Every suggestion carries `reason` (why the AI made it) and, when available, the quoted context.
 - Keep suggestion → approved → completed distinct. Never show something as done because AI proposed it.
 - Don't fake integrations or data. If a feature isn't built, the UI says so (see `PlaceholderPage`
@@ -105,7 +105,7 @@ prototype/         the first static prototype; do not build on it
 - Brainstorming starts with a member-selected topic. Each topic has its own board: research and
   reviewable strategies come first, then member ideas and iteration. Changing or deleting a topic
   clears its board; clearing only ideas preserves its research and strategies. Other topics and
-  tasks or decisions already created are unaffected. New AI topics never replace a topic automatically.
+  tasks or polls already created are unaffected. New AI topics never replace a topic automatically.
 - Meeting idea suggestions must identify a relevant existing topic, retain its `topicId`, and display
   its title. Skip ideas without a clear topic match; a proposed new topic must be approved first.
 - Topic-change proposals name the board they replace and require explicit confirmation of that target
@@ -151,12 +151,11 @@ exits first). Routes read the caller with `caller(res)` / `ctx(res)`; never read
 ## AI status
 
 `getAiProvider()` splits work across two OpenAI-compatible hosts (`src/ai/openai.ts`, structured output via
-`response_format: json_schema` + zod). `OPENAI_API_KEY` runs `@AI`, Ask the project, chat brainstorm drafts,
-and the end-of-meeting summary. `NEBIUS_API_KEY` runs the open-question check, live meeting ticks, brainstorm
+`response_format: json_schema` + zod). `OPENAI_API_KEY` runs `@AI`, chat brainstorm drafts
+and the end-of-meeting summary. `NEBIUS_API_KEY` runs live meeting ticks, brainstorm
 classification, board facilitation, and research summaries. One key covers every job; with neither key the
 labelled mock runs. `GROQ_API_KEY` is only meeting speech-to-text. Tests force the mock
 (`AI_PROVIDER=mock` in `vitest.config.ts`) so they never call the API. The model's output is a proposal:
 ids, tasks and quotes are validated against project data before a suggestion is stored. `@AI` reads the
 latest channel thread, older lines that match the question, and Agent Memory passages from uploaded files
-when `AGENT_MEMORY_*` is set. Questions about the
-project (`POST .../decisions/ask`) are answered from **approved decisions only**, never from the chat log.
+when `AGENT_MEMORY_*` is set.

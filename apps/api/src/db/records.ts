@@ -7,7 +7,6 @@ export type TableName =
   | 'message'
   | 'task'
   | 'idea'
-  | 'decision'
   | 'suggestion'
   | 'file'
   | 'meeting'

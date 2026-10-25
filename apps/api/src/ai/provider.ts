@@ -1,10 +1,10 @@
-import type { ActionItem, BrainstormTrigger, Decision, IdeaDraft, IdeaTheme, Priority, ResearchSource } from '@project-room/shared';
+import type { ActionItem, BrainstormTrigger, IdeaDraft, IdeaTheme, Priority, ResearchSource } from '@project-room/shared';
 
 // The contract every AI backend implements. The rest of the API only talks to this interface,
 // so swapping the mock for a real model is a change in src/ai/index.ts alone.
 //
 // Everything a provider returns is a *proposal*. The engine stores it as a suggestion, and only a
-// member's approval changes tasks, decisions or ideas (see services/suggestions.ts).
+// member's approval changes tasks, polls or ideas (see services/suggestions.ts).
 
 export interface ConversationMessage {
   id: string;
@@ -41,16 +41,6 @@ export interface MemberBrief {
   role: string;
 }
 
-/** A choice the conversation raised or settled. */
-export interface ProposedDecision {
-  /** The question, e.g. "Which database to use". */
-  topic: string;
-  /** What the team settled on, e.g. "Use SurrealDB". Null when the question is still open. */
-  outcome: string | null;
-  reason: string;
-  quote: string | null;
-}
-
 /** A task that looks likely to slip, with what the conversation or the board says about it. */
 export interface ProposedRisk {
   taskId: string;
@@ -61,7 +51,6 @@ export interface ProposedRisk {
 
 export interface ConversationAnalysis {
   actionItems: ActionItem[];
-  decisions: ProposedDecision[];
   risks: ProposedRisk[];
 }
 
@@ -140,12 +129,6 @@ export interface FacilitateResult {
   tasks: ActionItem[];
 }
 
-export interface MemoryAnswerDraft {
-  answer: string;
-  /** Ids of the approved decisions the answer relies on. Empty when none covers the question. */
-  sourceDecisionIds: string[];
-}
-
 /** A brainstorm card the model wants a person to approve. */
 export interface IdeaProposal {
   title: string;
@@ -176,7 +159,6 @@ export interface ProjectLookup {
   listMembers(): Promise<MemberBrief[]>;
   listTasks(filter: { status: string; assigneeId: string }): Promise<TaskBrief[]>;
   searchMessages(query: string): Promise<MessageHit[]>;
-  listDecisions(): Promise<{ id: string; title: string; status: string; outcome: string | null }[]>;
   listPendingSuggestions(): Promise<
     { kind: string; title: string; proposal: string | null; taskId: string | null; ideaTitle: string | null }[]
   >;
@@ -189,7 +171,7 @@ export interface AiProvider {
   readonly isMock: boolean;
 
   /**
-   * Reads recent conversation and proposes action items, decisions and risks, each with a reason and a
+   * Reads recent conversation and proposes action items and risks, each with a reason and a
    * quote from the conversation. Must not repeat existing task titles.
    */
   analyzeConversation(input: AnalyzeInput): Promise<ConversationAnalysis>;
@@ -211,13 +193,4 @@ export interface AiProvider {
    * Absent on the mock, which keeps the one-shot analyzeConversation call.
    */
   runMention?(input: { messages: ConversationMessage[]; files?: FileExcerpt[]; lookup: ProjectLookup }): Promise<MentionResult>;
-
-  /** Cheap per-message check: does this message raise (or settle) a choice the team hasn't recorded? */
-  detectOpenQuestion(message: ConversationMessage): Promise<ProposedDecision | null>;
-
-  /**
-   * Answers a question about the project using only the approved decisions passed in, never the chat
-   * log. If they don't cover the question, says so with no sources.
-   */
-  answerFromDecisions(input: { question: string; decisions: Decision[]; members: MemberBrief[] }): Promise<MemoryAnswerDraft>;
 }

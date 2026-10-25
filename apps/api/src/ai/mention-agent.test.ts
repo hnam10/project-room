@@ -10,7 +10,6 @@ function lookup(overrides: Partial<ProjectLookup> = {}): ProjectLookup {
       { id: 't1', num: 1, title: 'Existing task', status: 'todo', priority: 'medium', assigneeId: null, dueDate: null },
     ]),
     searchMessages: vi.fn(async () => []),
-    listDecisions: vi.fn(async () => []),
     listPendingSuggestions: vi.fn(async () => []),
     listIdeas: vi.fn(async () => []),
     ...overrides,
@@ -71,8 +70,14 @@ describe('mention agent', () => {
       [{ name: 'search_messages', arguments: JSON.stringify({ query: 'Fly.io' }) }],
       [
         {
-          name: 'propose_decision',
-          arguments: JSON.stringify({ topic: 'Hosting', outcome: 'Fly.io', reason: 'Jamie said so', quote: 'host on Fly.io' }),
+          name: 'propose_idea',
+          arguments: JSON.stringify({
+            title: 'Host on Fly.io',
+            description: '',
+            theme: 'Option',
+            reason: 'Jamie said so',
+            quote: 'host on Fly.io',
+          }),
         },
         { name: 'finish', arguments: '{}' },
       ],
@@ -84,14 +89,14 @@ describe('mention agent', () => {
     });
 
     expect(tools.searchMessages).toHaveBeenCalledWith('Fly.io');
-    expect(out.decisions).toEqual([{ topic: 'Hosting', outcome: 'Fly.io', reason: 'Jamie said so', quote: 'host on Fly.io' }]);
+    expect(out.ideas.map((idea) => idea.quote)).toEqual(['host on Fly.io']);
   });
 
   it('stops after four rounds when the model keeps calling read tools', async () => {
     const chat = vi.fn(async () => ({ content: null, toolCalls: [{ id: 'c', name: 'list_members', arguments: '{}' }] }));
     const out = await runMentionAgent({ chat }, 'model', { messages: recent, lookup: lookup() });
     expect(chat).toHaveBeenCalledTimes(4);
-    expect(out).toEqual({ reply: '', actionItems: [], decisions: [], risks: [], ideas: [] });
+    expect(out).toEqual({ reply: '', actionItems: [], risks: [], ideas: [] });
   });
 
   it('nudges once when the model replies with prose, then accepts a later proposal', async () => {

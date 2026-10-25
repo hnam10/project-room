@@ -64,23 +64,6 @@ export const brainstormActionSchema = z.object({
 });
 export type BrainstormActionInput = z.input<typeof brainstormActionSchema>;
 
-export const decisionCreateSchema = z.object({
-  title: z.string().trim().min(1).max(160),
-});
-export type DecisionCreateInput = z.input<typeof decisionCreateSchema>;
-
-/** Recording a decision as decided; the outcome is what makes it useful to read later. */
-export const decisionDecideSchema = z.object({
-  outcome: z.string().trim().min(1).max(240).nullable().default(null),
-  reason: z.string().trim().max(400).nullable().default(null),
-});
-export type DecisionDecideInput = z.input<typeof decisionDecideSchema>;
-
-export const memoryQuestionSchema = z.object({
-  question: z.string().trim().min(3).max(300),
-});
-export type MemoryQuestionInput = z.input<typeof memoryQuestionSchema>;
-
 /** Display name of an upload, after the path has been stripped. */
 export const fileNameSchema = z
   .string()

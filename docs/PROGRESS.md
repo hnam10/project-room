@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Polls replace decisions.** The Decisions tab is now **Polls** (`/polls`): every poll opened in a
+  meeting, open ones to vote on or close, closed ones with the winning option highlighted. Polls are in the
+  workspace snapshot and patched by realtime. Removed: the per-message open-question check, `@AI` decision
+  suggestions (`propose_decision`, `list_decisions`), the decision API and repository, "Ask the project"
+  (`/decisions/ask`, `answerFromDecisions`) and the seeded decisions. The `decision` table definition stays so
+  old rows still read; nothing writes it. Meeting summaries keep their "Decisions" section as summary text.
 - 2026-10-24 — **AI colour roles and dashed pending suggestions.** An AI suggestion nobody has confirmed has a
   dashed outline in the colour of where it lands once approved, and its main button matches: brainstorm topics and
   ideas yellow, brainstorm directions (theme Strategy) teal, before and after approval, research blue, polls green, decisions, action items, deadline risks and meeting notes purple.
@@ -311,17 +317,17 @@ Pick from the top unless the team agrees otherwise. Put your name next to an ite
 Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKATHON.md).
 
 - [ ] **Clerk roles** (Clerk prize, follow-up) — use org roles for product rules, e.g. only `org:admin`
-      can make a suggestion an official decision; Clerk webhooks to drop members who leave a team.
+      can close a poll; Clerk webhooks to drop members who leave a team.
 - [ ] **Live URL** (needs a host account) — build and deploy the Dockerfile with a persistent volume at
       `/data`, set the env vars from `apps/api/.env.example`, `SEED_ORG_ID`, and the Clerk production keys.
 - [ ] **Summarize this channel** as a suggestion kind (Claude provider follow-up).
 - [ ] **SurrealDB Agent Memory** (Agent Memory prize) — file upload and `@AI` excerpts are in. Still open:
-      remember messages and decisions, recall that memory before suggesting, and "Ask the project" with those sources.
+      remember messages and poll results, and recall that memory before suggesting.
 - [ ] **Era eval harness** (Eon prize) — score action-item extraction against Era's simulated
       Slack/Jira ground truth; compare mock vs. Claude vs. Claude + memory.
 - [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
       chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
-- [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open decisions, workload per member.
+- [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open polls, workload per member.
 
 - [ ] **Brainstorm grouping** — themes as columns and a comparison view for proposals; starting a vote still needs confirmation.
 
@@ -374,8 +380,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - The web meeting UI has no automated tests and hasn't been tried in a real browser by the agents.
 - `@AI` tool use runs when `OPENAI_API_KEY` is set. The mock still analyzes in one call.
 - The structured provider is covered by tests with a fake client (validation, prompts) but has not been run
-  against the live API in CI; try it once with a real key (`@AI` in #general, then "Ask the project").
-- The model is called synchronously on `@AI` and, for messages that look like a question, on post.
+  against the live API in CI; try it once with a real key (`@AI` in #general).
+- The model is called synchronously on `@AI`.
   `OPENAI_MODEL` defaults to `gpt-4.1-mini`; `OPENAI_FAST_MODEL` is the live meeting model. A refusal posts
   an error message.
 - Demo teammates (Alex, Jamie, Taylor, Morgan) are placeholder members with no login; real Clerk users are
@@ -401,6 +407,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-25 — **Polls replace decisions.** Members couldn't tell how a decision got created (only the AI's
+  per-message open-question check made one) and decisions overlapped with polls. The team now decides by voting;
+  closed polls are the record. "Ask the project" went with decisions because it answered only from them. This
+  supersedes "Memory = approved decisions" (2026-10-20).
 - 2026-10-24 — **Pending AI suggestions are dashed, in the colour of their destination.** Brainstorm yellow, research
   blue, polls green, decisions and tasks purple, on every page, so it reads at a glance what is unconfirmed and where
   approving it puts it.

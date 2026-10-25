@@ -13,7 +13,7 @@ describe('OpenAI-compatible client', () => {
             choices: [
               {
                 finish_reason: 'stop',
-                message: { content: JSON.stringify({ answer: 'Use SurrealDB.', sourceDecisionIds: ['d1', 'ghost'] }) },
+                message: { content: JSON.stringify({ mode: 'sideways' }) },
               },
             ],
           }),
@@ -22,10 +22,10 @@ describe('OpenAI-compatible client', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
     const ai = createStructuredProvider(createOpenAiClient('key', 'https://example.test/v1/'), 'gpt-test');
-    const decision = { id: 'd1', title: 'Database', outcome: 'SurrealDB', reason: null, decidedAt: null, decidedById: null };
-    const out = await ai.answerFromDecisions({ question: 'Which DB?', decisions: [decision as never], members: [] });
+    const out = await ai.classifyBrainstorm({ problem: null, ideas: [], request: 'Plan a launch party' });
 
-    expect(out).toEqual({ answer: 'Use SurrealDB.', sourceDecisionIds: ['d1'] });
+    // An unknown value from the model is normalised, not trusted.
+    expect(out).toBe('unclear');
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('https://example.test/v1/chat/completions');
     const body = JSON.parse(init.body as string) as {
@@ -43,16 +43,11 @@ describe('OpenAI-compatible client', () => {
 
   it('asks api.openai.com for max_completion_tokens', async () => {
     const fetchMock = vi.fn(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"answer":"x","sourceDecisionIds":[]}' } }] }),
-        ),
-      ),
+      Promise.resolve(new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"mode":"product"}' } }] }))),
     );
     vi.stubGlobal('fetch', fetchMock);
     const ai = createStructuredProvider(createOpenAiClient('key', 'https://api.openai.com/v1'), 'gpt-test');
-    const decision = { id: 'd1', title: 'Database', outcome: 'SurrealDB', reason: null, decidedAt: null, decidedById: null };
-    await ai.answerFromDecisions({ question: 'q', decisions: [decision as never], members: [] });
+    await ai.classifyBrainstorm({ problem: null, ideas: [], request: 'q' });
     const body = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string) as {
       max_tokens?: number;
       max_completion_tokens?: number;
@@ -66,17 +61,13 @@ describe('OpenAI-compatible client', () => {
       Promise.resolve(
         new Response(
           JSON.stringify({
-            choices: [
-              { finish_reason: 'stop', message: { content: '```json\n{"answer":"Use SurrealDB.","sourceDecisionIds":["d1"]}\n```' } },
-            ],
+            choices: [{ finish_reason: 'stop', message: { content: '```json\n{"mode":"non_product"}\n```' } }],
           }),
         ),
       ),
     );
     const ai = createStructuredProvider(createOpenAiClient('key', 'https://api.tokenfactory.nebius.com/v1'), 'gpt-test');
-    const decision = { id: 'd1', title: 'Database', outcome: 'SurrealDB', reason: null, decidedAt: null, decidedById: null };
-    const out = await ai.answerFromDecisions({ question: 'Which DB?', decisions: [decision as never], members: [] });
-    expect(out.sourceDecisionIds).toEqual(['d1']);
+    expect(await ai.classifyBrainstorm({ problem: null, ideas: [], request: 'Plan a launch party' })).toBe('non_product');
   });
 
   it('sends tools and returns tool calls for Nebius-style hosts', async () => {
@@ -114,6 +105,6 @@ describe('OpenAI-compatible client', () => {
   it('turns an HTTP error into a thrown error', async () => {
     vi.stubGlobal('fetch', () => Promise.resolve(new Response('rate limited', { status: 429 })));
     const ai = createStructuredProvider(createOpenAiClient('key', 'https://example.test/v1'), 'gpt-test');
-    await expect(ai.answerFromDecisions({ question: 'q', decisions: [{ id: 'd1' } as never], members: [] })).rejects.toThrow('429');
+    await expect(ai.classifyBrainstorm({ problem: null, ideas: [], request: 'q' })).rejects.toThrow('429');
   });
 });
