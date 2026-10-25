@@ -234,6 +234,12 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
 
   return (
     <div className={`panel brainstorm-panel ${className}`}>
+      <div className="panel-tabs">
+        {tabButton('ideas', 'Brainstorm')}
+        {tabButton('mindmap', 'Mind Map')}
+        {tabButton('notes', 'Notes')}
+        <div className="panel-actions">{headerActions}</div>
+      </div>
       {topics.length > 0 && (
         <div className="brainstorm-topics" role="tablist" aria-label="Brainstorm topics">
           {topics.map((topic) => (
@@ -253,12 +259,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
           </button>
         </div>
       )}
-      <div className="panel-tabs">
-        {tabButton('ideas', 'Brainstorm')}
-        {tabButton('mindmap', 'Mind Map')}
-        {tabButton('notes', 'Notes')}
-        <div className="panel-actions">{headerActions}</div>
-      </div>
       <div className="panel-body">
         {tab !== 'ideas' ? (
           <div className="empty-state">{tab === 'mindmap' ? 'Mind map' : 'Notes'} isn’t built yet — planned for a later iteration.</div>

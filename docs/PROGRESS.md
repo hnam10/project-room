@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Brainstorm tab order refined.** Brainstorm/Mind Map/Notes sit above the topic tabs;
+  both rows remain inside the panel container, above its scrolling content.
+
 - 2026-10-24 — **Explicit brainstorm commands in chat.** `@AI create topic Weekend plans` immediately
   creates that member-named board; `@AI add idea pool to Weekend plans topic` adds the exact idea.
   Quotes are optional; add/create and polite prefixes work. Omitted targets use recent successful
