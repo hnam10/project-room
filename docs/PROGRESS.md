@@ -47,6 +47,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   task commands still require `@AI`. Full check passes with 267 tests, including HTTP/realtime coverage. Browser flow remains
   unverified: the local page cannot reach the API and the embedded database is locked by another process.
 
+- 2026-10-25 — **Meeting "Chat only" filter.** A checkbox above the meeting transcript (live and in the summary)
+  hides spoken lines and shows only typed chat, `@AI` replies and shared files. Display only: the meeting AI and
+  the summary still read every line.
+
 - 2026-10-25 — **Text-only header branding.** Removed the decorative main logo beside Project Room
   and its unused styles; the header keeps the product name and project breadcrumb. Browser-verified
   the authenticated workspace header.
