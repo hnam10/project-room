@@ -8,6 +8,7 @@ export const meetingsApi = {
   get: (projectId: string, id: string) => request<MeetingDetail>('GET', `${m(projectId)}/${id}`),
   start: (projectId: string, input: MeetingCreateInput) => request<Meeting>('POST', m(projectId), input),
   join: (projectId: string, id: string) => request<Meeting>('POST', `${m(projectId)}/${id}/join`),
+  setMuted: (projectId: string, id: string, muted: boolean) => request<Meeting>('POST', `${m(projectId)}/${id}/mute`, { muted }),
   leave: (projectId: string, id: string) => request<Meeting>('POST', `${m(projectId)}/${id}/leave`, undefined, { keepalive: true }),
   postLine: (projectId: string, id: string, text: string, source: TranscriptSource = 'voice', fileId?: string) =>
     request<TranscriptLine>('POST', `${m(projectId)}/${id}/lines`, { text, source, fileId }),

@@ -1,8 +1,14 @@
 import express, { Router } from 'express';
-import { meetingAiSchema, meetingCreateSchema, transcriptLineCreateSchema, type MeetingDetail } from '@project-room/shared';
+import {
+  meetingAiSchema,
+  meetingCreateSchema,
+  meetingMuteSchema,
+  transcriptLineCreateSchema,
+  type MeetingDetail,
+} from '@project-room/shared';
 import { ForbiddenError } from '../../db/records.js';
 import { config } from '../../config.js';
-import { getMeeting, listMeetings, setAiEnabled } from '../../repositories/meetings.js';
+import { getMeeting, listMeetings, setAiEnabled, setParticipantMuted } from '../../repositories/meetings.js';
 import { listPolls } from '../../repositories/polls.js';
 import { listLines } from '../../repositories/transcripts.js';
 import { serverTranscription } from '../../ai/transcribe.js';
@@ -43,6 +49,12 @@ meetingsRouter.post('/:id/join', async (req, res) => {
 meetingsRouter.post('/:id/leave', async (req, res) => {
   const { project, memberId } = ctx(res);
   res.json(await leaveMeeting(project.id, req.params.id, memberId));
+});
+
+meetingsRouter.post('/:id/mute', async (req, res) => {
+  const { project, memberId } = ctx(res);
+  const { muted } = meetingMuteSchema.parse(req.body);
+  res.json(await setParticipantMuted(project.id, req.params.id, memberId, muted));
 });
 
 meetingsRouter.post('/:id/lines', async (req, res) => {

@@ -5,6 +5,17 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-24 — **Shared mute, simpler brainstorming, task commands.** Participant tiles show everyone's
+  mute status via meeting realtime updates and fresh reads. Only a live participant can update their own
+  status; leaving/ending clears it. Local mic changes stay immediate and status writes are serialized.
+  Removed Mind Map from the brainstorming tabs. `@AI create task TITLE` creates an unassigned To Do task;
+  a bare command asks for the same member's next message in that channel. Titles use shared validation;
+  no model call, assignment or scheduling is involved. API/realtime tests cover mute and task command isolation.
+  Full check passes with 247 tests; API and web builds pass. Browser-checked the removed tab; shared mute
+  delivery is covered by the realtime test (no active meeting for a two-person browser check).
+
+- 2026-10-24 — **Header cleanup.** Removed the blue placeholder Share button from the top-right header.
+
 - 2026-10-24 — **Overview navigation label.** Renamed the Tasks navigation tab to Overview.
 
 - 2026-10-24 — **Clean topic overflow navigation.** Topic tabs hide the native horizontal scrollbar,

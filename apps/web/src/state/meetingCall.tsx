@@ -43,6 +43,26 @@ function useCallState() {
   const meetingId = meeting?.id;
   const stopped = stoppedId === meetingId;
 
+  // Keep local microphone changes immediate; serialize server writes so quick toggles cannot arrive out of order.
+  const muteQueue = useRef(Promise.resolve());
+  useEffect(() => {
+    if (!joined || !meetingId) return;
+    let cancelled = false;
+    muteQueue.current = muteQueue.current
+      .catch(() => {})
+      .then(async () => {
+        if (cancelled) return;
+        try {
+          await meetingsApi.setMuted(projectId, meetingId, muted);
+        } catch (error) {
+          if (!cancelled) toastError(error);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [joined, meetingId, projectId, muted, toastError]);
+
   // Post each final result, split to the server's 1000-char limit, in order.
   const queue = useRef(Promise.resolve());
   const post = useCallback(

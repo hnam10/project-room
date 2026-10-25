@@ -1,8 +1,9 @@
-import { AI_AUTHOR, ideaCreateSchema, type Message } from '@project-room/shared';
+import { AI_AUTHOR, ideaCreateSchema, taskCreateSchema, type Message } from '@project-room/shared';
 import { createIdea, listIdeas } from '../repositories/ideas.js';
 import { createMessage, listMessages } from '../repositories/messages.js';
+import { createTask } from '../repositories/tasks.js';
 
-type BrainstormCommand = { kind: 'problem' | 'idea'; title: string; topic?: string };
+type ChatCommand = { kind: 'problem' | 'idea' | 'task'; title: string; topic?: string };
 
 /** Removes optional surrounding quotes without changing a member's chosen wording. */
 function unquote(text: string): string {
@@ -11,12 +12,13 @@ function unquote(text: string): string {
 }
 
 /** Recognizes explicit creation commands, leaving conversational requests to the AI provider. */
-export function parseBrainstormCommand(text: string): BrainstormCommand | null {
+export function parseChatCommand(text: string): ChatCommand | null {
   const request = text.trim().replace(/^@ai\b\s*[,：:]?\s*/i, '');
   if (request === text.trim()) return null;
-  const match = /^(?:(?:please|can you|could you)\s+)?(?:create|add)\s+(?:a\s+)?(topic|idea)(?:\s+(.*))?$/is.exec(request);
+  const match = /^(?:(?:please|can you|could you)\s+)?(?:create|add)\s+(?:a\s+)?(topic|idea|task)(?:\s+(.*))?$/is.exec(request);
   if (!match) return null;
   const body = (match[2] ?? '').trim();
+  if (match[1]!.toLowerCase() === 'task') return { kind: 'task', title: unquote(body) };
   if (match[1]!.toLowerCase() === 'topic') return { kind: 'problem', title: unquote(body) };
   const target =
     /^(.+?)\s+(?:to|in|under)\s+(?:the\s+)?topic\s+(.+)$/is.exec(body) ?? /^(.+?)\s+(?:to|in|under)\s+(.+?)\s+topic$/is.exec(body);
@@ -24,11 +26,34 @@ export function parseBrainstormCommand(text: string): BrainstormCommand | null {
 }
 
 /** Executes member-authored commands before any model call; ambiguous targets never mutate a board. */
-export async function runBrainstormCommand(projectId: string, message: Message): Promise<boolean> {
+export async function runChatCommand(projectId: string, message: Message): Promise<boolean> {
   if (message.authorId === AI_AUTHOR) return false;
-  const command = parseBrainstormCommand(message.text);
+  let command = parseChatCommand(message.text);
+  if (!command && !/@ai\b/i.test(message.text)) {
+    // A bare create-task command consumes only that member's next message in this channel.
+    const recent = await listMessages(projectId, message.channelId, 80);
+    const index = recent.findIndex((item) => item.id === message.id);
+    const previous = index >= 0 ? recent.slice(0, index) : recent.filter((item) => item.createdAt < message.createdAt);
+    const lastOwn = [...previous].reverse().find((item) => item.authorId === message.authorId);
+    const pending = lastOwn && parseChatCommand(lastOwn.text);
+    if (pending?.kind === 'task' && !pending.title) command = { kind: 'task', title: message.text.trim() };
+  }
   if (!command) return false;
   const say = (text: string) => createMessage({ projectId, channelId: message.channelId, authorId: AI_AUTHOR, text });
+  if (command.kind === 'task') {
+    if (!command.title) {
+      await say('What should the task be? Send the task title in your next message here, or use @AI create task Write the demo script.');
+      return true;
+    }
+    const task = taskCreateSchema.safeParse({ title: command.title });
+    if (!task.success) {
+      await say('Use a task title between 1 and 120 characters: @AI create task Write the demo script');
+      return true;
+    }
+    const created = await createTask(projectId, task.data);
+    await say(`Created task #${created.num}: “${created.title}”. It is unassigned in To Do.`);
+    return true;
+  }
   const parsed = ideaCreateSchema.safeParse({ kind: command.kind, title: command.title });
   if (!parsed.success) {
     await say('Use a topic or idea title between 1 and 80 characters. For example: @AI create topic Weekend plans');

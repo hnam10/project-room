@@ -7,6 +7,7 @@ DEFINE FIELD OVERWRITE status            ON meeting TYPE string ASSERT $value IN
 DEFINE FIELD OVERWRITE language          ON meeting TYPE string DEFAULT 'ko-KR' ASSERT string::len($value) > 0 AND string::len($value) <= 16;
 DEFINE FIELD OVERWRITE startedById       ON meeting TYPE record<member>;
 DEFINE FIELD OVERWRITE participantIds    ON meeting TYPE array<record<member>> DEFAULT [];
+DEFINE FIELD OVERWRITE mutedParticipantIds ON meeting TYPE array<record<member>> DEFAULT ALWAYS [];
 DEFINE FIELD OVERWRITE attendeeIds       ON meeting TYPE array<record<member>> DEFAULT [];
 DEFINE FIELD OVERWRITE aiEnabled         ON meeting TYPE bool DEFAULT true;
 DEFINE FIELD OVERWRITE startedAt         ON meeting TYPE datetime DEFAULT time::now() READONLY;

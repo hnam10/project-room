@@ -28,6 +28,8 @@ export interface Meeting {
   startedById: string;
   /** Members currently in the call. */
   participantIds: string[];
+  /** Current participants whose microphones are muted. */
+  mutedParticipantIds: string[];
   /** Everyone who joined at any point. */
   attendeeIds: string[];
   aiEnabled: boolean;
@@ -135,6 +137,7 @@ export const transcriptLineCreateSchema = z
   })
   .refine((line) => !line.fileId || line.source === 'chat', { message: 'Only meeting chat lines can carry a file', path: ['fileId'] });
 export const meetingAiSchema = z.object({ enabled: z.boolean() });
+export const meetingMuteSchema = z.object({ muted: z.boolean() });
 export const pollVoteSchema = z.object({ optionId: z.string().min(1).max(64) });
 
 export const ideaDraftSchema = z.object({

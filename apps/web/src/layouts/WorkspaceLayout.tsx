@@ -77,7 +77,6 @@ function Shell() {
 
 function TopBar() {
   const { snapshot } = useWorkspace();
-  const { toast } = useFeedback();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const project = snapshot!.project;
@@ -122,10 +121,6 @@ function TopBar() {
           <Icon name="plus" />
         </button>
       </InviteButton>
-      <button className="btn primary share-button" onClick={() => toast('Sharing isn’t built yet.')}>
-        <Icon name="plus" />
-        Share
-      </button>
     </header>
   );
 }

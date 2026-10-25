@@ -38,8 +38,8 @@ const api = async <T>(path: string, init: RequestInit & { member?: string } = {}
   return { status: res.status, body: (res.status === 204 ? null : await res.json()) as T };
 };
 
-function listen(projectId: string) {
-  const ws = new WebSocket(`${base.replace('http', 'ws')}/ws?member=alex`);
+function listen(projectId: string, member = 'alex') {
+  const ws = new WebSocket(`${base.replace('http', 'ws')}/ws?member=${member}`);
   const events: ServerMessage[] = [];
   ws.on('message', (raw) => events.push(JSON.parse(String(raw))));
   const ready = new Promise<void>((resolve) => {
@@ -87,6 +87,32 @@ describe('meetings API', () => {
     expect((left.body as Meeting).participantIds).toEqual(['alex']);
     expect((left.body as Meeting).attendeeIds).toContain('jamie');
     await post(`/${id}/join`, 'jamie');
+  });
+
+  it('shares each participant mute status through realtime and clears it when they leave', async () => {
+    const listener = listen('hackathon', 'taylor');
+    await listener.ready;
+    try {
+      expect((await post(`/${id}/mute`, 'taylor', { muted: true })).status).toBe(403);
+      expect((await post(`/${id}/mute`, 'jamie', { muted: 'yes' })).status).toBe(400);
+      expect((await post(`/${id}/mute`, 'jamie', { muted: true, memberId: 'alex' })).body.mutedParticipantIds).toEqual(['jamie']);
+      const event = await listener.waitFor(
+        (e) => e.type === 'change' && e.table === 'meeting' && e.record.id === id && e.record.mutedParticipantIds.includes('jamie'),
+      );
+      expect(event.type).toBe('change');
+      expect((await api<MeetingDetail>(`${M}/${id}`)).body.meeting.mutedParticipantIds).toEqual(['jamie']);
+      expect((await post(`/${id}/mute`, 'alex', { muted: true })).body.mutedParticipantIds).toEqual(
+        expect.arrayContaining(['alex', 'jamie']),
+      );
+      expect((await post(`/${id}/mute`, 'jamie', { muted: false })).body.mutedParticipantIds).toEqual(['alex']);
+      await post(`/${id}/mute`, 'jamie', { muted: true });
+      expect((await post(`/${id}/leave`, 'jamie')).body.mutedParticipantIds).toEqual(['alex']);
+      expect((await post(`/${id}/join`, 'jamie')).body.mutedParticipantIds).not.toContain('jamie');
+      await post(`/${id}/mute`, 'alex', { muted: false });
+      expect((await api<MeetingDetail>(`/projects/other/meetings/${id}`, { member: 'alex' })).status).not.toBe(200);
+    } finally {
+      listener.ws.close();
+    }
   });
 
   it('reports browser transcription and refuses audio clips when GROQ_API_KEY is unset', async () => {
