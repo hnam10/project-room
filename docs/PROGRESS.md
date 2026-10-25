@@ -20,7 +20,11 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 - 2026-10-24 — **Agent Memory accepts Clerk organization scopes.** Clerk organization ids can contain uppercase
   letters, while Agent Memory scope segments are lowercase-only. Project scopes now normalize ids consistently
   before upload and retrieval, with a regression test; rejected scope responses include the service detail.
-
+- 2026-10-24 — **Action-item eval runner.** `npm run eval -w apps/api [dataset.json] [--details]` runs
+  `analyzeConversation` on every configured host (mock, plus OpenAI and Nebius when their keys are set) over
+  conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
+  accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
+  as not Era data; an Era export needs a converter to the same shape. No new dependencies.
 - 2026-10-24 — **Shared mute, simpler brainstorming, task commands.** Participant tiles show everyone's
   mute status via meeting realtime updates and fresh reads. Only a live participant can update their own
   status; leaving/ending clears it. Local mic changes stay immediate and status writes are serialized.
@@ -323,8 +327,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - [ ] **Summarize this channel** as a suggestion kind (Claude provider follow-up).
 - [ ] **SurrealDB Agent Memory** (Agent Memory prize) — file upload and `@AI` excerpts are in. Still open:
       remember messages and poll results, and recall that memory before suggesting.
-- [ ] **Era eval harness** (Eon prize) — score action-item extraction against Era's simulated
-      Slack/Jira ground truth; compare mock vs. Claude vs. Claude + memory.
+- [ ] **Era eval harness** (Eon prize) — the local runner is in (`npm run eval -w apps/api`, see Done). Still open:
+      convert an Era Slack/Jira export to its dataset shape, then compare hosts and with/without Agent Memory.
 - [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
       chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
 - [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open polls, workload per member.
