@@ -1,0 +1,69 @@
+{
+  "source": "Hand-written sample (not Era data) — a smoke test until an Era dataset is converted",
+  "cases": [
+    {
+      "id": "clear-owners",
+      "members": [
+        { "id": "alex", "name": "Alex", "role": "PM" },
+        { "id": "jamie", "name": "Jamie", "role": "Frontend" },
+        { "id": "taylor", "name": "Taylor", "role": "Backend" }
+      ],
+      "messages": [
+        { "author": "alex", "text": "Demo is Friday. What's left?" },
+        { "author": "jamie", "text": "I'll build the login page today." },
+        { "author": "taylor", "text": "I will set up the Postgres database tonight." },
+        { "author": "alex", "text": "Great, I'll write the pitch deck." }
+      ],
+      "expected": [
+        { "title": "Build the login page", "assignee": "jamie" },
+        { "title": "Set up the Postgres database", "assignee": "taylor" },
+        { "title": "Write the pitch deck", "assignee": "alex" }
+      ]
+    },
+    {
+      "id": "unowned-need",
+      "members": [
+        { "id": "alex", "name": "Alex", "role": "PM" },
+        { "id": "morgan", "name": "Morgan", "role": "Design" }
+      ],
+      "messages": [
+        { "author": "morgan", "text": "We still need to book a demo room for Friday." },
+        { "author": "alex", "text": "Someone should also record a backup demo video in case the wifi dies." }
+      ],
+      "expected": [
+        { "title": "Book a demo room", "assignee": null },
+        { "title": "Record a backup demo video", "assignee": null }
+      ]
+    },
+    {
+      "id": "assigned-by-someone-else",
+      "members": [
+        { "id": "alex", "name": "Alex", "role": "PM" },
+        { "id": "jamie", "name": "Jamie", "role": "Frontend" },
+        { "id": "morgan", "name": "Morgan", "role": "Design" }
+      ],
+      "messages": [
+        { "author": "alex", "text": "Morgan, can you design the onboarding screens by Wednesday?" },
+        { "author": "morgan", "text": "Sure, on it." },
+        { "author": "alex", "text": "Jamie, please fix the broken signup button." },
+        { "author": "jamie", "text": "Will do." }
+      ],
+      "expected": [
+        { "title": "Design the onboarding screens", "assignee": "morgan" },
+        { "title": "Fix the broken signup button", "assignee": "jamie" }
+      ]
+    },
+    {
+      "id": "no-action-items",
+      "members": [
+        { "id": "alex", "name": "Alex", "role": "PM" },
+        { "id": "jamie", "name": "Jamie", "role": "Frontend" }
+      ],
+      "messages": [
+        { "author": "alex", "text": "That workshop yesterday was fun." },
+        { "author": "jamie", "text": "Yeah, the pizza was great too." }
+      ],
+      "expected": []
+    }
+  ]
+}
