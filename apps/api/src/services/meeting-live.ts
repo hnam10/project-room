@@ -127,6 +127,8 @@ export async function answerMeetingMention(
     return created;
   } catch (error) {
     console.error(`Meeting @AI reply failed for ${meetingId}`, error);
+    // Same rule for the error line: nothing is written once the AI is off or the meeting has ended.
+    if (!(await aiOn().catch(() => false))) return [];
     return createLine(projectId, meetingId, askerId, 'I couldn’t reach the AI model just now. Please try again.', 'ai').then(
       (line) => [line],
       () => [],
