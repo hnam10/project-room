@@ -5,6 +5,19 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Validate edits against the saved idea.** Idea updates now validate the combined stored
+  record and patch with the creation rules before writing or resetting a topic board. Omitting the theme
+  cannot bypass strategy JSON validation, and description-only or theme-only edits cannot bypass the
+  240-character topic/direct-idea limit. Regression tests cover rejected edits leaving boards unchanged,
+  valid partial strategy edits, category changes and legacy plain-text guidance. Full check passes (261 tests).
+
+- 2026-10-25 — **Brainstorming rebased onto main.** Replayed the ten brainstorming commits over the
+  latest polls, chat, evaluation and dialog updates. Resolved shared imports and UI/documentation conflicts;
+  preserved concise strategies, plain-text editing, immediate hearts and direct approval. Saved strategy
+  cards use the same teal direction token as pending strategies. Kept a local pre-rebase backup branch.
+  Full check passes (258 tests) and shared/API/web builds pass. Authenticated browser verification remains
+  blocked by the local project's connection error, including after retrying with the API started.
+
 - 2026-10-25 — **Roomier AI review dialogs.** The idea, direction, topic and poll review dialogs open wide (640px),
   stack each label over a full-width field, and give the description 10 rows, so a draft reads at a glance.
 - 2026-10-25 — **Polls replace decisions.** The Decisions tab is now **Polls** (`/polls`): every poll opened in a
@@ -27,6 +40,89 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Removed Make task shortcuts.** Idea and strategy cards no longer expose a direct
+  task-conversion button; removed its handler and styles. Existing task links remain visible, and
+  relevant approval-generated task suggestions still require review before creating tasks.
+  Browser-checked both card types in a temporary fixture, then removed it. Full check passes with
+  261 tests; the web production build passes.
+
+- 2026-10-25 — **Immediate hearts and direct approval.** Brainstorm cards always show a heart/count,
+  with a filled active heart and no Start voting control. Hearts toggle personal support without
+  opening a vote or approving the idea. Removed Shortlist; every unapproved card offers Approve
+  directly, retaining confirmation and showing Approved afterward. The API no longer requires an open
+  vote or shortlist, while rejecting hearts/approval on central topics and duplicate approval.
+  Legacy fields/endpoints remain compatible with older clients. Browser-checked heart/unheart and
+  confirmed approval using a temporary local fixture, then removed it. API regression tests cover
+  immediate hearts, separate approval and multiple members.
+  Full check passes with 261 tests; API and web production builds pass.
+
+- 2026-10-25 — **Category-free brainstorming UI.** Removed category selectors from add/edit and AI
+  review dialogs, the idea category filter and saved-card category tags. Options and ideas share one
+  card style; strategies remain separate. New member ideas use the existing Option default, while editing
+  existing records and reviewing drafts preserves their internal themes and behavior. Full check passes
+  with 259 tests; the web build passes. Browser-checked card rendering in a temporary fixture, then
+  removed it; the authenticated local project remained unavailable in this browser session.
+
+- 2026-10-25 — **Plain-text strategy editing.** Draft review and saved-strategy editing now use labelled
+  direction, step and scope fields instead of a JSON textarea. Steps can be added/removed within the
+  one-to-four limit; incomplete fields remain editable and native required-field validation prevents
+  incomplete submission. JSON serialization stays internal and old plain-text strategies keep a prose
+  editor. Browser-checked clearing/editing fields, adding/removing steps and saving to the rendered plan
+  with a temporary fixture, then removed the fixture.
+  Full check passes with 259 tests; the web production build passes.
+
+- 2026-10-25 — **Much shorter brainstorming strategies.** New JSON contains only recommended direction,
+  up to four short step sentences, and essential scope. Each section/step requests one or two sentences;
+  product guidance targets 120–180 words overall and simple decisions less. Removed the repeated
+  focus/why/action/deliverable/criteria/gate fields and extra assumptions/evidence/deferred sections.
+  Older detailed JSON renders compactly without rewriting saved records; plain text remains readable.
+  Regression tests cover concise generation, review/approval/edit/refresh and old-format compatibility.
+  Browser-checked the three-section display with a temporary fixture, then removed it. A live provider
+  check returned a 93-word plan with four short steps. Full check passes with 259 tests; both builds pass.
+
+- 2026-10-25 — **Research survives AI service limits.** Reproduced the fitness-topic failure as an
+  upstream daily-token 429. Topic preparation now retains web sources and reports unavailable AI
+  summaries/strategies explicitly instead of aborting the whole board. Unsummarized source cards are
+  labelled honestly and pending cards recover summaries on a later manual retry. No strategy is faked,
+  and no provider/model/key is changed. Collapsed sections show AI unavailable; upstream AI failures
+  outside preparation return a clear 503. Live isolated-memory verification returned two research cards
+  while the real strategy call was rate limited. Full check passes with 258 tests; both builds pass.
+  Direct and proxied local API health checks returned 200. The browser session could not reopen its
+  authenticated project, so the new status label remains browser-unverified; availability is covered by API tests.
+
+- 2026-10-25 — **Fixed live strategy JSON failures.** Reproduced a provider 400 when generated
+  deferred-scope entries did not match the nested nullable response schema. Topic preparation now
+  requests the roadmap directly at the JSON root, with explicit nested-shape examples; other stages
+  keep their smaller facilitation schema. Structured calls retry malformed output at most twice with
+  corrective feedback, while request/auth/rate-limit/service failures are never retried. Invalid JSON
+  is never accepted. Live configured-provider checks passed for product (five steps) and non-product
+  (four steps) topics. Regression tests cover the root schema, correction retries, limits and exclusions.
+  Full check passes with 256 tests; the API production build passes.
+
+- 2026-10-25 — **Strategies use structured JSON.** A shared schema defines the goal, context,
+  assumptions, evidence, recommendation, steps and scope. Each step has focus/why, action, deliverable,
+  success criterion and a next-step gate. Real and mock providers return the same shape; source URLs
+  are checked against supplied research and unsupported verified findings become unknown. Plans persist
+  as JSON in the existing description field (20,000-character limit); review/edit rejects malformed
+  JSON objects. The UI renders clean sections and steps with a collapsed goal preview, and keeps legacy
+  text readable. No Markdown dependency was installed. Browser-checked expansion and layout using a
+  temporary local fixture without changing project data; removed the fixture afterward.
+  Full check passes with 250 tests; API and web production builds pass.
+
+- 2026-10-25 — **Actionable brainstorm strategies.** Topic preparation now requests a specific goal,
+  ranked assumptions, sourced comparisons, a provisional direction and numbered steps with focus/why,
+  action, deliverable, success criterion and a next-step gate. Student projects get an evidence-to-MVP
+  roadmap and explicit scope/deferred features; non-product topics get proportionate guidance instead.
+  Strategy drafts and editing support 10,000 characters, preserve line breaks and use full-width cards.
+  Direct ideas keep their short entry/preview limits. Research again can create a new reviewable roadmap
+  without changing saved strategies. The labelled mock offers a planning template, never fake findings.
+  Full check passes with 250 tests, including long-strategy review/approval/edit/refresh and non-product
+  guidance; API and web builds pass. Browser verification was blocked by an unreachable API and a database
+  file locked by another process; that process was left untouched.
+
+- 2026-10-24 — **Sidebar cleanup.** Removed the placeholder Project Room workspace dropdown above
+  the organization switcher, along with its unused styles and toast.
+
 - 2026-10-24 — **Shared mute, simpler brainstorming, task commands.** Participant tiles show everyone's
   mute status via meeting realtime updates and fresh reads. Only a live participant can update their own
   status; leaving/ending clears it. Local mic changes stay immediate and status writes are serialized.

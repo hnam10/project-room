@@ -23,7 +23,7 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 | `message` | Chat message; `authorId` is a member id or `'ai'`. `fileId` points at a shared file when the message attaches one. | `channelId`, `suggestionId`, `fileId` |
 
 | `task` | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from | `assigneeId → member` |
-| `idea` | Central problem or brainstorm card; cards can be shortlisted and explicitly approved; voting starts only after a member opens it; source links and significant edits remain visible | `sourceSuggestionId`, `taskId` once converted |
+| `idea` | Central problem or brainstorm card; hearts toggle personal support immediately and members explicitly approve cards; source links and significant edits remain visible | `sourceSuggestionId`, `taskId` once converted |
 | `decision` | Retired: old open questions and decisions, no longer written or read (polls replace them) | `raisedById`, `decidedById` |
 | `suggestion` | **Structured AI output** awaiting review, including `brainstorm_analysis`, idea drafts and task drafts; `status` = `pending` / `approved` / `dismissed` | `sourceMessageId`, `ideaId`, `originIdeaId`, `createdTaskIds` |
 
@@ -32,6 +32,31 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 All records carry `projectId`; repositories always filter by it.
 
 ## The AI action engine
+
+Topic preparation returns concise JSON guidance in `FacilitateResult.strategy`: a provisional recommended
+direction, two to four concrete steps, and essential scope. Each section and step uses one or two short
+sentences. Product plans lead to a small useful version; other topics use a proportionate decision/trial plan.
+The provider requests this roadmap directly at the JSON root, avoiding a nested nullable strategy
+wrapper and unrelated tasks/ideas fields. The shared structured client retries generation/JSON validation
+failures up to twice with correction feedback; request, auth, rate-limit and service errors are not retried.
+Topic preparation isolates AI failures from web search: sources can still be reviewed with an explicit
+unavailable-summary notice, and strategy failures preserve completed research. A later manual retry
+refreshes pending unavailable-summary cards. `AiRequestError` carries upstream status for safe availability
+messages; other routes map it to 503 rather than exposing provider details. Preparation records a completed
+availability check so teams can add their own ideas even when AI is unavailable.
+`strategyPlanSchema` defines only `recommendation` (string), `steps` (up to four strings), and
+`essentialScope` (string). Research remains in its separate section rather than being repeated in guidance.
+Plans are serialized as JSON in the existing strategy description field (up to `STRATEGY_DESCRIPTION_MAX`,
+20,000 characters) through generation, review, approval and editing. `StrategyDetails` reads this schema
+and renders three short sections without Markdown. Older detailed JSON is condensed at read time using
+its direction, action sentences and essential scope; original saved records are not rewritten.
+`StrategyEditor` exposes normal text fields for direction, each step and essential scope in both draft
+review and saved-idea editing. It serializes JSON on change, tolerates incomplete form fields while typing,
+and relies on required fields plus shared API validation before saving. Members can keep one to four steps.
+Legacy plain text remains readable. Malformed JSON objects are rejected on review/edit. Other facilitation summaries
+retain their short limit. Preparation cannot create
+direct ideas or tasks; the plan remains a reviewable Strategy draft. Manual refresh keys the draft by its
+content, preserving saved guidance while allowing an existing topic to receive the updated roadmap format.
 
 Explicit commands are handled first by `services/chat-commands.ts`, without a model call.
 `@AI create topic Weekend plans` creates that exact topic; `@AI add idea pool to Weekend plans topic`
@@ -85,10 +110,12 @@ fabricates research and brainstorming falls back to chat context.
 
 `idea.kind = problem` identifies a topic; a project can have several topic tabs. Cards and AI suggestions
 carry `topicId` (a link to the topic's idea record). A topic has `topicId = null`; every new board card
-requires a valid topic in the same project. Ordinary ideas have `shortlisted`, `approved`,
-`researchStale`, and `significantChangeAt` fields. Members edit cards through `PATCH /ideas/:id`, shortlist
-through `POST /ideas/:id/shortlist`, and explicitly approve a shortlisted direction through
-`POST /ideas/:id/approve`. `services/idea-change.ts` filters minor text edits; a significant edit clears
+requires a valid topic in the same project. Ordinary ideas have `approved`, `researchStale`, and
+`significantChangeAt` fields. Members edit cards through `PATCH /ideas/:id` and directly approve a
+direction through `POST /ideas/:id/approve` after confirming in the UI. Hearts use `POST /ideas/:id/vote`
+to toggle personal support immediately; they do not approve the idea or start a formal vote. The legacy
+`shortlisted`/`votingOpen` fields and their endpoints remain compatible with older clients, but are not
+prerequisites or controls in the current UI. `services/idea-change.ts` filters minor text edits; a significant edit clears
 approval, flags existing research as stale, and exposes a re-evaluation trigger. Saving the form groups edits
 before this check, rather than invoking the model for each keystroke.
 

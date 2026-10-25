@@ -172,7 +172,7 @@ describe('workspace API', () => {
     live.ws.close();
   });
 
-  it('turns an AI-guided chat brainstorm into a reviewed idea, then explicitly opens voting', async () => {
+  it('turns an AI-guided chat brainstorm into a reviewed idea with immediate heart support', async () => {
     const live = listen('hackathon');
     await live.ready;
 
@@ -223,11 +223,12 @@ describe('workspace API', () => {
     expect(idea?.votingOpen).toBe(false);
     expect(idea?.sourceSuggestionId).toBe(suggestion.id);
 
-    expect((await api(`/projects/hackathon/ideas/${idea!.id}/vote`, { method: 'POST' })).status).toBe(409);
-    const opened = await api<Idea>(`/projects/hackathon/ideas/${idea!.id}/start-vote`, { method: 'POST' });
-    expect(opened.body.votingOpen).toBe(true);
     const voted = await api<Idea>(`/projects/hackathon/ideas/${idea!.id}/vote`, { method: 'POST' });
+    expect(voted.status).toBe(200);
     expect(voted.body.voterIds).toContain('alex');
+    expect(voted.body.votingOpen).toBe(false);
+    const unhearted = await api<Idea>(`/projects/hackathon/ideas/${idea!.id}/vote`, { method: 'POST' });
+    expect(unhearted.body.voterIds).not.toContain('alex');
 
     await live.waitFor((candidate) => candidate.type === 'change' && candidate.table === 'message' && candidate.record.authorId === 'ai');
     await api('/projects/hackathon/channels/hackathon-general/messages', {

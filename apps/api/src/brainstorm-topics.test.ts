@@ -14,6 +14,9 @@ import { rid } from './db/records.js';
 import { createMessage, listMessages } from './repositories/messages.js';
 import { onMessagePosted } from './services/ai-engine.js';
 import { parseChatCommand } from './services/chat-commands.js';
+import { readStrategyPlan } from '@project-room/shared';
+import { getAiProvider } from './ai/index.js';
+import { AiRequestError } from './ai/openai.js';
 
 vi.mock('./services/research.js', () => ({ researchWeb: vi.fn() }));
 let server: Server;
@@ -35,10 +38,10 @@ afterAll(async () => {
   await new Promise((resolve) => server.close(resolve));
   await closeDb();
 });
-async function call<T>(method: string, path: string, body?: unknown) {
+async function call<T>(method: string, path: string, body?: unknown, member = 'alex') {
   const res = await fetch(`${base}${path}`, {
     method,
-    headers: { 'content-type': 'application/json', 'x-member-id': 'alex' },
+    headers: { 'content-type': 'application/json', 'x-member-id': member },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return { status: res.status, body: (res.status === 204 ? null : await res.json()) as T };
@@ -120,6 +123,202 @@ it('creates unassigned tasks from inline commands and same-member same-channel f
   expect(added.every((task) => task.assigneeId === null && task.status === 'todo' && task.dueDate === null)).toBe(true);
   expect(await command(`@AI create task ${'x'.repeat(121)}`)).toContain('between 1 and 120');
   expect((await snapshot()).tasks).toHaveLength(before + 2);
+});
+
+it('condenses previously saved JSON strategies without requiring migration or losing compatibility', () => {
+  const old = {
+    goal: 'Old goal',
+    context: '',
+    assumptions: [],
+    evidence: [],
+    recommendation: { direction: 'Test a dorm workout flow.', rationale: 'Long explanation.', changeIf: 'Different needs.' },
+    steps: [
+      {
+        title: 'Interview',
+        focus: 'Users',
+        why: 'Validation',
+        action: 'Ask students about exercise. Compare their barriers. This extra detail should be hidden.',
+        deliverable: 'Notes',
+        successCriterion: 'Three examples',
+        nextStep: 'Prototype',
+      },
+    ],
+    scope: { essential: ['One audience', 'One core flow'], deferred: [] },
+  };
+  const plan = readStrategyPlan(JSON.stringify(old));
+  expect(plan).toEqual({
+    recommendation: 'Test a dorm workout flow.',
+    steps: ['Ask students about exercise. Compare their barriers.'],
+    essentialScope: 'One audience; One core flow',
+  });
+  expect(readStrategyPlan('Existing plain text')).toBeNull();
+});
+
+it('generates a concise strategy and preserves it through review, approval and editing', async () => {
+  const problem = await topic('Fitness app for students with limited equipment');
+  const drafts = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  const strategy = drafts.body.find((item) => item.ideaDraft?.theme === 'Strategy')!;
+  const description = strategy.ideaDraft!.description;
+  expect(description.length).toBeLessThan(2000);
+  const plan = readStrategyPlan(description)!;
+  expect(Object.keys(plan)).toEqual(['recommendation', 'steps', 'essentialScope']);
+  expect(plan.steps.length).toBeLessThanOrEqual(4);
+  expect(plan.steps.every((step) => typeof step === 'string' && step.length <= 350)).toBe(true);
+  expect(description).toContain('not a research finding');
+  expect((await call('PATCH', `/suggestions/${strategy.id}`, { ideaDraft: { ...strategy.ideaDraft, description: '{}' } })).status).toBe(
+    400,
+  );
+  const review = await call<Suggestion>('PATCH', `/suggestions/${strategy.id}`, { ideaDraft: strategy.ideaDraft });
+  expect(review.status).toBe(200);
+  expect(review.body.ideaDraft?.description).toBe(description);
+  expect((await call('POST', `/suggestions/${strategy.id}/approve`, {})).status).toBe(200);
+  const saved = (await snapshot()).ideas.find((idea) => idea.theme === 'Strategy')!;
+  expect(saved.description).toBe(description);
+  plan.essentialScope = 'Team note: start with interviews.';
+  const edited = await call<Idea>('PATCH', `/ideas/${saved.id}`, {
+    description: JSON.stringify(plan, null, 2),
+    theme: 'Strategy',
+  });
+  expect(edited.status).toBe(200);
+  expect(edited.body.description).toContain('Team note: start with interviews.');
+  expect((await call('PATCH', `/ideas/${saved.id}`, { description: '{"goal":"Incomplete"}', theme: 'Strategy' })).status).toBe(400);
+  expect((await call('PATCH', `/suggestions/${strategy.id}`, { ideaDraft: { ...strategy.ideaDraft, description: '{}' } })).status).toBe(
+    409,
+  );
+  const refreshed = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
+  const refreshedStrategy = refreshed.body.find((item) => item.ideaDraft?.theme === 'Strategy')!;
+  expect(refreshedStrategy.id).not.toBe(strategy.id);
+  expect(refreshedStrategy.status).toBe('pending');
+  expect(refreshedStrategy.ideaDraft!.description.length).toBeLessThan(2000);
+  expect((await snapshot()).ideas.find((idea) => idea.id === saved.id)?.description).toBe(edited.body.description);
+  expect(
+    (await call('POST', '/ideas', { topicId: problem.id, title: 'Too much direct detail', description: 'x'.repeat(241) })).status,
+  ).toBe(400);
+});
+
+it.each(['problem', 'idea'] as const)('rejects oversized description edits on a stored %s without changing its board', async (kind) => {
+  const problem = await topic();
+  const idea = await card(problem.id);
+  const target = kind === 'problem' ? problem : idea;
+  const before = await snapshot();
+  for (const patch of [{ description: 'x'.repeat(241) }, { description: 'x'.repeat(241), theme: 'Option' }]) {
+    const result = await call<{ issues: { path: string }[] }>('PATCH', `/ideas/${target.id}`, patch);
+    expect(result.status).toBe(400);
+    expect(result.body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ path: 'description' })]));
+    expect((await snapshot()).ideas).toEqual(before.ideas);
+  }
+  if (kind === 'problem') {
+    expect((await call('PATCH', `/ideas/${target.id}`, { description: 'x'.repeat(241), theme: 'Strategy' })).status).toBe(400);
+    expect((await snapshot()).ideas).toEqual(before.ideas);
+  }
+  expect((await call('PATCH', `/ideas/${target.id}`, { description: 'x'.repeat(240) })).status).toBe(200);
+});
+
+it('validates partial strategy edits and category changes against the saved description', async () => {
+  const problem = await topic();
+  const strategy = await card(problem.id, 'Strategy');
+  const description = JSON.stringify({
+    recommendation: 'Test the student problem before building. '.repeat(7),
+    steps: ['Interview students about their last attempt to exercise.'],
+    essentialScope: 'Keep only the core workout flow.',
+  });
+  expect(description.length).toBeGreaterThan(240);
+  const saved = await call<Idea>('PATCH', `/ideas/${strategy.id}`, { description });
+  expect(saved.status).toBe(200);
+  for (const patch of [{ description: '{}' }, { description: '{invalid' }, { theme: 'Option' }]) {
+    expect((await call('PATCH', `/ideas/${strategy.id}`, patch)).status).toBe(400);
+    expect((await snapshot()).ideas.find((idea) => idea.id === strategy.id)).toEqual(saved.body);
+  }
+  expect((await call('PATCH', `/ideas/${strategy.id}`, { title: 'Updated strategy title' })).status).toBe(200);
+  expect((await call('PATCH', `/ideas/${strategy.id}`, { theme: 'Option', description: 'A short direct idea.' })).status).toBe(200);
+  expect((await call('PATCH', `/ideas/${strategy.id}`, { theme: 'Strategy', description: 'Existing plain text guidance.' })).status).toBe(
+    200,
+  );
+});
+
+it('keeps non-product preparation practical rather than imposing an MVP roadmap', async () => {
+  const problem = await topic('What should we eat for dinner?');
+  const drafts = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  const guidance = drafts.body.find((item) => item.ideaDraft?.theme === 'Strategy')!.ideaDraft!.description;
+  expect(guidance).toContain('allergies');
+  expect(readStrategyPlan(guidance)?.steps[0]).toContain('preferences');
+  expect(guidance).not.toContain('MVP');
+  expect(guidance).not.toContain('Interview');
+});
+
+it('keeps web research available when AI classification is rate limited, then recovers summaries on retry', async () => {
+  const problem = await topic('Fitness app for students with limited equipment');
+  web.mockResolvedValue({
+    configured: true,
+    error: null,
+    results: [
+      {
+        title: 'Student fitness app',
+        url: 'https://example.com/fitness',
+        content: 'This fitness app offers students bodyweight workouts without exercise equipment, designed for small spaces.',
+      },
+    ],
+  });
+  const classify = vi.spyOn(getAiProvider(), 'classifyBrainstorm').mockRejectedValueOnce(new AiRequestError(429, 'Daily token limit'));
+  const first = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  classify.mockRestore();
+  expect(first.status).toBe(201);
+  const source = first.body.find((item) => item.researchSources.length > 0)!;
+  expect(source.researchSources[0]?.url).toBe('https://example.com/fitness');
+  expect(source.proposal).toContain('summary is unavailable');
+  expect(first.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(false);
+  expect(first.body.find((item) => item.title === 'Topic research status')?.proposal).toContain('usage limit');
+  const retry = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
+  expect(retry.status).toBe(201);
+  expect(retry.body.find((item) => item.id === source.id)?.reason).not.toContain('summary unavailable');
+  expect(retry.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(true);
+});
+
+it('returns research and an honest status if strategy generation fails', async () => {
+  const problem = await topic('Fitness app for students with limited equipment');
+  web.mockResolvedValue({
+    configured: true,
+    error: null,
+    results: [
+      {
+        title: 'Student fitness app',
+        url: 'https://example.com/fitness',
+        content: 'This fitness app offers students bodyweight workouts without exercise equipment, designed for small spaces.',
+      },
+    ],
+  });
+  const generate = vi.spyOn(getAiProvider(), 'facilitateBrainstorm').mockRejectedValueOnce(new Error('Invalid strategy JSON'));
+  const result = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  generate.mockRestore();
+  expect(result.status).toBe(201);
+  expect(result.body.some((item) => item.researchSources.length > 0)).toBe(true);
+  expect(result.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(false);
+  expect(result.body.find((item) => item.title === 'Topic research status')?.proposal).toContain('AI guidance is temporarily unavailable');
+});
+
+it('toggles hearts immediately without opening a vote or approving the idea', async () => {
+  const problem = await topic();
+  const idea = await card(problem.id);
+  expect(idea.votingOpen).toBe(false);
+  const first = await call<Idea>('POST', `/ideas/${idea.id}/vote`);
+  expect(first.status).toBe(200);
+  expect(first.body).toMatchObject({ voterIds: ['alex'], approved: false, shortlisted: false, votingOpen: false });
+  expect((await call<Idea>('POST', `/ideas/${idea.id}/vote`, undefined, 'jamie')).body.voterIds).toEqual(
+    expect.arrayContaining(['alex', 'jamie']),
+  );
+  expect((await call<Idea>('POST', `/ideas/${idea.id}/vote`)).body.voterIds).toEqual(['jamie']);
+  expect((await call('POST', `/ideas/${problem.id}/vote`)).status).toBe(409);
+});
+
+it('approves directly without shortlisting and rejects duplicate or topic approval', async () => {
+  const problem = await topic();
+  const idea = await card(problem.id);
+  expect(idea.shortlisted).toBe(false);
+  const approved = await call<Idea>('POST', `/ideas/${idea.id}/approve`);
+  expect(approved.status).toBe(200);
+  expect(approved.body).toMatchObject({ approved: true, shortlisted: false });
+  expect((await call('POST', `/ideas/${idea.id}/approve`)).status).toBe(409);
+  expect((await call('POST', `/ideas/${problem.id}/approve`)).status).toBe(409);
 });
 
 it('requires a topic and explicit selection when more than one exists', async () => {

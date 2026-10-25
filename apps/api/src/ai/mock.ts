@@ -1,5 +1,6 @@
 import type { ActionItem } from '@project-room/shared';
 import type { AiProvider, ConversationMessage } from './provider.js';
+import { mockStrategy } from './mock-strategy.js';
 
 const PRODUCT_CUES =
   /\b(app|application|product|platform|software|website|marketplace|dashboard|tracker|calendar|reminder|tool|device|service|prototype)\b|앱|제품|플랫폼|서비스|도구|웹사이트/i;
@@ -181,7 +182,7 @@ export const mockProvider: AiProvider = {
   async facilitateBrainstorm({ trigger, problem, ideas, research, mode = 'product' }) {
     const titles = ideas.map((idea) => idea.title);
     const summary: Record<typeof trigger, string> = {
-      problem_created: `Who experiences “${problem?.title ?? 'this problem'}”, what is hardest today, and what outcome would prove the idea helps?`,
+      problem_created: mockStrategy(problem, mode).recommendation,
       first_idea: research.length
         ? `Review these search results for similar solutions to “${titles[0]}”. Check what each source actually says before drawing a conclusion.`
         : `Research existing solutions to “${titles[0]}”. Web research is not configured, so no market claims are available.`,
@@ -217,6 +218,7 @@ export const mockProvider: AiProvider = {
         : null;
     return {
       summary: summary[trigger] ?? '',
+      ...(trigger === 'problem_created' ? { strategy: mockStrategy(problem, mode) } : {}),
       ideas: direction ? [direction] : [],
       tasks:
         trigger === 'idea_approved' && titles[0]
