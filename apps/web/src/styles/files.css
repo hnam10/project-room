@@ -1,0 +1,86 @@
+.files-page {
+  overflow: auto;
+}
+.files-page .head-actions {
+  margin-left: auto;
+  width: auto;
+}
+.files-page .page-emoji {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-weak);
+  color: var(--accent);
+}
+.files-page .page-emoji .icon {
+  width: 18px;
+  height: 18px;
+}
+.files-page.dropping {
+  background: var(--accent-weak);
+}
+.files-page .empty-state {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+}
+.files-page .empty-state p {
+  max-width: 36rem;
+  margin: 0;
+  text-wrap: balance;
+}
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.file-row > .icon {
+  color: var(--accent);
+  flex: none;
+}
+.file-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.file-main strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-main .meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.file-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+@media (max-width: 720px) {
+  .file-row {
+    flex-wrap: wrap;
+  }
+  .file-actions {
+    width: 100%;
+    margin-left: 28px;
+  }
+}

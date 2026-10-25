@@ -1,18 +1,21 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Idea, Meeting, TranscriptLine } from '@project-room/shared';
+import type { Idea, Meeting, ProjectFile, TranscriptLine } from '@project-room/shared';
 import type { MeetingAi, MeetingTickInput, MeetingTickResult } from './ai/meeting.js';
 import { createApp } from './app.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
+import { setMemoryDocumentId } from './repositories/files.js';
 import { getMeeting } from './repositories/meetings.js';
 import { listSuggestions } from './repositories/suggestions.js';
 import { listIdeas } from './repositories/ideas.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
 import { shouldRun } from './services/meeting-trigger.js';
-import { checkMeeting, noteLine, runLiveTick, triggerState } from './services/meeting-live.js';
 import { proposeMeetingTopic } from './services/meeting-topic.js';
+import type { AiProvider, FileExcerpt } from './ai/provider.js';
+import { answerMeetingMention, checkMeeting, noteLine, runLiveTick, triggerState } from './services/meeting-live.js';
+import type { ProjectMemory } from './services/project-memory.js';
 
 let server: Server;
 let hub: RealtimeHub;
@@ -316,6 +319,67 @@ describe('live meeting pipeline', () => {
     expect(names[0]).not.toMatch(/\(chat\)$/);
     expect(names[1]).toMatch(/ \(chat\)$/);
     expect(action?.cite).toMatch(/^.+ · Meeting chat · \d\d:\d\d$/);
+  });
+
+  it('shares a file in the meeting chat and gives the AI passages from shared files only', async () => {
+    const res = await fetch(`${base}/api/projects/hackathon/files`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/octet-stream',
+        'x-file-name': 'plan.txt',
+        'x-file-type': 'text/plain',
+        'x-member-id': 'alex',
+      },
+      body: 'Login ships first.',
+    });
+    const file = (await res.json()) as ProjectFile;
+    const lines = `/meetings/${meetingId}/lines`;
+    expect((await post(lines, { text: 'plan.txt', source: 'voice', fileId: file.id })).status).toBe(400);
+    expect((await post(lines, { text: 'x', source: 'chat', fileId: 'nope' })).status).toBe(404);
+    const shared = (await post<TranscriptLine>(lines, { text: 'plan.txt', source: 'chat', fileId: file.id })).body;
+    expect(shared).toMatchObject({ fileId: file.id, text: 'plan.txt', source: 'chat' });
+
+    const queries: string[] = [];
+    const memory: ProjectMemory = {
+      rememberFile: async () => null,
+      forgetFile: async () => {},
+      excerpts: async (_projectId, query) => {
+        queries.push(query);
+        return [
+          { name: 'plan.txt', text: 'Login ships first.', documentId: 'doc-plan' },
+          // Same name, different project file that was never shared in this meeting.
+          { name: 'plan.txt', text: 'Not shared in this meeting.', documentId: 'doc-other' },
+        ];
+      },
+    };
+    await setMemoryDocumentId('hackathon', file.id, 'doc-plan');
+    const { ai, inputs } = fakeAi(() => ({}));
+    await runLiveTick('hackathon', meetingId, ai, memory);
+    expect(queries[0]).toContain('plan.txt');
+    expect(inputs[0]!.files).toEqual([{ name: 'plan.txt', text: 'Login ships first.', documentId: 'doc-plan' }]);
+    expect(inputs[0]!.lines.at(-1)!.text).toBe('(shared a file) plan.txt');
+  });
+
+  it('answers @AI in the meeting chat from the shared file, and live ticks skip the reply', async () => {
+    const lines = `/meetings/${meetingId}/lines`;
+    expect((await post(lines, { text: 'fake reply', source: 'ai' })).status).toBe(400);
+    await post(lines, { text: '@AI read the file and summarize it', source: 'chat' });
+    const seen: FileExcerpt[][] = [];
+    const ai = {
+      runMention: async (input: { files?: FileExcerpt[] }) => {
+        seen.push(input.files ?? []);
+        return { reply: 'The plan says login ships first.' };
+      },
+    } as unknown as AiProvider;
+    // No Agent Memory: shared text files are still read whole.
+    const [reply] = await answerMeetingMention('hackathon', meetingId, 'alex', ai, null);
+    expect(seen[0]).toEqual([{ name: 'plan.txt', text: 'Login ships first.' }]);
+    expect(reply).toMatchObject({ source: 'ai', speakerId: 'alex', text: 'The plan says login ships first.' });
+
+    const { ai: tickAi, inputs } = fakeAi(() => ({}));
+    await runLiveTick('hackathon', meetingId, tickAi, null);
+    expect(inputs[0]!.lines.some((l) => l.text.includes('login ships first'))).toBe(false);
+    expect((await getMeeting('hackathon', meetingId)).aiCursor).toBe(reply!.id);
   });
 
   it('POST /ai {enabled:false} stops ticks; only participants may toggle', async () => {

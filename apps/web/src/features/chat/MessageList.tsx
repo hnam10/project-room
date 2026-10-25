@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef } from 'react';
 import { AI_AUTHOR, type Message } from '@project-room/shared';
+import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { useFeedback } from '../../components/Feedback';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
@@ -7,6 +8,29 @@ import { ActionItemsCard } from './ActionItemsCard';
 
 const MENTION = /(@(?:AI|team|alex|jamie|taylor|morgan)\b)/gi;
 const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+export function FileChip({ projectId, fileId, name }: { projectId: string; fileId: string; name: string }) {
+  const { toastError } = useFeedback();
+  const save = async () => {
+    try {
+      const blob = await api.downloadFile(projectId, fileId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toastError(error);
+    }
+  };
+  return (
+    <button type="button" className="msg-file" aria-label={`Download ${name}`} onClick={() => void save()}>
+      <Icon name="file" />
+      <span>{name}</span>
+    </button>
+  );
+}
 
 function MessageText({ text }: { text: string }) {
   return (
@@ -25,8 +49,8 @@ function MessageText({ text }: { text: string }) {
 }
 
 export function MessageList({ channelId, scrollRef }: { channelId: string; scrollRef: React.RefObject<HTMLDivElement | null> }) {
-  const { messages, loadMessages, members } = useWorkspace();
-  const { suggestions } = useSnapshot();
+  const { projectId, messages, loadMessages, members } = useWorkspace();
+  const { suggestions, files } = useSnapshot();
   const { toastError } = useFeedback();
   const list = messages(channelId);
   const lastId = useRef<string | undefined>(undefined);
@@ -66,7 +90,11 @@ export function MessageList({ channelId, scrollRef }: { channelId: string; scrol
               </span>
             )}
             <span className="msg-text">
-              <MessageText text={m.text} />
+              {m.fileId ? (
+                <FileChip projectId={projectId} fileId={m.fileId} name={files.find((file) => file.id === m.fileId)?.name ?? m.text} />
+              ) : (
+                <MessageText text={m.text} />
+              )}
             </span>
             {suggestion && (
               <div className="msg-extra">

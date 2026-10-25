@@ -1,4 +1,4 @@
-import type { ActionItem, BrainstormTrigger, Decision, IdeaDraft, Priority, ResearchSource } from '@project-room/shared';
+import type { ActionItem, BrainstormTrigger, Decision, IdeaDraft, IdeaTheme, Priority, ResearchSource } from '@project-room/shared';
 
 // The contract every AI backend implements. The rest of the API only talks to this interface,
 // so swapping the mock for a real model is a change in src/ai/index.ts alone.
@@ -11,6 +11,17 @@ export interface ConversationMessage {
   authorId: string;
   authorName: string;
   text: string;
+  createdAt?: string;
+  /** Set when the line was recalled from another channel, or from earlier than the thread window. */
+  channelName?: string;
+}
+
+/** A short passage from a project file, already extracted by Agent Memory. */
+export interface FileExcerpt {
+  name: string;
+  text: string;
+  /** The Agent Memory document the passage came from, when the search returned it. */
+  documentId?: string;
 }
 
 /** An existing task, so the AI can avoid duplicates and point at the ones that are at risk. */
@@ -135,6 +146,43 @@ export interface MemoryAnswerDraft {
   sourceDecisionIds: string[];
 }
 
+/** A brainstorm card the model wants a person to approve. */
+export interface IdeaProposal {
+  title: string;
+  description: string;
+  theme: IdeaTheme;
+  reason: string;
+  quote: string | null;
+}
+
+export interface MentionResult extends ConversationAnalysis {
+  ideas: IdeaProposal[];
+  /** Plain answer to the @AI mention. Empty when the model had nothing to say. */
+  reply: string;
+}
+
+/** A message the model found by searching, so a quote can be checked against it. */
+export interface MessageHit {
+  id: string;
+  authorName: string;
+  text: string;
+}
+
+/**
+ * Read-only project lookups the @AI tool loop may call. Implementations filter by project.
+ * The model never receives SurrealQL.
+ */
+export interface ProjectLookup {
+  listMembers(): Promise<MemberBrief[]>;
+  listTasks(filter: { status: string; assigneeId: string }): Promise<TaskBrief[]>;
+  searchMessages(query: string): Promise<MessageHit[]>;
+  listDecisions(): Promise<{ id: string; title: string; status: string; outcome: string | null }[]>;
+  listPendingSuggestions(): Promise<
+    { kind: string; title: string; proposal: string | null; taskId: string | null; ideaTitle: string | null }[]
+  >;
+  listIdeas(): Promise<{ id: string; title: string }[]>;
+}
+
 export interface AiProvider {
   readonly name: string;
   /** True when output comes from simple local rules rather than a model; shown in the UI. */
@@ -157,6 +205,12 @@ export interface AiProvider {
 
   /** Produces reviewable guidance and, where useful, editable idea or task drafts for a brainstorm trigger. */
   facilitateBrainstorm(input: FacilitateInput): Promise<FacilitateResult>;
+
+  /**
+   * @AI path that looks the project up through ProjectLookup, then proposes suggestions.
+   * Absent on the mock, which keeps the one-shot analyzeConversation call.
+   */
+  runMention?(input: { messages: ConversationMessage[]; files?: FileExcerpt[]; lookup: ProjectLookup }): Promise<MentionResult>;
 
   /** Cheap per-message check: does this message raise (or settle) a choice the team hasn't recorded? */
   detectOpenQuestion(message: ConversationMessage): Promise<ProposedDecision | null>;

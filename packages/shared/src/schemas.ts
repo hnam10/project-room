@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ideaDraftSchema, pollDraftSchema } from './meeting.js';
-import { BRAINSTORM_TRIGGERS, IDEA_THEMES, PRIORITIES, TASK_LABELS, TASK_STATUSES } from './domain.js';
+import { BRAINSTORM_TRIGGERS, IDEA_THEMES, MAX_FILE_BYTES, PRIORITIES, TASK_LABELS, TASK_STATUSES } from './domain.js';
 
 // Request bodies accepted by the API. The web app uses the inferred types when calling it.
 
@@ -28,6 +28,7 @@ export type ProjectUpdateInput = z.input<typeof projectUpdateSchema>;
 
 export const messageCreateSchema = z.object({
   text: z.string().trim().min(1).max(2000),
+  fileId: z.string().trim().min(1).max(64).nullable().optional(),
 });
 export type MessageCreateInput = z.input<typeof messageCreateSchema>;
 
@@ -79,6 +80,16 @@ export const memoryQuestionSchema = z.object({
   question: z.string().trim().min(3).max(300),
 });
 export type MemoryQuestionInput = z.input<typeof memoryQuestionSchema>;
+
+/** Display name of an upload, after the path has been stripped. */
+export const fileNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Give the file a name')
+  .max(120, 'File names must be 120 characters or fewer')
+  .refine((name) => name !== '.' && name !== '..', 'That file name is not allowed');
+
+export const fileSizeSchema = z.number().int().positive('Choose a file to upload').max(MAX_FILE_BYTES, 'That file is larger than 10 MB');
 
 export const actionItemSchema = z.object({
   title: z.string().trim().min(1).max(120),

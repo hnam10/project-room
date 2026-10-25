@@ -70,14 +70,14 @@ apps/api/          Express 5 + SurrealDB (embedded or remote) + WebSocket realti
   src/db/          connection, schema.surql (applied on start), seed, record-id helpers
   src/repositories/  one file per table; only place that writes SurrealQL
   src/services/    business rules (AI engine, suggestion approval)
-  src/ai/          AiProvider interface + providers (mock only, today)
+  src/ai/          AiProvider interface + OpenAI-compatible client and mock
   src/http/        project-membership middleware, error mapping, routes per feature
   src/realtime/    LIVE SELECT → WebSocket fan-out
 apps/web/          React 19 + Vite + React Router
   src/pages/       one route per feature (Board, Chat, Brainstorm, Decisions, placeholders)
   src/features/    feature components: board/, chat/, brainstorm/, dock/
   src/components/  shared UI primitives (Icon, Avatar, Modal, Feedback = toast/confirm)
-  src/state/       session (current member), workspace (project data + realtime), chatWindow
+  src/state/       session (current member), workspace (project data + realtime), chatWindow, meetingCall
   src/api/         REST client + realtime hook
   src/styles/      plain CSS split by feature; tokens in base.css
 prototype/         the first static prototype; do not build on it
@@ -143,8 +143,13 @@ exits first). Routes read the caller with `caller(res)` / `ctx(res)`; never read
 
 ## AI status
 
-`getAiProvider()` returns Claude (`src/ai/anthropic.ts`, structured output via `messages.parse` + zod) when
-`ANTHROPIC_API_KEY` is set, otherwise the labelled mock. Tests force the mock (`AI_PROVIDER=mock` in
-`vitest.config.ts`) so they never call the API. The model's output is a proposal: ids, tasks and quotes are
-validated against project data before a suggestion is stored. Questions about the project
-(`POST .../decisions/ask`) are answered from **approved decisions only**, never from the chat log.
+`getAiProvider()` splits work across two OpenAI-compatible hosts (`src/ai/openai.ts`, structured output via
+`response_format: json_schema` + zod). `OPENAI_API_KEY` runs `@AI`, Ask the project, chat brainstorm drafts,
+and the end-of-meeting summary. `NEBIUS_API_KEY` runs the open-question check, live meeting ticks, brainstorm
+classification, board facilitation, and research summaries. One key covers every job; with neither key the
+labelled mock runs. `GROQ_API_KEY` is only meeting speech-to-text. Tests force the mock
+(`AI_PROVIDER=mock` in `vitest.config.ts`) so they never call the API. The model's output is a proposal:
+ids, tasks and quotes are validated against project data before a suggestion is stored. `@AI` reads the
+latest channel thread, older lines that match the question, and Agent Memory passages from uploaded files
+when `AGENT_MEMORY_*` is set. Questions about the
+project (`POST .../decisions/ask`) are answered from **approved decisions only**, never from the chat log.

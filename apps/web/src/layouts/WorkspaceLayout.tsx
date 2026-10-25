@@ -7,6 +7,7 @@ import { AccountButton, InviteButton, TeamSwitcher } from '../features/account/C
 import { DetachedChat } from '../features/dock/DetachedChat';
 import { ChannelDialog } from '../features/chat/ChannelDialog';
 import { ChatWindowProvider } from '../state/chatWindow';
+import { MeetingCallProvider } from '../state/meetingCall';
 import { useSession } from '../state/session';
 import { WorkspaceProvider, useWorkspace } from '../state/workspace';
 
@@ -28,7 +29,6 @@ const SIDE_NAV: [string, string, IconName][] = [
   ['decisions', 'Decisions', 'flag'],
   ['calendar', 'Calendar', 'calendar'],
   ['files', 'Files', 'file'],
-  ['team', 'Team', 'users'],
   ['settings', 'Settings', 'settings'],
 ];
 
@@ -38,7 +38,9 @@ export function WorkspaceLayout() {
   return (
     <WorkspaceProvider projectId={projectId}>
       <ChatWindowProvider projectId={projectId}>
-        <Shell />
+        <MeetingCallProvider>
+          <Shell />
+        </MeetingCallProvider>
       </ChatWindowProvider>
     </WorkspaceProvider>
   );

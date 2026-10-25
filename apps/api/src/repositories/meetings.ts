@@ -59,7 +59,9 @@ export async function createMeeting(input: {
     },
     { retryConflict: true },
   ).catch((error: unknown) => {
-    if (error instanceof Error && /already exists/i.test(error.message))
+    // A second start either hits the reservation ("already exists") or loses the commit race
+    // ("Write conflict"). Both mean a meeting is already live.
+    if (error instanceof Error && /already exists|write conflict/i.test(error.message))
       throw new ConflictError('A meeting is already live in this project');
     throw error;
   });
@@ -85,13 +87,14 @@ export function removeParticipant(meetingId: string, memberId: string): Promise<
 
 /**
  * live -> summarizing, guarded in the DB so a sweep and a manual end can't both win. Null when it lost the race.
- * Releases the project's live_meeting reservation in the same transaction.
+ * Releases the project's live_meeting reservation in the same transaction. With `onlyIfEmpty`, a member who joined
+ * after the caller's check keeps it live.
  */
-export async function beginSummarizing(meetingId: string): Promise<Meeting | null> {
+export async function beginSummarizing(meetingId: string, onlyIfEmpty = false): Promise<Meeting | null> {
   const [meeting] = await queryMany<Meeting>(
     `BEGIN;
-     LET $updated = (UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [] WHERE status = 'live' RETURN AFTER);
-     DELETE live_meeting WHERE meetingId = $id;
+     LET $updated = (UPDATE $id SET status = 'summarizing', endedAt = time::now(), participantIds = [] WHERE status = 'live'${onlyIfEmpty ? ' AND array::len(participantIds) = 0' : ''} RETURN AFTER);
+     IF array::len($updated) > 0 { DELETE live_meeting WHERE meetingId = $id; };
      COMMIT;
      RETURN $updated;`,
     { id: rid('meeting', meetingId) },

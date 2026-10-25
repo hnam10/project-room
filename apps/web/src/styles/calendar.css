@@ -291,6 +291,11 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.calendar-rail .rail-hint {
+  margin: -4px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
 .calendar-rail .undated-list {
   margin-top: 0;
 }
@@ -369,6 +374,16 @@
     inset 0 0 0 1px var(--accent),
     inset 3px 0 0 var(--red);
 }
+.calendar-page.is-assigning .agenda-day {
+  border-style: dashed;
+  border-color: var(--line-strong);
+}
+.agenda-day.drop-target {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-weak);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
 .agenda-day-head {
   display: flex;
   align-items: flex-start;
@@ -434,6 +449,10 @@
   background: var(--surface);
   box-shadow: var(--shadow);
   text-align: left;
+  cursor: grab;
+}
+.agenda-task.dragging {
+  opacity: 0.45;
 }
 .agenda-task:hover {
   border-color: var(--line-strong);
@@ -516,6 +535,10 @@
   border-radius: 10px;
   background: var(--surface);
   text-align: left;
+  cursor: grab;
+}
+.undated-list button.dragging {
+  opacity: 0.45;
 }
 .undated-list button:hover {
   border-color: var(--line-strong);

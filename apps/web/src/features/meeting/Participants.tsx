@@ -39,7 +39,7 @@ export function Participants({ meeting, localStream, remoteStreams, muted }: Pro
       ))}
       <li className={`meeting-tile ai${meeting.aiEnabled ? '' : ' off'}`}>
         <Avatar id={AI_AUTHOR} />
-        <span className="tile-name">Claude</span>
+        <span className="tile-name">AI</span>
         <span className="tile-sub">{meeting.aiEnabled ? 'Listening · reads only' : 'Removed'}</span>
       </li>
     </ul>

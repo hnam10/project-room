@@ -6,6 +6,7 @@ import { BoardPage } from './pages/BoardPage';
 import { ChatPopoutPage } from './pages/ChatPopoutPage';
 import { BrainstormPage, ChatPage, DecisionsPage, PlaceholderPage } from './pages/FeaturePages';
 import { MeetingPage } from './pages/MeetingPage';
+import { FilesPage } from './features/files/FilesPage';
 import { useSession } from './state/session';
 
 export function App() {
@@ -21,19 +22,18 @@ export function App() {
         <Route path="decisions" element={<DecisionsPage />} />
         <Route path="meeting" element={<MeetingPage />} />
         <Route path="calendar" element={<CalendarPage />} />
-        <Route
-          path="files"
-          element={<PlaceholderPage icon="file" title="Files" text="Shared project files will live here. Uploads aren’t built yet." />}
-        />
+        <Route path="files" element={<FilesPage />} />
         <Route
           path="overview"
           element={<PlaceholderPage icon="tasks" title="Overview" text="A project summary dashboard is planned for a later iteration." />}
         />
+        <Route path="team" element={<Navigate to="../settings" replace />} />
         <Route
-          path="team"
-          element={<PlaceholderPage icon="users" title="Team" text="Member roles and workload will live here. Not built yet." />}
+          path="settings"
+          element={
+            <PlaceholderPage icon="settings" title="Settings" text="Members, roles, and project settings will live here. Not built yet." />
+          }
         />
-        <Route path="settings" element={<PlaceholderPage icon="settings" title="Settings" text="Project settings aren’t built yet." />} />
         <Route path="*" element={<PlaceholderPage icon="alert" title="Page not found" text="That page doesn’t exist in this project." />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -28,6 +28,15 @@ export function errorHandler(error: unknown, _req: Request, res: Response, _next
     res.status(400).json({ error: 'Malformed JSON body' });
     return;
   }
+  if (isTooLarge(error)) {
+    const limit = (error as { limit?: number }).limit;
+    res.status(413).json({ error: limit !== undefined && limit <= 100 * 1024 ? 'Request is too large' : 'That file is larger than 10 MB' });
+    return;
+  }
   console.error(error);
   res.status(500).json({ error: 'Something went wrong on our side' });
+}
+
+function isTooLarge(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'type' in error && (error as { type?: unknown }).type === 'entity.too.large';
 }

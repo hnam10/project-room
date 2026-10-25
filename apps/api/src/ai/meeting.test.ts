@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAnthropicMeetingAi } from './anthropic-meeting.js';
+import { createStructuredMeetingAi } from './structured-meeting.js';
 import { mockMeetingAi } from './mock-meeting.js';
 import { validateSummary, validateTick, type MeetingTickInput, type RawSummary, type RawTick, type SummarizeInput } from './meeting.js';
 
@@ -188,33 +188,29 @@ describe('mock meeting AI', () => {
   });
 });
 
-describe('Claude meeting AI', () => {
-  it('passes the transcript in tags, uses the fast model with low effort and reads usage', async () => {
+describe('structured meeting AI', () => {
+  it('passes the transcript in tags, uses the fast model and reads usage', async () => {
     const parse = vi.fn().mockResolvedValue({
-      stop_reason: 'end_turn',
-      parsed_output: raw({ runningSummary: 'ok' }),
-      usage: { input_tokens: 12, output_tokens: 3 },
+      output: raw({ runningSummary: 'ok' }),
+      usage: { inputTokens: 12, outputTokens: 3 },
     });
-    const ai = createAnthropicMeetingAi('k', 'claude-haiku-5-5', 'main', { messages: { parse } } as never);
+    const ai = createStructuredMeetingAi({ parse }, 'gpt-fast', 'main');
     const out = await ai.meetingTick(input);
     const req = parse.mock.calls[0]![0];
-    expect(req.model).toBe('claude-haiku-5-5');
-    expect(req.output_config.effort).toBe('low');
-    expect(req).not.toHaveProperty('temperature');
-    expect(req.messages[0].content).toContain('<transcript>');
-    expect(req.messages[0].content).toContain('<current_topic>');
-    expect(req.messages[0].content).toContain('<topics>');
-    expect(req.messages[0].content).toContain('p1: Dark mode');
-    expect(req.messages[0].content).toContain("[l1] Alex: I'll set up the CI pipeline.");
+    expect(req.model).toBe('gpt-fast');
+    expect(req.maxTokens).toBe(4000);
+    expect(req.content).toContain('<transcript>');
+    expect(req.content).toContain('<current_topic>');
+    expect(req.content).toContain('<topics>');
+    expect(req.content).toContain('p1: Dark mode');
+    expect(req.content).toContain("[l1] Alex: I'll set up the CI pipeline.");
     expect(out.usage).toEqual({ inputTokens: 12, outputTokens: 3 });
   });
 
-  it('throws on refusal and truncation', async () => {
-    for (const stop_reason of ['refusal', 'max_tokens']) {
-      const parse = vi.fn().mockResolvedValue({ stop_reason, parsed_output: null });
-      const ai = createAnthropicMeetingAi('k', 'f', 'm', { messages: { parse } } as never);
-      await expect(ai.meetingTick(input)).rejects.toThrow();
-    }
+  it('throws when the model call fails', async () => {
+    const parse = vi.fn().mockRejectedValue(new Error('The model declined this request'));
+    const ai = createStructuredMeetingAi({ parse }, 'f', 'm');
+    await expect(ai.meetingTick(input)).rejects.toThrow(/declined/);
   });
 });
 
@@ -310,33 +306,27 @@ describe('mock summarizeMeeting', () => {
   });
 });
 
-describe('Claude summarizeMeeting', () => {
-  it('uses the main model with medium effort and tagged data', async () => {
+describe('structured summarizeMeeting', () => {
+  it('uses the main model and tagged data', async () => {
     const parse = vi.fn().mockResolvedValue({
-      stop_reason: 'end_turn',
-      parsed_output: rawSummary(),
-      usage: { input_tokens: 40, output_tokens: 9 },
+      output: rawSummary(),
+      usage: { inputTokens: 40, outputTokens: 9 },
     });
-    const ai = createAnthropicMeetingAi('k', 'fast', 'claude-main', { messages: { parse } } as never);
+    const ai = createStructuredMeetingAi({ parse }, 'fast', 'gpt-main');
     const out = await ai.summarizeMeeting({ ...sumInput, topics: input.topics });
     const req = parse.mock.calls[0]![0];
-    expect(req).toMatchObject({ model: 'claude-main', max_tokens: 16000 });
-    expect(req.output_config.effort).toBe('medium');
-    expect(req).not.toHaveProperty('temperature');
-    expect(req).not.toHaveProperty('fallbacks');
-    expect(req.messages[0].content).toContain('<carry_over>\nOld note\n</carry_over>');
-    expect(req.messages[0].content).toContain('<suggestions>');
-    expect(req.messages[0].content).toContain('<topics>');
-    expect(req.messages[0].content).toContain('p1: Dark mode');
-    expect(req.messages[0].content).toContain("[l1] Alex: I'll set up the CI pipeline.");
+    expect(req).toMatchObject({ model: 'gpt-main', maxTokens: 16000 });
+    expect(req.content).toContain('<carry_over>\nOld note\n</carry_over>');
+    expect(req.content).toContain('<suggestions>');
+    expect(req.content).toContain('<topics>');
+    expect(req.content).toContain('p1: Dark mode');
+    expect(req.content).toContain("[l1] Alex: I'll set up the CI pipeline.");
     expect(out.usage).toEqual({ inputTokens: 40, outputTokens: 9 });
   });
 
-  it('throws on refusal and truncation', async () => {
-    for (const stop_reason of ['refusal', 'max_tokens']) {
-      const parse = vi.fn().mockResolvedValue({ stop_reason, parsed_output: null });
-      const ai = createAnthropicMeetingAi('k', 'f', 'm', { messages: { parse } } as never);
-      await expect(ai.summarizeMeeting(sumInput)).rejects.toThrow();
-    }
+  it('throws when the model call fails', async () => {
+    const parse = vi.fn().mockRejectedValue(new Error('The model’s answer was cut off'));
+    const ai = createStructuredMeetingAi({ parse }, 'f', 'm');
+    await expect(ai.summarizeMeeting(sumInput)).rejects.toThrow(/cut off/);
   });
 });

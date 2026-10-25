@@ -3,13 +3,15 @@ import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { useFeedback } from '../../components/Feedback';
 import { useWorkspace } from '../../state/workspace';
+import type { useAttachFiles } from './useAttachFiles';
 
-export function Composer({ channelId }: { channelId: string }) {
+export function Composer({ channelId, files }: { channelId: string; files: ReturnType<typeof useAttachFiles> }) {
   const { projectId, applyRecord } = useWorkspace();
-  const { toast, toastError } = useFeedback();
+  const { toastError } = useFeedback();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
 
   const send = async () => {
     const value = text.trim();
@@ -43,9 +45,26 @@ export function Composer({ channelId }: { channelId: string }) {
         autoComplete="off"
         placeholder="Message @team or @AI…"
       />
-      <button type="button" className="icon-btn round" aria-label="Attach file" onClick={() => toast('File uploads aren’t built yet.')}>
+      <button
+        type="button"
+        className="icon-btn round"
+        aria-label="Attach file"
+        disabled={files.attaching}
+        onClick={() => picker.current?.click()}
+      >
         <Icon name="plus" />
       </button>
+      <input
+        ref={picker}
+        type="file"
+        multiple
+        hidden
+        onChange={(event) => {
+          const picked = [...(event.target.files ?? [])];
+          event.target.value = '';
+          void files.attach(picked).then(() => input.current?.focus());
+        }}
+      />
       <button
         type="button"
         className="icon-btn"

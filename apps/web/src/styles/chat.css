@@ -59,6 +59,29 @@
   color: var(--ink);
   word-break: break-word;
 }
+.msg-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 500;
+}
+.msg-file .icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--muted);
+}
+.msg-file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .mention {
   padding: 0 3px;
   border-radius: 4px;
@@ -362,4 +385,23 @@
 .ask-answer .sub {
   color: var(--muted);
   font-size: 11.5px;
+}
+
+/* Files dragged over a drop target (chat panel, meeting transcript); the target sets data-drop-label. */
+.file-over:not(.floating) {
+  position: relative;
+}
+.file-over::after {
+  content: attr(data-drop-label);
+  position: absolute;
+  inset: 6px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  background: rgba(239, 237, 255, 0.9);
+  color: var(--accent);
+  font-weight: 600;
+  z-index: 30;
+  pointer-events: none;
 }
