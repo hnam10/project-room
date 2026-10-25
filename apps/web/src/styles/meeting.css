@@ -441,10 +441,18 @@
 }
 
 /* Ended view, Last time */
+/* The page itself doesn't scroll (it's a fixed-height flex column), so the summary scrolls on its own. It spans the
+   full width so the scrollbar sits at the page edge; the cards keep the 760px reading width. */
 .meeting-summary {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.meeting-summary > * {
+  flex: none;
   max-width: 760px;
 }
 .last-time {
