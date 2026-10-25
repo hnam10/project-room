@@ -48,7 +48,9 @@ async function actionItems(ai: AiProvider, c: EvalCase, messages: ConversationMe
     listPendingSuggestions: async () => [],
     listIdeas: async () => [],
   };
-  const ask = { id: `${c.id}-ask`, authorId: c.members[0]!.id, authorName: c.members[0]!.name, text: '@AI what are our action items?' };
+  // A case may list no members; the question then comes from an unnamed teammate, still through the agent.
+  const asker = c.members[0] ?? { id: 'eval', name: 'Teammate' };
+  const ask = { id: `${c.id}-ask`, authorId: asker.id, authorName: asker.name, text: '@AI what are our action items?' };
   return (await ai.runMention({ messages: [...messages, ask], lookup })).actionItems;
 }
 
@@ -85,15 +87,17 @@ for (const [name, ai] of providers) {
   }
   const total = sum(scores);
   const r = rates(total);
+  // Every call failed: there is nothing to score, so show '-' rather than a misleading 0%.
+  const shown = (n: number) => (scores.length ? pct(n) : '-');
   rows.push({
     provider: name,
     expected: total.expected,
     proposed: total.proposed,
     found: total.matched,
-    precision: pct(r.precision),
-    recall: pct(r.recall),
-    f1: pct(r.f1),
-    assignee: pct(r.assignee),
+    precision: shown(r.precision),
+    recall: shown(r.recall),
+    f1: shown(r.f1),
+    assignee: shown(r.assignee),
     failed,
     seconds: ((Date.now() - started) / 1000).toFixed(1),
   });
