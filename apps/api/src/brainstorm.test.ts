@@ -112,7 +112,6 @@ describe('sourced brainstorm research', () => {
       { title: match.title, url: match.url },
     ]);
 
-    await call('POST', `/ideas/${idea.id}/shortlist`, { shortlisted: true });
     await call('POST', `/ideas/${idea.id}/approve`, {});
     const plan = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'idea_approved', ideaId: idea.id });
     expect(plan.body).toHaveLength(1);
@@ -294,7 +293,6 @@ describe('sourced brainstorm research', () => {
 
     await call('POST', '/ideas', { title: 'Italian food', theme: 'Option' });
     const option = (await call<Idea[]>('GET', '/ideas')).body.find((item) => item.title === 'Italian food')!;
-    await call('POST', `/ideas/${option.id}/shortlist`, { shortlisted: true });
     await call('POST', `/ideas/${option.id}/approve`, {});
     expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'idea_approved', ideaId: option.id })).body).toEqual([]);
   });

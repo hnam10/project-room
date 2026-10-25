@@ -38,10 +38,10 @@ afterAll(async () => {
   await new Promise((resolve) => server.close(resolve));
   await closeDb();
 });
-async function call<T>(method: string, path: string, body?: unknown) {
+async function call<T>(method: string, path: string, body?: unknown, member = 'alex') {
   const res = await fetch(`${base}${path}`, {
     method,
-    headers: { 'content-type': 'application/json', 'x-member-id': 'alex' },
+    headers: { 'content-type': 'application/json', 'x-member-id': member },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return { status: res.status, body: (res.status === 204 ? null : await res.json()) as T };
@@ -254,6 +254,31 @@ it('returns research and an honest status if strategy generation fails', async (
   expect(result.body.some((item) => item.researchSources.length > 0)).toBe(true);
   expect(result.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(false);
   expect(result.body.find((item) => item.title === 'Topic research status')?.proposal).toContain('AI guidance is temporarily unavailable');
+});
+
+it('toggles hearts immediately without opening a vote or approving the idea', async () => {
+  const problem = await topic();
+  const idea = await card(problem.id);
+  expect(idea.votingOpen).toBe(false);
+  const first = await call<Idea>('POST', `/ideas/${idea.id}/vote`);
+  expect(first.status).toBe(200);
+  expect(first.body).toMatchObject({ voterIds: ['alex'], approved: false, shortlisted: false, votingOpen: false });
+  expect((await call<Idea>('POST', `/ideas/${idea.id}/vote`, undefined, 'jamie')).body.voterIds).toEqual(
+    expect.arrayContaining(['alex', 'jamie']),
+  );
+  expect((await call<Idea>('POST', `/ideas/${idea.id}/vote`)).body.voterIds).toEqual(['jamie']);
+  expect((await call('POST', `/ideas/${problem.id}/vote`)).status).toBe(409);
+});
+
+it('approves directly without shortlisting and rejects duplicate or topic approval', async () => {
+  const problem = await topic();
+  const idea = await card(problem.id);
+  expect(idea.shortlisted).toBe(false);
+  const approved = await call<Idea>('POST', `/ideas/${idea.id}/approve`);
+  expect(approved.status).toBe(200);
+  expect(approved.body).toMatchObject({ approved: true, shortlisted: false });
+  expect((await call('POST', `/ideas/${idea.id}/approve`)).status).toBe(409);
+  expect((await call('POST', `/ideas/${problem.id}/approve`)).status).toBe(409);
 });
 
 it('requires a topic and explicit selection when more than one exists', async () => {

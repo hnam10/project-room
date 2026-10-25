@@ -96,22 +96,12 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
     }
   };
 
-  const shortlist = async (idea: Idea) => {
-    try {
-      applyRecord('idea', await api.shortlistIdea(projectId, idea.id, !idea.shortlisted));
-    } catch (error) {
-      toastError(error);
-    }
-  };
   const approve = async (idea: Idea) => {
     if (
       !(await confirm({
-        title: idea.theme === 'Option' ? 'Select this option?' : 'Approve this idea?',
-        text:
-          idea.theme === 'Option'
-            ? `Choose “${idea.title}” as the team’s selected option?`
-            : `Make “${idea.title}” a selected direction for the project?`,
-        okLabel: idea.theme === 'Option' ? 'Select option' : 'Approve idea',
+        title: idea.theme === 'Strategy' ? 'Approve this strategy?' : 'Approve this idea?',
+        text: `Make “${idea.title}” a selected direction for the team?`,
+        okLabel: 'Approve',
       }))
     )
       return;
@@ -175,24 +165,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   };
 
   const vote = (ideaId: string) => api.voteIdea(projectId, ideaId).then((idea) => applyRecord('idea', idea), toastError);
-  const startVote = async (ideaId: string) => {
-    const idea = ideas.find((candidate) => candidate.id === ideaId);
-    if (!idea) return;
-    if (
-      !(await confirm({
-        title: 'Start voting?',
-        text: `Open “${idea.title}” for team votes?`,
-        okLabel: 'Start voting',
-      }))
-    )
-      return;
-    try {
-      applyRecord('idea', await api.startIdeaVote(projectId, ideaId));
-      toast('Voting is open');
-    } catch (error) {
-      toastError(error);
-    }
-  };
   const convert = async (ideaId: string) => {
     try {
       const { idea, task } = await api.convertIdea(projectId, ideaId);
@@ -217,11 +189,9 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
       author={members.get(idea.authorId)}
       voted={idea.voterIds.includes(memberId)}
       onVote={() => vote(idea.id)}
-      onStartVote={() => void startVote(idea.id)}
       onConvert={() => convert(idea.id)}
       onEdit={() => setDialog({ kind: 'idea', idea })}
       onDelete={() => void remove(idea)}
-      onShortlist={() => void shortlist(idea)}
       onApprove={() => void approve(idea)}
     />
   );

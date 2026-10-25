@@ -27,6 +27,16 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   (the mention agent on real hosts, `analyzeConversation` on the mock) over conversations with an answer key and prints found / invented / missed as precision, recall, F1 and assignee
   accuracy. Titles match by word overlap (`src/eval/score.ts`). Ships with a hand-written 4-case sample, labelled
   as not Era data; an Era export needs a converter to the same shape. No new dependencies.
+- 2026-10-25 — **Immediate hearts and direct approval.** Brainstorm cards always show a heart/count,
+  with a filled active heart and no Start voting control. Hearts toggle personal support without
+  opening a vote or approving the idea. Removed Shortlist; every unapproved card offers Approve
+  directly, retaining confirmation and showing Approved afterward. The API no longer requires an open
+  vote or shortlist, while rejecting hearts/approval on central topics and duplicate approval.
+  Legacy fields/endpoints remain compatible with older clients. Browser-checked heart/unheart and
+  confirmed approval using a temporary local fixture, then removed it. API regression tests cover
+  immediate hearts, separate approval and multiple members.
+  Full check passes with 261 tests; API and web production builds pass.
+
 - 2026-10-25 — **Category-free brainstorming UI.** Removed category selectors from add/edit and AI
   review dialogs, the idea category filter and saved-card category tags. Options and ideas share one
   card style; strategies remain separate. New member ideas use the existing Option default, while editing

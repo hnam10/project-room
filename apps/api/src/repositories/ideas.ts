@@ -58,10 +58,10 @@ export async function createIdea(
   return idea;
 }
 
-/** Adds the member's vote, or removes it if they already voted. */
+/** Toggles a member's heart without starting a formal vote or approving the idea. */
 export async function toggleVote(projectId: string, ideaId: string, memberId: string): Promise<Idea> {
   const idea = await getIdea(projectId, ideaId);
-  if (!idea.votingOpen) throw new ConflictError('Voting has not started for this idea');
+  if (idea.kind === 'problem') throw new ConflictError('Only ideas can receive hearts');
   const member = rid('member', memberId);
   const op = idea.voterIds.includes(memberId) ? '-=' : '+=';
   const updated = await queryOne<Idea>(`UPDATE ONLY $id SET voterIds ${op} $member RETURN AFTER`, { id: rid('idea', ideaId), member });
@@ -131,9 +131,11 @@ export async function setIdeaShortlisted(projectId: string, ideaId: string, shor
   return idea;
 }
 
+/** Approves a saved idea directly after the member confirms; no shortlist stage is required. */
 export async function approveSelectedIdea(projectId: string, ideaId: string): Promise<Idea> {
   const previous = await getIdea(projectId, ideaId);
-  if (!previous.shortlisted || previous.approved) throw new ConflictError('Shortlist an unapproved idea before approving it');
+  if (previous.kind === 'problem') throw new ConflictError('A topic cannot be approved as an idea');
+  if (previous.approved) throw new ConflictError('This idea is already approved');
   const idea = await queryOne<Idea>('UPDATE ONLY $id SET approved = true RETURN AFTER', { id: rid('idea', ideaId) });
   if (!idea) throw new NotFoundError('Idea');
   return idea;

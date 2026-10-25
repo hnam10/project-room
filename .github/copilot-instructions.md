@@ -24,6 +24,8 @@ The rules that matter most when suggesting code:
   values remain valid for existing records.
 - Keep category selectors, filters and saved-card tags out of brainstorming. Direct options/ideas share
   one card style; strategies stay separate. Preserve internal themes when editing existing records.
+- Brainstorm hearts toggle personal support immediately; no Start voting stage. Approve is shown directly
+  and still requires confirmation, without shortlisting. A heart never approves or creates a decision.
 - Strategies contain only recommended direction, short steps and essential scope. Use one or two
   sentences per section/step, at most four steps, without separate focus/why or deliverable/criteria
   fields. Keep guidance specific and realistic; never invent sources or feedback.

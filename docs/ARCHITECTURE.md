@@ -23,7 +23,7 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 | `message` | Chat message; `authorId` is a member id or `'ai'`. `fileId` points at a shared file when the message attaches one. | `channelId`, `suggestionId`, `fileId` |
 
 | `task` | Board card; `num` is per-project, `sourceKind/sourceId` record where it came from | `assigneeId → member` |
-| `idea` | Central problem or brainstorm card; cards can be shortlisted and explicitly approved; voting starts only after a member opens it; source links and significant edits remain visible | `sourceSuggestionId`, `taskId` once converted |
+| `idea` | Central problem or brainstorm card; hearts toggle personal support immediately and members explicitly approve cards; source links and significant edits remain visible | `sourceSuggestionId`, `taskId` once converted |
 | `decision` | Retired: old open questions and decisions, no longer written or read (polls replace them) | `raisedById`, `decidedById` |
 | `suggestion` | **Structured AI output** awaiting review, including `brainstorm_analysis`, idea drafts and task drafts; `status` = `pending` / `approved` / `dismissed` | `sourceMessageId`, `ideaId`, `originIdeaId`, `createdTaskIds` |
 
@@ -110,10 +110,12 @@ fabricates research and brainstorming falls back to chat context.
 
 `idea.kind = problem` identifies a topic; a project can have several topic tabs. Cards and AI suggestions
 carry `topicId` (a link to the topic's idea record). A topic has `topicId = null`; every new board card
-requires a valid topic in the same project. Ordinary ideas have `shortlisted`, `approved`,
-`researchStale`, and `significantChangeAt` fields. Members edit cards through `PATCH /ideas/:id`, shortlist
-through `POST /ideas/:id/shortlist`, and explicitly approve a shortlisted direction through
-`POST /ideas/:id/approve`. `services/idea-change.ts` filters minor text edits; a significant edit clears
+requires a valid topic in the same project. Ordinary ideas have `approved`, `researchStale`, and
+`significantChangeAt` fields. Members edit cards through `PATCH /ideas/:id` and directly approve a
+direction through `POST /ideas/:id/approve` after confirming in the UI. Hearts use `POST /ideas/:id/vote`
+to toggle personal support immediately; they do not approve the idea or start a formal vote. The legacy
+`shortlisted`/`votingOpen` fields and their endpoints remain compatible with older clients, but are not
+prerequisites or controls in the current UI. `services/idea-change.ts` filters minor text edits; a significant edit clears
 approval, flags existing research as stale, and exposes a re-evaluation trigger. Saving the form groups edits
 before this check, rather than invoking the model for each keystroke.
 

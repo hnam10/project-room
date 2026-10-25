@@ -387,6 +387,9 @@
   color: var(--accent);
   font-weight: 600;
 }
+.idea-foot button.voted .icon {
+  fill: currentColor;
+}
 .idea-foot .icon {
   width: 13px;
   height: 13px;
@@ -472,10 +475,6 @@
   color: var(--research);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-.idea-foot button.start-vote {
-  color: var(--green);
-  font-weight: 600;
 }
 .brainstorm-topic-navigation {
   display: flex;

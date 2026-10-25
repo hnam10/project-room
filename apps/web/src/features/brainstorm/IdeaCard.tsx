@@ -9,11 +9,9 @@ export function IdeaCard(props: {
   author: Member | undefined;
   voted: boolean;
   onVote: () => void;
-  onStartVote: () => void;
   onConvert: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onShortlist: () => void;
   onApprove: () => void;
 }) {
   const { idea } = props;
@@ -38,18 +36,11 @@ export function IdeaCard(props: {
           Delete
         </button>
         {idea.approved ? (
-          <strong>{idea.theme === 'Option' ? 'Selected option' : idea.theme === 'Strategy' ? 'Approved strategy' : 'Approved idea'}</strong>
+          <strong>Approved</strong>
         ) : (
-          <>
-            <button type="button" onClick={props.onShortlist}>
-              {idea.shortlisted ? 'Remove shortlist' : 'Shortlist'}
-            </button>
-            {idea.shortlisted && (
-              <button type="button" onClick={props.onApprove}>
-                {idea.theme === 'Option' ? 'Select option' : idea.theme === 'Strategy' ? 'Approve strategy' : 'Approve idea'}
-              </button>
-            )}
-          </>
+          <button type="button" onClick={props.onApprove}>
+            Approve
+          </button>
         )}
       </div>
       {idea.researchSources?.length > 0 && (
@@ -66,21 +57,15 @@ export function IdeaCard(props: {
         <Avatar member={props.author} />
         {props.author?.name ?? 'Former member'}
         <span className="idea-meta">
-          {idea.votingOpen ? (
-            <button
-              className={props.voted ? 'voted' : ''}
-              onClick={props.onVote}
-              aria-pressed={props.voted}
-              aria-label={`Vote for ${idea.title}`}
-            >
-              <Icon name="heart" />
-              {idea.voterIds.length}
-            </button>
-          ) : (
-            <button className="start-vote" onClick={props.onStartVote}>
-              Start voting
-            </button>
-          )}
+          <button
+            className={props.voted ? 'voted' : ''}
+            onClick={props.onVote}
+            aria-pressed={props.voted}
+            aria-label={`${props.voted ? 'Remove heart from' : 'Heart'} ${idea.title}`}
+          >
+            <Icon name="heart" />
+            {idea.voterIds.length}
+          </button>
         </span>
       </div>
     </article>

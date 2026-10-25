@@ -91,6 +91,8 @@ prototype/         the first static prototype; do not build on it
   assignments. Never let AI code write to `task`/`poll`/`idea` directly.
 - Assigning people, scheduling, notifying and starting votes always need confirmation from a member.
   The team decides by voting: polls opened in meetings are listed in the Polls tab with their results.
+- Brainstorm hearts are personal support toggles, available immediately without opening a formal vote.
+  Approve is a separate, confirmed member action with no shortlist prerequisite. Hearts never approve an idea.
 - Every suggestion carries `reason` (why the AI made it) and, when available, the quoted context.
 - Keep suggestion → approved → completed distinct. Never show something as done because AI proposed it.
 - Don't fake integrations or data. If a feature isn't built, the UI says so (see `PlaceholderPage`

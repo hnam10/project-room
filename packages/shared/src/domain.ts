@@ -87,6 +87,7 @@ export interface Idea {
   description: string;
   theme: IdeaTheme;
   kind: 'problem' | 'idea';
+  /** Legacy shortlist state; approval no longer requires it. */
   shortlisted: boolean;
   approved: boolean;
   researchStale: boolean;
@@ -94,7 +95,7 @@ export interface Idea {
   updatedAt: string;
   authorId: string;
   voterIds: string[];
-  /** Voting stays closed until a member explicitly starts it. */
+  /** Legacy formal-vote state; individual hearts are always available. */
   votingOpen: boolean;
   sourceSuggestionId: string | null;
   researchSources: ResearchSource[];
