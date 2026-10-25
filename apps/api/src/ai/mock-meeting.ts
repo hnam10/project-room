@@ -9,12 +9,14 @@ const IDEA = /what if|how about|어때/i;
 const DISAGREE = /\bbut\b|\bdisagree\b|근데/i;
 const TOPIC = /(?:\b(?:brainstorm|ideas? for|how (?:can|should) we|what should we)\b|아이디어|어떻게)/i;
 
+/** Capitalizes the first character for readable mock meeting output. */
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const GENERIC_WORDS = new Set(
   'what should about ideas could with the for how can would will our your this that from and but want need use add new app application product project feature build create make help users team brainstorm topic'.split(
     ' ',
   ),
 );
+/** Extracts distinctive words that can safely associate a transcript with a topic. */
 const topicWords = (text: string) =>
   new Set(
     (

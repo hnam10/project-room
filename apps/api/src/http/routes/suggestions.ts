@@ -34,6 +34,7 @@ suggestionsRouter.patch('/:suggestionId', async (req, res) => {
   res.json(updated);
 });
 
+/** Validates member approval options before dispatching the suggestion service. */
 suggestionsRouter.post('/:suggestionId/approve', async (req, res) => {
   const { project, memberId, members } = ctx(res);
   const options = suggestionApproveSchema.parse(req.body ?? {});

@@ -7,6 +7,7 @@ import { useFeedback } from '../../components/Feedback';
 import { useWorkspace } from '../../state/workspace';
 import { IdeaDetails } from './IdeaDetails';
 
+/** Lets a member review and explicitly approve or dismiss a topic proposal. */
 export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   const { projectId, applyRecord, reload, snapshot } = useWorkspace();
   const { toast, toastError, confirm } = useFeedback();

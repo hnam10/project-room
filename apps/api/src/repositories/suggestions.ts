@@ -74,6 +74,7 @@ export function dismissPendingSuggestionsForIdea(projectId: string, ideaId: stri
 }
 
 /** With a fixed `id`, a retry returns the suggestion already stored under it instead of creating a second one. */
+/** Stores a validated suggestion while guarding its topic board version. */
 export async function createSuggestion(projectId: string, draft: SuggestionDraft, id?: string): Promise<Suggestion> {
   const scope = brainstormScope.getStore();
   if (scope) await assertTopicScope(scope);

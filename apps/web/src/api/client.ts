@@ -139,6 +139,7 @@ export const api = {
 
   updateSuggestion: (projectId: string, suggestionId: string, input: SuggestionUpdateInput) =>
     request<Suggestion>('PATCH', `${p(projectId)}/suggestions/${suggestionId}`, input),
+  /** Approves a pending AI suggestion with explicit member-selected targets. */
   approveSuggestion: (projectId: string, suggestionId: string, options: SuggestionApproveInput = {}) =>
     request<Suggestion>('POST', `${p(projectId)}/suggestions/${suggestionId}/approve`, options),
   dismissSuggestion: (projectId: string, suggestionId: string) =>

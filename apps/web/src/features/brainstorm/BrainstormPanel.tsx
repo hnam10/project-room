@@ -17,6 +17,7 @@ import { readStored, writeStored } from '../../state/storage';
 
 type IdeaTab = 'ideas' | 'mindmap' | 'notes';
 
+/** Renders the topic-scoped research, strategies, ideas, and pending AI proposals. */
 export function BrainstormPanel({ className = '', headerActions }: { className?: string; headerActions?: ReactNode }) {
   const { projectId, members, applyRecord, reload } = useWorkspace();
   const snapshot = useSnapshot();

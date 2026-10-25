@@ -8,6 +8,7 @@ import { createTask, getTask, updateTask } from '../repositories/tasks.js';
 
 // Approval is the only path from an AI suggestion to a real change in the project.
 
+/** Dispatches a member approval to the service for the suggestion's kind. */
 export async function approveSuggestion(
   projectId: string,
   suggestionId: string,

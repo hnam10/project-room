@@ -35,6 +35,7 @@ export async function approveIdea(
 }
 
 /** A chat brainstorm proposes its topic; only the member's approval creates or replaces the board topic. */
+/** Applies an explicitly approved topic proposal, optionally replacing one named board. */
 export async function approveBrainstormTopic(
   projectId: string,
   suggestion: Suggestion,

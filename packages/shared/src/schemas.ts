@@ -112,4 +112,5 @@ export const suggestionApproveSchema = z.object({
   topicId: z.string().min(1).max(64).optional(),
   replaceTopicId: z.string().min(1).max(64).optional(),
 });
+/** Input accepted when a member explicitly approves an AI suggestion. */
 export type SuggestionApproveInput = z.input<typeof suggestionApproveSchema>;
