@@ -1,7 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 import {
   MAX_FILE_BYTES,
@@ -15,6 +15,7 @@ import {
   type WorkspaceSnapshot,
 } from '@project-room/shared';
 import { createApp } from './app.js';
+import { getAiProvider } from './ai/index.js';
 import { config } from './config.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
@@ -402,6 +403,96 @@ describe('workspace API', () => {
     expect((await api(`/projects/hackathon/files/${file.id}`, { method: 'DELETE' })).status).toBe(404);
     expect(await readStoredFile('hackathon', file.id)).toEqual(bytes);
   });
+});
+
+it('delivers untagged topic and idea creation from HTTP chat posts to realtime subscribers', async () => {
+  const live = listen('hackathon');
+  await live.ready;
+  try {
+    const post = (text: string) =>
+      api<Message>('/projects/hackathon/channels/hackathon-general/messages', {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+      });
+    const denied = await api('/projects/hackathon/channels/hackathon-general/messages', {
+      method: 'POST',
+      member: 'stranger',
+      body: JSON.stringify({ text: 'create topic Private workout plans' }),
+    });
+    expect(denied.status).toBe(403);
+    expect((await post('I would like to create a Fitness app for students with limited equipment')).status).toBe(201);
+    const topicEvent = await live.waitFor(
+      (event) =>
+        event.type === 'change' &&
+        event.table === 'idea' &&
+        event.record.kind === 'problem' &&
+        event.record.title === 'Fitness app for students with limited equipment',
+    );
+    expect(topicEvent.type).toBe('change');
+    await live.waitFor(
+      (event) =>
+        event.type === 'change' &&
+        event.table === 'message' &&
+        event.record.text === 'Created topic “Fitness app for students with limited equipment”.',
+    );
+    expect((await post('I have an idea for No-equipment dorm workouts to Fitness app for students')).status).toBe(201);
+    const ideaEvent = await live.waitFor(
+      (event) => event.type === 'change' && event.table === 'idea' && event.record.title === 'No-equipment dorm workouts',
+    );
+    const idea = (ideaEvent as Extract<ServerMessage, { table: 'idea' }>).record;
+    const topic = (topicEvent as Extract<ServerMessage, { table: 'idea' }>).record;
+    expect(idea).toMatchObject({ kind: 'idea', topicId: topic.id, authorId: 'alex', sourceSuggestionId: null });
+    const board = (await api<WorkspaceSnapshot>('/projects/hackathon/snapshot')).body;
+    expect(board.ideas).toContainEqual(idea);
+    expect(board.ideas.some((item) => item.title === 'Private workout plans')).toBe(false);
+  } finally {
+    live.ws.close();
+  }
+});
+
+it('publishes tentative chat ideas for realtime review before approval creates the board card', async () => {
+  const topic = (
+    await api<Idea>('/projects/hackathon/ideas', {
+      method: 'POST',
+      body: JSON.stringify({ kind: 'problem', title: 'Dorm exercise planning' }),
+    })
+  ).body;
+  const live = listen('hackathon');
+  await live.ready;
+  const interpret = vi.spyOn(getAiProvider(), 'interpretChatIntent').mockImplementation(async ({ message }) => ({
+    action: 'suggest_idea',
+    explicitRequest: false,
+    requestQuote: message.text,
+    title: 'Bodyweight study-break circuits',
+    titleSourceMessageId: message.id,
+    topicReference: 'the fitness app',
+    topicId: topic.id,
+  }));
+  try {
+    const posted = await api<Message>('/projects/hackathon/channels/hackathon-general/messages', {
+      method: 'POST',
+      body: JSON.stringify({ text: 'I am thinking of adding Bodyweight study-break circuits to the fitness app' }),
+    });
+    expect(posted.status).toBe(201);
+    const event = await live.waitFor(
+      (item) => item.type === 'change' && item.table === 'suggestion' && item.record.sourceMessageId === posted.body.id,
+    );
+    const draft = (event as Extract<ServerMessage, { table: 'suggestion' }>).record;
+    expect(draft).toMatchObject({ kind: 'idea', status: 'pending', topicId: topic.id });
+    const before = (await api<WorkspaceSnapshot>('/projects/hackathon/snapshot')).body;
+    expect(before.ideas.some((item) => item.title === 'Bodyweight study-break circuits')).toBe(false);
+    expect((await api(`/projects/hackathon/suggestions/${draft.id}/approve`, { method: 'POST', body: '{}' })).status).toBe(200);
+    const added = await live.waitFor(
+      (item) => item.type === 'change' && item.table === 'idea' && item.record.sourceSuggestionId === draft.id,
+    );
+    expect((added as Extract<ServerMessage, { table: 'idea' }>).record).toMatchObject({
+      topicId: topic.id,
+      title: 'Bodyweight study-break circuits',
+    });
+  } finally {
+    interpret.mockRestore();
+    live.ws.close();
+  }
 });
 
 async function uploadFile(name: string, bytes: Buffer, options: { member?: string; type?: string } = {}) {

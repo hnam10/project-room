@@ -8,6 +8,52 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 - 2026-10-25 — **Chat accepts pasted images.** Images copied to the clipboard can be pasted directly into
   the chat composer; they upload through the existing project Files flow, appear as downloadable chat
   attachments, and are available to Agent Memory for OCR/vision retrieval.
+- 2026-10-25 — **Capture natural direct and tentative chat ideas.** “I want to add no-equipment dorm
+  workouts to the fitness app” adds the member's idea; “I am thinking of adding…” saves a pending
+  review draft. The interpreter uses topic names/descriptions and recent chat; the service fills omitted
+  ids for a unique target-reference match or a sole implicit topic, preserving unknown/ambiguous targets.
+  Drafts retain source messages, quotes, reasons and topic versions, suppress duplicate pending titles,
+  and create cards only after approval. The Assistant badge now counts the same pending cards its panel
+  shows, including idea drafts. Regression and HTTP/realtime tests cover direct creation, tentative
+  capture/approval, sole-topic defaults, semantic selection and ambiguous/unknown references.
+  Full check passes with 284 tests and the web production bundle builds with local environment loading
+  disabled. Browser control could not start, so live model/browser verification remains unconfirmed.
+  No new dependencies.
+
+- 2026-10-25 — **Accept sufficiently named chat topics.** The lowercase fitness-app request exposed a
+  brittle exact-case excerpt check: model capitalization/spacing could trigger the generic clarification.
+  Excerpt verification now accepts those presentation differences and stores the original member text.
+  The intent prompt explicitly treats a named project goal as enough to create a topic without an idea
+  or existing topic id. Unusable extractions/clarifications get one bounded recheck with validation feedback;
+  unsupported titles and targets remain rejected. Regression tests cover the exact reported wording,
+  normalized model output, clarification recovery and bounded failure. Full check passes with 278 tests.
+  Live model response remains unverified. The earlier app permission-helper failure was resolved before publishing the branch.
+
+- 2026-10-25 — **Contextual chat intent replaces template-only natural requests.** The frequent AI host
+  interprets the latest member message with recent channel history and existing topic titles/descriptions,
+  including typos such as `woiuld`, contribution/creation verbs, contextual references and semantic topic
+  duplicates. The server verifies request/title excerpts, same-member title provenance, shared validation
+  and current project topic ids before writing. Unclear targets ask for clarification; reused boards are
+  preserved. Generated AI ideas stay pending. Literal commands survive model outages; the labelled mock
+  retains template-only support. Tests cover interpretation routing, context, invalid/foreign ids,
+  fabricated titles, uncertainty and outages. Tests disable local environment loading; formatting excludes
+  environment files, so validation does not read developer credentials. Full check passes with 275 tests.
+  Model responses in intent tests are simulated; live-model/browser verification remains unconfirmed.
+  No new dependencies.
+
+- 2026-10-25 — **Brainstorm requests without @AI.** Chat recognizes explicit natural creation goals
+  (`I would like to create a Fitness app for students with limited equipment`) and member ideas
+  (`I have an idea for No-equipment dorm workouts to Fitness app for students`). Existing topic lookup
+  prefers normalized exact names, then unique distinctive prefixes; duplicate requests reuse the board,
+  unknown/ambiguous targets ask for a full name, and context stays within the channel. Questions, quoted
+  instructions and tentative discussion do not create records. Generated AI proposals remain pending;
+  task commands still require `@AI`. Full check passes with 267 tests, including HTTP/realtime coverage. Browser flow remains
+  unverified: the local page cannot reach the API and the embedded database is locked by another process.
+
+- 2026-10-25 — **Meeting "Chat only" filter.** A checkbox above the meeting transcript (live and in the summary)
+  hides spoken lines and shows only typed chat, `@AI` replies and shared files. Display only: the meeting AI and
+  the summary still read every line.
+
 - 2026-10-25 — **Text-only header branding.** Removed the decorative main logo beside Project Room
   and its unused styles; the header keeps the product name and project breadcrumb. Browser-verified
   the authenticated workspace header.
@@ -39,6 +85,22 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   Confirmed things (saved ideas, open polls, approved action items) stay solid. Tokens `--research` /
   `--research-weak` and buttons `.btn.idea-btn` / `.btn.research-btn` in `base.css`; the Decision label moved from
   amber to purple so it doesn't read as an idea.
+- 2026-10-25 — **Clerk profile identities power member avatars.** All member circles resolve current Clerk
+  names and profile photos, including the top-bar member stack and task, chat, brainstorm, calendar, files
+  and meeting surfaces; the signed-in sidebar name uses the same identity with API data as a fallback.
+
+- 2026-10-25 — **Chat AI retrieves durable context and accepts pasted images.** `@AI` now receives recent
+  Agent Memory file passages alongside the latest confirmed decisions, labeled separately so it can distinguish
+  evidence from durable project facts and call out conflicts instead of guessing. Images copied to the clipboard
+  can be pasted directly into the chat composer; they upload through the existing project Files flow, appear as
+  downloadable chat attachments, and are available to Agent Memory for OCR/vision retrieval. AI suggestions remain
+  reviewable and approval-gated.
+
+- 2026-10-25 — **Channel `@AI` can search meeting transcripts.** The regular mention agent now has a
+  project-scoped, read-only meeting-line search tool, so it can answer channel questions from meeting
+  contents and ground proposal quotes without loading every transcript into the prompt. Regression coverage
+  verifies meeting context lookup and quote preservation.
+
 - 2026-10-24 — **Agent Memory accepts Clerk organization scopes.** Clerk organization ids can contain uppercase
   letters, while Agent Memory scope segments are lowercase-only. Project scopes now normalize ids consistently
   before upload and retrieval, with a regression test; rejected scope responses include the service detail.
@@ -519,6 +581,19 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
+
+- 2026-10-25 — **Capture tentative concrete ideas as suggestions.** Members naturally say “thinking of
+  adding” rather than issuing commands. Preserve that contribution for review while direct “want to add”
+  requests create member-authored cards; use a sole topic by default unless an explicit target conflicts.
+
+- 2026-10-25 — **Use contextual intent extraction for natural chat.** Exact phrase templates missed
+  misspellings and semantic references. A structured model interprets the request, but only grounded
+  member-authored titles and validated project topic ids reach repositories; generated content stays pending.
+  This supersedes template-only natural request handling below.
+
+- 2026-10-25 — **Explicit natural chat requests count as member input.** Brainstorm creation needs no
+  AI tag or model call; anchored wording and conservative topic matching avoid interpreting ordinary
+  discussion as permission. Existing-topic reuse preserves the board; generated ideas still require review.
 
 - 2026-10-25 — **Polls replace decisions.** Members couldn't tell how a decision got created (only the AI's
   per-message open-question check made one) and decisions overlapped with polls. The team now decides by voting;

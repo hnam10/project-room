@@ -28,6 +28,7 @@ export function composeAiProvider(heavy: RoutedModel, frequent: RoutedModel): Ai
   return {
     ...main,
     name: providerName(heavy, frequent),
+    interpretChatIntent: (input) => quick.interpretChatIntent(input),
     classifyBrainstorm: (input) => quick.classifyBrainstorm(input),
     facilitateBrainstorm: (input) => quick.facilitateBrainstorm(input),
     summarizeResearch: (input) => quick.summarizeResearch(input),

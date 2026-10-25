@@ -13,6 +13,7 @@ import {
   useOrganization,
 } from '@clerk/react';
 import { clerkPublishableKey } from '../../api/auth';
+import { ClerkIdentityProvider } from './clerkIdentity';
 
 // Clerk UI. VITE_CLERK_PUBLISHABLE_KEY is required (see main.tsx).
 // A Clerk Organization is a Project Room project: creating, switching and inviting go through Clerk.
@@ -30,12 +31,14 @@ export function ClerkRoot({ children }: { children: ReactNode }) {
       afterSignOutUrl="/"
     >
       <ActiveTeamSync />
-      <Show when="signed-out">
-        <div className="boot">
-          <SignIn routing="hash" />
-        </div>
-      </Show>
-      <Show when="signed-in">{children}</Show>
+      <ClerkIdentityProvider>
+        <Show when="signed-out">
+          <div className="boot">
+            <SignIn routing="hash" />
+          </div>
+        </Show>
+        <Show when="signed-in">{children}</Show>
+      </ClerkIdentityProvider>
     </ClerkProvider>
   );
 }

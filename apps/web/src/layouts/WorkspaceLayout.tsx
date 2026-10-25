@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useParams, useSearchParams } from 'react-
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
 import { AccountButton, InviteButton, TeamSwitcher } from '../features/account/ClerkAccount';
+import { useClerkIdentity } from '../features/account/clerkIdentityContext';
 import { DetachedChat } from '../features/dock/DetachedChat';
 import { ChannelDialog } from '../features/chat/ChannelDialog';
 import { ChatWindowProvider } from '../state/chatWindow';
@@ -121,6 +122,7 @@ function TopBar() {
 function Sidebar() {
   const { snapshot, activeChannelId, setActiveChannelId, connection } = useWorkspace();
   const { me } = useSession();
+  const identity = useClerkIdentity(me?.member.id);
   const navigate = useNavigate();
   const [creatingChannel, setCreatingChannel] = useState(false);
   const { channels } = snapshot!;
@@ -163,7 +165,7 @@ function Sidebar() {
       <div className="dev-member">
         <span className={`conn-dot${connection === 'online' ? ' online' : ''}`} title={`Realtime: ${connection}`} />
         <AccountButton />
-        {me?.member.name}
+        {identity?.name ?? me?.member.name}
       </div>
       <ChannelDialog open={creatingChannel} onClose={() => setCreatingChannel(false)} />
     </aside>

@@ -5,6 +5,8 @@ import type { ActionItem, BrainstormTrigger, IdeaDraft, IdeaTheme, Priority, Res
 //
 // Everything a provider returns is a *proposal*. The engine stores it as a suggestion, and only a
 // member's approval changes tasks, polls or ideas (see services/suggestions.ts).
+// Exception: interpretChatIntent extracts an explicit member instruction and verbatim title;
+// validated member-authored chat commands are not generated brainstorm content.
 
 export interface ConversationMessage {
   id: string;
@@ -14,6 +16,28 @@ export interface ConversationMessage {
   createdAt?: string;
   /** Set when the line was recalled from another channel, or from earlier than the thread window. */
   channelName?: string;
+}
+
+/** Extracts a member's instruction, not an AI-generated brainstorm proposal. */
+export interface ChatIntentInput {
+  message: ConversationMessage;
+  recentMessages: ConversationMessage[];
+  topics: { id: string; title: string; description: string }[];
+  /** Server-side validation feedback for one bounded interpretation repair. */
+  validationFeedback?: string;
+}
+
+export interface ChatIntent {
+  action: 'none' | 'create_topic' | 'add_idea' | 'suggest_idea' | 'use_topic' | 'clarify';
+  explicitRequest: boolean;
+  /** Exact words in the latest member message that authorize this action. */
+  requestQuote: string | null;
+  /** Verbatim member-authored title, never a generated idea. */
+  title: string | null;
+  titleSourceMessageId: string | null;
+  topicId: string | null;
+  /** Exact target-topic phrase from the member, or null when the topic is implicit. */
+  topicReference: string | null;
 }
 
 /** A short passage from a project file, already extracted by Agent Memory. */
@@ -179,6 +203,9 @@ export interface AiProvider {
   readonly name: string;
   /** True when output comes from simple local rules rather than a model; shown in the UI. */
   readonly isMock: boolean;
+
+  /** Null means no model is available; callers may retain literal command support. */
+  interpretChatIntent(input: ChatIntentInput): Promise<ChatIntent | null>;
 
   /**
    * Reads recent conversation and proposes action items and risks, each with a reason and a
