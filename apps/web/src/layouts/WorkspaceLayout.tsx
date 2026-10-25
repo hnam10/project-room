@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
-import { useFeedback } from '../components/Feedback';
 import { AccountButton, InviteButton, TeamSwitcher } from '../features/account/ClerkAccount';
 import { DetachedChat } from '../features/dock/DetachedChat';
 import { ChannelDialog } from '../features/chat/ChannelDialog';
@@ -84,12 +83,6 @@ function TopBar() {
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="brand-mark" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-        </span>
         <strong>Project Room</strong>
         <span className="crumb-sep">/</span>
         <span className="crumb-project">{project.name}</span>
@@ -128,18 +121,12 @@ function TopBar() {
 function Sidebar() {
   const { snapshot, activeChannelId, setActiveChannelId, connection } = useWorkspace();
   const { me } = useSession();
-  const { toast } = useFeedback();
   const navigate = useNavigate();
   const [creatingChannel, setCreatingChannel] = useState(false);
   const { channels } = snapshot!;
 
   return (
     <aside className="sidebar">
-      <button className="workspace-switch" onClick={() => toast('Switching workspaces isn’t built yet.')}>
-        <span className="workspace-icon">P</span>
-        <strong>Project Room</strong>
-        <Icon name="chevron" />
-      </button>
       <TeamSwitcher />
 
       <nav className="side-nav" aria-label="Main navigation">

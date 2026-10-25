@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { IDEA_THEME_CHOICES, type BrainstormActionInput, type Idea, type IdeaTheme } from '@project-room/shared';
+import type { BrainstormActionInput, Idea } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { useFeedback } from '../../components/Feedback';
@@ -28,7 +28,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const chooseTopic = (id: string) => {
     selectTopic(id);
     writeStored(`brainstorm-topic:${projectId}`, id);
-    setTheme('all');
     setDialog(null);
   };
   const ideas = snapshot.ideas.filter((idea) => idea.id === problem?.id || (problem && idea.topicId === problem.id));
@@ -37,12 +36,15 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const { memberId } = useSession();
   const { toast, toastError, confirm } = useFeedback();
   const [tab, setTab] = useState<IdeaTab>('ideas');
-  const [theme, setTheme] = useState<IdeaTheme | 'all'>('all');
   const [dialog, setDialog] = useState<{ kind: 'problem' | 'idea'; idea?: Idea } | null>(null);
   const runningTopics = useRef(new Set<string>());
   const automaticAttempts = useRef(new Set<string>());
   const [busyTopics, setBusyTopics] = useState<string[]>([]);
   const aiBusy = !!problem && busyTopics.includes(problem.id);
+  const researchStatus = suggestions.find(
+    (item) => item.kind === 'brainstorm_analysis' && item.title === 'Topic research status',
+  )?.proposal;
+  const aiUnavailable = /usage limit|AI guidance is temporarily unavailable/.test(researchStatus ?? '');
 
   const pendingTopics = snapshot.suggestions.filter(
     (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic' && !suggestion.ideaId,
@@ -50,7 +52,7 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   const pendingTopicChanges = snapshot.suggestions.filter(
     (suggestion) => suggestion.status === 'pending' && suggestion.kind === 'brainstorm_topic' && suggestion.ideaId === problem?.id,
   );
-  const visible = ideas.filter((i) => i.kind !== 'problem' && i.theme !== 'Strategy' && (theme === 'all' || i.theme === theme));
+  const visible = ideas.filter((i) => i.kind !== 'problem' && i.theme !== 'Strategy');
   const strategies = ideas.filter((idea) => idea.kind !== 'problem' && idea.theme === 'Strategy');
   const pendingIdeas = suggestions.filter((suggestion) => suggestion.status === 'pending' && suggestion.kind === 'idea');
   const pendingAnalyses = suggestions.filter(
@@ -61,15 +63,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   );
   const pendingStrategies = pendingIdeas.filter((suggestion) => suggestion.ideaDraft?.theme === 'Strategy');
   const pendingDirectIdeas = pendingIdeas.filter((suggestion) => suggestion.ideaDraft?.theme !== 'Strategy');
-  const directThemes: IdeaTheme[] = [
-    ...IDEA_THEME_CHOICES.filter((ideaTheme) => ideaTheme !== 'Strategy'),
-    ...new Set(
-      ideas
-        .filter((idea) => idea.kind === 'idea' && idea.theme !== 'Strategy')
-        .map((idea) => idea.theme)
-        .filter((ideaTheme) => !IDEA_THEME_CHOICES.some((choice) => choice === ideaTheme)),
-    ),
-  ];
 
   const runAi = async (input: BrainstormActionInput, automatic = false) => {
     if (!problem || runningTopics.current.has(problem.id)) return;
@@ -103,22 +96,12 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
     }
   };
 
-  const shortlist = async (idea: Idea) => {
-    try {
-      applyRecord('idea', await api.shortlistIdea(projectId, idea.id, !idea.shortlisted));
-    } catch (error) {
-      toastError(error);
-    }
-  };
   const approve = async (idea: Idea) => {
     if (
       !(await confirm({
-        title: idea.theme === 'Option' ? 'Select this option?' : 'Approve this idea?',
-        text:
-          idea.theme === 'Option'
-            ? `Choose “${idea.title}” as the team’s selected option?`
-            : `Make “${idea.title}” a selected direction for the project?`,
-        okLabel: idea.theme === 'Option' ? 'Select option' : 'Approve idea',
+        title: idea.theme === 'Strategy' ? 'Approve this strategy?' : 'Approve this idea?',
+        text: `Make “${idea.title}” a selected direction for the team?`,
+        okLabel: 'Approve',
       }))
     )
       return;
@@ -182,34 +165,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
   };
 
   const vote = (ideaId: string) => api.voteIdea(projectId, ideaId).then((idea) => applyRecord('idea', idea), toastError);
-  const startVote = async (ideaId: string) => {
-    const idea = ideas.find((candidate) => candidate.id === ideaId);
-    if (!idea) return;
-    if (
-      !(await confirm({
-        title: 'Start voting?',
-        text: `Open “${idea.title}” for team votes?`,
-        okLabel: 'Start voting',
-      }))
-    )
-      return;
-    try {
-      applyRecord('idea', await api.startIdeaVote(projectId, ideaId));
-      toast('Voting is open');
-    } catch (error) {
-      toastError(error);
-    }
-  };
-  const convert = async (ideaId: string) => {
-    try {
-      const { idea, task } = await api.convertIdea(projectId, ideaId);
-      applyRecord('idea', idea);
-      applyRecord('task', task);
-      toast(`“${idea.title}” is now task #${task.num}`);
-    } catch (error) {
-      toastError(error);
-    }
-  };
 
   const tabButton = (id: IdeaTab, label: string) => (
     <button className={`panel-tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>
@@ -224,11 +179,8 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
       author={members.get(idea.authorId)}
       voted={idea.voterIds.includes(memberId)}
       onVote={() => vote(idea.id)}
-      onStartVote={() => void startVote(idea.id)}
-      onConvert={() => convert(idea.id)}
       onEdit={() => setDialog({ kind: 'idea', idea })}
       onDelete={() => void remove(idea)}
-      onShortlist={() => void shortlist(idea)}
       onApprove={() => void approve(idea)}
     />
   );
@@ -306,13 +258,13 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                           Researching…
                         </span>
                       )}
+                      {!aiBusy && aiUnavailable && <span className="brainstorm-section-status">AI unavailable</span>}
                     </summary>
                     <div className="brainstorm-disclosure-content">
                       <BrainstormGuide ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} attempted={automaticAttempts} />
-                      {suggestions.find((item) => item.kind === 'brainstorm_analysis' && item.title === 'Topic research status')
-                        ?.proposal && (
+                      {researchStatus && (
                         <p className="brainstorm-research-status" role="status">
-                          {suggestions.find((item) => item.title === 'Topic research status')?.proposal}
+                          {researchStatus}
                         </p>
                       )}
                       {problem.researchSources.length > 0 && (
@@ -339,9 +291,12 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                   <details className="brainstorm-disclosure">
                     <summary>
                       Strategies <span className="brainstorm-section-count">{pendingStrategies.length + strategies.length}</span>
+                      {!aiBusy && aiUnavailable && <span className="brainstorm-section-status">AI unavailable</span>}
                     </summary>
                     <div className="brainstorm-disclosure-content">
-                      {pendingStrategies.length === 0 && strategies.length === 0 && <p>No strategies yet.</p>}
+                      {pendingStrategies.length === 0 && strategies.length === 0 && (
+                        <p>{aiUnavailable ? researchStatus : 'No strategies yet.'}</p>
+                      )}
                       <div className="brainstorm-strategy-grid">
                         {pendingStrategies.map((suggestion) => (
                           <BrainstormSuggestionCard key={suggestion.id} suggestion={suggestion} />
@@ -373,14 +328,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                         : 'Research and strategy preparation comes first. You can add ideas when it finishes.'}
                     </p>
                   </div>
-                  <label className="select-btn">
-                    <select value={theme} onChange={(e) => setTheme(e.target.value as IdeaTheme | 'all')} aria-label="Filter ideas">
-                      <option value="all">All ideas</option>
-                      {directThemes.map((t) => (
-                        <option key={t}>{t}</option>
-                      ))}
-                    </select>
-                  </label>
                   <button className="btn idea-btn" disabled={!prepared} onClick={() => setDialog({ kind: 'idea' })}>
                     <Icon name="plus" />
                     Add Idea
@@ -414,7 +361,6 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
       </div>
       <IdeaDialog
         open={!!dialog}
-        defaultTheme={theme === 'all' ? 'Option' : theme}
         kind={dialog?.kind}
         idea={dialog?.idea}
         topicId={problem?.id}

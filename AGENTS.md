@@ -91,6 +91,8 @@ prototype/         the first static prototype; do not build on it
   assignments. Never let AI code write to `task`/`poll`/`idea` directly.
 - Assigning people, scheduling, notifying and starting votes always need confirmation from a member.
   The team decides by voting: polls opened in meetings are listed in the Polls tab with their results.
+- Brainstorm hearts are personal support toggles, available immediately without opening a formal vote.
+  Approve is a separate, confirmed member action with no shortlist prerequisite. Hearts never approve an idea.
 - Every suggestion carries `reason` (why the AI made it) and, when available, the quoted context.
 - Keep suggestion → approved → completed distinct. Never show something as done because AI proposed it.
 - Don't fake integrations or data. If a feature isn't built, the UI says so (see `PlaceholderPage`
@@ -107,6 +109,19 @@ prototype/         the first static prototype; do not build on it
   reviewable strategies come first, then member ideas and iteration. Changing or deleting a topic
   clears its board; clearing only ideas preserves its research and strategies. Other topics and
   tasks or polls already created are unaffected. New AI topics never replace a topic automatically.
+- Topic strategies contain only a recommended direction, a short step-by-step plan and essential scope.
+  Each section and each step uses one or two short sentences; no separate focus/why, deliverables,
+  success criteria or next-step gates. Product plans have at most four concrete steps, simple choices fewer.
+  Keep guidance specific and provisional; never invent research or user feedback.
+- New strategies use the shared `strategyPlanSchema` JSON format with plain-text field values, rendered
+  as sections and steps. Preserve legacy text strategies; do not require Markdown rendering.
+- Members edit strategies through ordinary text fields for the direction, steps and scope. JSON is an
+  internal storage format, never the normal editing interface.
+- Brainstorm categories are internal: do not show category selectors, filters or saved-card tags.
+  Strategies stay in their section; direct options/ideas share a consistent card style. Preserve existing
+  internal themes on edit so older records and AI workflows keep their meaning.
+- Idea and strategy cards do not expose Make task. Relevant approval-generated task drafts stay
+  reviewable before a member adds them to the task board.
 - Meeting idea suggestions must identify a relevant existing topic, retain its `topicId`, and display
   its title. Skip ideas without a clear topic match; a proposed new topic must be approved first.
 - Topic-change proposals name the board they replace and require explicit confirmation of that target
