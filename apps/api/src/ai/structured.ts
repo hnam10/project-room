@@ -1,10 +1,4 @@
-import {
-  PRIORITIES,
-  STRATEGY_DESCRIPTION_MAX,
-  strategyPlanSchema,
-  type ActionItem,
-  type Priority,
-} from '@project-room/shared';
+import { PRIORITIES, STRATEGY_DESCRIPTION_MAX, strategyPlanSchema, type ActionItem, type Priority } from '@project-room/shared';
 import { z } from 'zod';
 import type { OpenAiClient } from './openai.js';
 import type {

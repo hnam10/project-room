@@ -5,6 +5,13 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Brainstorming rebased onto main.** Replayed the ten brainstorming commits over the
+  latest polls, chat, evaluation and dialog updates. Resolved shared imports and UI/documentation conflicts;
+  preserved concise strategies, plain-text editing, immediate hearts and direct approval. Saved strategy
+  cards use the same teal direction token as pending strategies. Kept a local pre-rebase backup branch.
+  Full check passes (258 tests) and shared/API/web builds pass. Authenticated browser verification remains
+  blocked by the local project's connection error, including after retrying with the API started.
+
 - 2026-10-25 — **Roomier AI review dialogs.** The idea, direction, topic and poll review dialogs open wide (640px),
   stack each label over a full-width field, and give the description 10 rows, so a draft reads at a glance.
 - 2026-10-25 — **Polls replace decisions.** The Decisions tab is now **Polls** (`/polls`): every poll opened in a
