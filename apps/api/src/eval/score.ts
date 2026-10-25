@@ -46,8 +46,9 @@ export const MATCH_AT = 0.5;
 /**
  * Pairs each proposal with at most one expected item, as many pairs as possible (augmenting paths), trying the best
  * overlap first. Greedy best-first can pair fewer: it may give an expected item the one proposal another one needed.
+ * Returns proposal index -> expected index.
  */
-export function scoreCase(expected: ExpectedItem[], proposed: ProposedItem[]): Score {
+export function matchItems(expected: ExpectedItem[], proposed: ProposedItem[]): Map<number, number> {
   // Candidate proposals per expected item, best overlap first.
   const options = expected.map((ex) =>
     proposed
@@ -70,6 +71,11 @@ export function scoreCase(expected: ExpectedItem[], proposed: ProposedItem[]): S
     return false;
   };
   expected.forEach((_, e) => claim(e, new Set()));
+  return ownerOf;
+}
+
+export function scoreCase(expected: ExpectedItem[], proposed: ProposedItem[]): Score {
+  const ownerOf = matchItems(expected, proposed);
   let assigneeRight = 0;
   for (const [p, e] of ownerOf) if (expected[e]!.assignee === proposed[p]!.assigneeId) assigneeRight++;
   return { expected: expected.length, proposed: proposed.length, matched: ownerOf.size, assigneeRight };

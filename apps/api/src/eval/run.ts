@@ -13,7 +13,7 @@ import { mockProvider } from '../ai/mock.js';
 import { createOpenAiClient } from '../ai/openai.js';
 import type { AiProvider, ConversationMessage, ProjectLookup } from '../ai/provider.js';
 import { composeAiProvider } from '../ai/routing.js';
-import { MATCH_AT, rates, scoreCase, similarity, sum, type ExpectedItem, type Score } from './score.js';
+import { matchItems, rates, scoreCase, sum, type ExpectedItem, type Score } from './score.js';
 
 interface EvalCase {
   id: string;
@@ -62,7 +62,7 @@ for (const [name, ai] of providers) {
   const started = Date.now();
   for (const c of dataset.cases) {
     const nameOf = (id: string) => c.members.find((m) => m.id === id)?.name ?? id;
-    let proposed: { title: string; assigneeId: string | null }[] = [];
+    let proposed: { title: string; assigneeId: string | null }[];
     try {
       const messages = c.messages.map((m, i) => ({ id: `${c.id}-${i}`, authorId: m.author, authorName: nameOf(m.author), text: m.text }));
       proposed = await actionItems(ai, c, messages);
@@ -74,8 +74,11 @@ for (const [name, ai] of providers) {
     }
     scores.push(scoreCase(c.expected, proposed));
     if (details) {
-      const missed = c.expected.filter((e) => !proposed.some((p) => similarity(e.title, p.title) >= MATCH_AT)).map((e) => e.title);
-      const extra = proposed.filter((p) => !c.expected.some((e) => similarity(e.title, p.title) >= MATCH_AT)).map((p) => p.title);
+      // The same pairing as the score, so the lists add up to the table.
+      const pairs = matchItems(c.expected, proposed);
+      const paired = new Set(pairs.values());
+      const missed = c.expected.filter((_, e) => !paired.has(e)).map((e) => e.title);
+      const extra = proposed.filter((_, p) => !pairs.has(p)).map((p) => p.title);
       if (missed.length || extra.length)
         console.log(`[${name}] ${c.id}\n  missed: ${missed.join(' | ') || '-'}\n  extra:  ${extra.join(' | ') || '-'}`);
     }
