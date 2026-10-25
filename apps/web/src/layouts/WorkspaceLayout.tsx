@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
-import { useFeedback } from '../components/Feedback';
 import { AccountButton, InviteButton, TeamSwitcher } from '../features/account/ClerkAccount';
 import { useClerkIdentity } from '../features/account/clerkIdentityContext';
 import { DetachedChat } from '../features/dock/DetachedChat';
@@ -85,12 +84,6 @@ function TopBar() {
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="brand-mark" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-        </span>
         <strong>Project Room</strong>
         <span className="crumb-sep">/</span>
         <span className="crumb-project">{project.name}</span>
@@ -137,11 +130,6 @@ function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <button className="workspace-switch" onClick={() => toast('Switching workspaces isn’t built yet.')}>
-        <span className="workspace-icon">P</span>
-        <strong>Project Room</strong>
-        <Icon name="chevron" />
-      </button>
       <TeamSwitcher />
 
       <nav className="side-nav" aria-label="Main navigation">

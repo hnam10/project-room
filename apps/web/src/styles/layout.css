@@ -32,26 +32,6 @@
 .crumb-sep {
   color: var(--line-strong);
 }
-.brand-mark {
-  width: 26px;
-  height: 26px;
-  padding: 5px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
-  border-radius: 7px;
-  background: var(--accent);
-}
-.brand-mark i {
-  background: #fff;
-  border-radius: 2px;
-  opacity: 0.95;
-}
-.brand-mark i:nth-child(2),
-.brand-mark i:nth-child(3) {
-  opacity: 0.55;
-}
-
 .top-tabs {
   display: flex;
   align-self: stretch;
@@ -127,33 +107,6 @@ kbd {
   background: var(--surface);
   border-right: 1px solid var(--line);
   overflow-y: auto;
-}
-.workspace-switch {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 6px 8px;
-  margin-bottom: 6px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-.workspace-switch:hover {
-  background: var(--surface-2);
-}
-.workspace-switch strong {
-  flex: 1;
-  text-align: left;
-}
-.workspace-icon {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: var(--accent-weak);
-  color: var(--accent);
-  font-weight: 700;
-  font-size: 12px;
 }
 .side-link {
   display: flex;

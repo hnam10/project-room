@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createStructuredProvider } from './structured.js';
+import { mockStrategy } from './mock-strategy.js';
+import { z } from 'zod';
 
 // The model is replaced by a fake: these tests check what we do with its output, not the model.
 
@@ -24,6 +26,34 @@ const tasks = [
 ];
 
 describe('structured provider', () => {
+  it('requests only three concise strategy fields and keeps preparation reviewable', async () => {
+    const roadmap = mockStrategy({ title: 'Fitness app for students with limited equipment', description: '' }, 'product');
+    const { provider, parse } = providerReturning(roadmap);
+    const input = {
+      trigger: 'problem_created' as const,
+      problem: { title: 'Fitness app for students with limited equipment', description: '' },
+      ideas: [],
+      research: [],
+      mode: 'product' as const,
+    };
+    const result = await provider.facilitateBrainstorm(input);
+    expect(result.strategy?.steps).toEqual(roadmap.steps);
+    expect(Object.keys(result.strategy!)).toEqual(['recommendation', 'steps', 'essentialScope']);
+    expect(JSON.stringify(result.strategy).length).toBeLessThan(2000);
+    expect(result.ideas).toEqual([]);
+    expect(result.tasks).toEqual([]);
+    const prompt = parse.mock.calls[0]![0].content;
+    const wireSchema = z.toJSONSchema(parse.mock.calls[0]![0].schema);
+    expect(wireSchema.properties).toHaveProperty('recommendation');
+    expect(wireSchema.properties).not.toHaveProperty('strategy');
+    expect(wireSchema.properties).not.toHaveProperty('tasks');
+    expect(prompt).toContain('equipment as one hypothesis');
+    expect(prompt).toContain('one or two short sentences');
+    expect(prompt).toContain('no Markdown');
+    expect(prompt).toContain('do not impose interviews, market research or a product roadmap');
+    expect(prompt).toContain('never invent findings, sources, metrics or user feedback');
+  });
+
   it('summarizes supplied research and drops invented source URLs', async () => {
     const { provider, parse } = providerReturning({
       summaries: [

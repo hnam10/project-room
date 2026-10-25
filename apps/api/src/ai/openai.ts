@@ -77,6 +77,20 @@ export interface OpenAiClient {
   }>;
 }
 
+/** A provider generated invalid JSON, rather than rejecting the request schema or credentials. */
+class StructuredGenerationError extends Error {}
+
+/** A failed upstream request, allowing callers to distinguish service limits from malformed output. */
+export class AiRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    detail: string,
+  ) {
+    super(`AI request failed (${status}): ${detail}`);
+    this.name = 'AiRequestError';
+  }
+}
+
 export function createOpenAiClient(apiKey: string, baseUrl: string): OpenAiClient {
   const endpoint = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
@@ -86,31 +100,60 @@ export function createOpenAiClient(apiKey: string, baseUrl: string): OpenAiClien
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`AI request failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
+    if (!res.ok) {
+      const text = await res.text();
+      if (res.status === 400 && body.response_format) {
+        try {
+          const error = JSON.parse(text).error;
+          if (error?.code === 'json_validate_failed' || /generated json does not match|failed to generate json/i.test(error?.message ?? ''))
+            throw new StructuredGenerationError(`The generated JSON did not match the schema: ${String(error.message).slice(0, 600)}`);
+        } catch (error) {
+          if (error instanceof StructuredGenerationError) throw error;
+        }
+      }
+      throw new AiRequestError(res.status, text.slice(0, 300));
+    }
     return (await res.json()) as ChatResponse;
   }
 
   async function parse<T>({ model, maxTokens, system, content, schema }: StructuredRequest<T>): Promise<StructuredResult<T>> {
-    const data = await post({
-      model,
-      ...tokenLimit(baseUrl, maxTokens),
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content },
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: { name: 'output', strict: true, schema: responseSchema(schema) },
-      },
-    });
-    const choice = data.choices[0];
-    if (choice?.message.refusal) throw new Error('The model declined this request');
-    if (choice?.finish_reason === 'length') throw new Error('The model’s answer was cut off');
-    if (!choice?.message.content) throw new Error('The model returned no structured output');
-    return {
-      output: schema.parse(JSON.parse(jsonText(choice.message.content))) as T,
-      usage: { inputTokens: data.usage?.prompt_tokens ?? 0, outputTokens: data.usage?.completion_tokens ?? 0 },
-    };
+    let correction = '';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const data = await post({
+          model,
+          ...tokenLimit(baseUrl, maxTokens),
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: content + correction },
+          ],
+          response_format: {
+            type: 'json_schema',
+            json_schema: { name: 'output', strict: true, schema: responseSchema(schema) },
+          },
+        });
+        const choice = data.choices[0];
+        if (choice?.message.refusal) throw new Error('The model declined this request');
+        if (choice?.finish_reason === 'length') throw new Error('The model’s answer was cut off');
+        if (!choice?.message.content) throw new Error('The model returned no structured output');
+        return {
+          output: schema.parse(JSON.parse(jsonText(choice.message.content))) as T,
+          usage: { inputTokens: data.usage?.prompt_tokens ?? 0, outputTokens: data.usage?.completion_tokens ?? 0 },
+        };
+      } catch (error) {
+        const invalidJson = error instanceof StructuredGenerationError || error instanceof z.ZodError || error instanceof SyntaxError;
+        if (!invalidJson || attempt === 2) throw error;
+        const feedback =
+          error instanceof z.ZodError
+            ? error.issues
+                .slice(0, 8)
+                .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+                .join('; ')
+            : error.message;
+        correction = `\n\nJSON validation correction: ${feedback}\nGenerate a fresh response matching the exact supplied JSON schema. Keep strings short and use the required object/array types. No code fences or extra fields.`;
+      }
+    }
+    throw new Error('The model could not produce valid structured output');
   }
 
   async function chat(input: { model: string; maxTokens: number; messages: ChatMessage[]; tools: ChatTool[] }) {

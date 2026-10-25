@@ -1,10 +1,63 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createOpenAiClient } from './openai.js';
 import { createStructuredProvider } from './structured.js';
+import { z } from 'zod';
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('OpenAI-compatible client', () => {
+  it('retries provider JSON-generation errors with correction feedback', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: { code: 'json_validate_failed', message: 'Generated JSON does not match the expected schema: expected object' },
+          }),
+          { status: 400 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"answer":"Valid JSON"}' } }] })),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = createOpenAiClient('key', 'https://example.test/v1');
+    const result = await client.parse({
+      model: 'test',
+      maxTokens: 100,
+      system: 'Return JSON.',
+      content: 'A sample request',
+      schema: z.object({ answer: z.string() }),
+    });
+    expect(result.output).toEqual({ answer: 'Valid JSON' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const retry = JSON.parse(fetchMock.mock.calls[1]![1].body);
+    expect(retry.messages[1].content).toContain('JSON validation correction');
+    expect(retry.messages[1].content).toContain('A sample request');
+  });
+
+  it('bounds malformed-output retries and does not accept invalid JSON', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"answer":12}' } }] }))),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = createOpenAiClient('key', 'https://example.test/v1');
+    await expect(
+      client.parse({ model: 'test', maxTokens: 100, system: 'Return JSON.', content: 'Sample', schema: z.object({ answer: z.string() }) }),
+    ).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([400, 401, 429, 500])('does not retry request/auth/service errors (%s)', async (status) => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ error: { message: 'Request rejected' } }), { status })));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = createOpenAiClient('key', 'https://example.test/v1');
+    await expect(
+      client.parse({ model: 'test', maxTokens: 100, system: 'Return JSON.', content: 'Sample', schema: z.object({ answer: z.string() }) }),
+    ).rejects.toThrow(String(status));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('sends the schema as response_format and feeds the JSON reply through validation', async () => {
     const fetchMock = vi.fn(() =>
       Promise.resolve(

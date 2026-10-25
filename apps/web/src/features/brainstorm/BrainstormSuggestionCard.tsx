@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { IDEA_THEME_CHOICES, type IdeaDraft, type IdeaTheme, type Suggestion } from '@project-room/shared';
+import type { IdeaDraft, Suggestion } from '@project-room/shared';
 import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
 import { useFeedback } from '../../components/Feedback';
 import { useWorkspace } from '../../state/workspace';
 import { IdeaDetails } from './IdeaDetails';
+import { StrategyDetails } from './StrategyDetails';
+import { StrategyEditor } from './StrategyEditor';
 
 export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   const { projectId, applyRecord, reload, snapshot } = useWorkspace();
@@ -13,13 +15,10 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
   const [topicId, setTopicId] = useState(suggestion.topicId ?? (topics.length === 1 ? topics[0]!.id : ''));
   const { toast, toastError } = useFeedback();
   const draft = suggestion.ideaDraft;
-  const [form, setForm] = useState<IdeaDraft>(draft ?? { title: '', description: '', theme: IDEA_THEME_CHOICES[0] });
+  const [form, setForm] = useState<IdeaDraft>(draft ?? { title: '', description: '', theme: 'Option' });
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   if (!draft) return null;
-  const themeChoices: IdeaTheme[] = IDEA_THEME_CHOICES.some((choice) => choice === form.theme)
-    ? [...IDEA_THEME_CHOICES]
-    : [...IDEA_THEME_CHOICES, form.theme];
   const draftKind = draft.theme === 'Strategy' ? 'strategy' : draft.theme === 'Option' ? 'option' : 'idea';
 
   const dismiss = async () => {
@@ -60,7 +59,7 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
           <strong>Topic:</strong> {topics.find((topic) => topic.id === suggestion.topicId)?.title ?? 'Choose a topic during review'}
         </p>
       )}
-      <IdeaDetails description={draft.description} />
+      {draft.theme === 'Strategy' ? <StrategyDetails description={draft.description} /> : <IdeaDetails description={draft.description} />}
       <p className="ai-draft-reason">
         <strong>Why:</strong> {suggestion.reason}
       </p>
@@ -126,23 +125,19 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
           Title
           <input value={form.title} maxLength={80} onChange={(event) => setForm({ ...form, title: event.target.value })} />
         </label>
-        <label className="form-row">
-          Description
-          <textarea
-            value={form.description}
-            rows={10}
-            maxLength={2000}
-            onChange={(event) => setForm({ ...form, description: event.target.value })}
-          />
-        </label>
-        <label className="form-row">
-          Category
-          <select value={form.theme} onChange={(event) => setForm({ ...form, theme: event.target.value as IdeaTheme })}>
-            {themeChoices.map((theme) => (
-              <option key={theme}>{theme}</option>
-            ))}
-          </select>
-        </label>
+        {form.theme === 'Strategy' ? (
+          <StrategyEditor description={form.description} onChange={(description) => setForm({ ...form, description })} />
+        ) : (
+          <label className="form-row">
+            Description
+            <textarea
+              value={form.description}
+              rows={10}
+              maxLength={2000}
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
+            />
+          </label>
+        )}
       </Modal>
     </article>
   );

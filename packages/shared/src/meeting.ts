@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { IDEA_THEMES, type IdeaTheme } from './domain.js';
+import { IDEA_THEMES, STRATEGY_DESCRIPTION_MAX, type IdeaTheme } from './domain.js';
+import { readStrategyPlan } from './strategy.js';
 
 // AI Meeting Room: meetings, transcript lines, polls and the WebRTC signalling messages.
 
@@ -140,11 +141,18 @@ export const meetingAiSchema = z.object({ enabled: z.boolean() });
 export const meetingMuteSchema = z.object({ muted: z.boolean() });
 export const pollVoteSchema = z.object({ optionId: z.string().min(1).max(64) });
 
-export const ideaDraftSchema = z.object({
-  title: z.string().trim().min(1).max(80),
-  description: z.string().max(2000).default(''),
-  theme: z.enum(IDEA_THEMES),
-});
+export const ideaDraftSchema = z
+  .object({
+    title: z.string().trim().min(1).max(80),
+    description: z.string().max(STRATEGY_DESCRIPTION_MAX).default(''),
+    theme: z.enum(IDEA_THEMES),
+  })
+  .superRefine((idea, ctx) => {
+    if (idea.theme === 'Strategy' && idea.description.trim().startsWith('{') && !readStrategyPlan(idea.description))
+      ctx.addIssue({ code: 'custom', path: ['description'], message: 'Strategy JSON must match the roadmap format' });
+    if (idea.theme !== 'Strategy' && idea.description.length > 2000)
+      ctx.addIssue({ code: 'custom', path: ['description'], message: 'Keep direct idea drafts within 2000 characters' });
+  });
 
 export const pollDraftSchema = z.object({
   question: z.string().trim().min(1).max(160),
