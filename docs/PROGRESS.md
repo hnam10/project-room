@@ -588,9 +588,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
-- 2026-10-26 — **Meeting summaries show in Notes without being copied.** They stay on the meeting record and
-  render read-only (labelled AI) beside member notes, so there is one source and no sync. Member notes are
-  project-wide and author-only to edit, so nobody rewrites someone else's words.
+- 2026-10-26 — **Strategies: AI up to six steps, members up to eight.** Four was too tight for real plans (Add step
+  silently did nothing at four). The AI still aims for two to four steps; members get two spare slots, and a full
+  editor greys out Add step with an "Up to 8 steps." note.
 - 2026-10-25 — **Capture tentative concrete ideas as suggestions.** Members naturally say “thinking of
   adding” rather than issuing commands. Preserve that contribution for review while direct “want to add”
   requests create member-authored cards; use a sole topic by default unless an explicit target conflicts.

@@ -14,7 +14,7 @@ import { rid } from './db/records.js';
 import { createMessage, listMessages } from './repositories/messages.js';
 import { onMessagePosted } from './services/ai-engine.js';
 import { parseChatCommand } from './services/chat-commands.js';
-import { readStrategyPlan } from '@project-room/shared';
+import { aiStrategyPlanSchema, readStrategyPlan } from '@project-room/shared';
 import { getAiProvider } from './ai/index.js';
 import { AiRequestError } from './ai/openai.js';
 import type { ChatIntent } from './ai/provider.js';
@@ -523,6 +523,18 @@ it('creates unassigned tasks from inline commands and same-member same-channel f
   expect(added.every((task) => task.assigneeId === null && task.status === 'todo' && task.dueDate === null)).toBe(true);
   expect(await command(`@AI create task ${'x'.repeat(121)}`)).toContain('between 1 and 120');
   expect((await snapshot()).tasks).toHaveLength(before + 2);
+});
+
+it('caps AI strategies at six steps while members may save up to eight', () => {
+  const plan = (count: number) => ({
+    recommendation: 'Go.',
+    steps: Array.from({ length: count }, (_, i) => `Step ${i + 1}.`),
+    essentialScope: 'Core.',
+  });
+  expect(aiStrategyPlanSchema.safeParse(plan(6)).success).toBe(true);
+  expect(aiStrategyPlanSchema.safeParse(plan(7)).success).toBe(false);
+  expect(readStrategyPlan(JSON.stringify(plan(8)))?.steps).toHaveLength(8);
+  expect(readStrategyPlan(JSON.stringify(plan(9)))).toBeNull();
 });
 
 it('condenses previously saved JSON strategies without requiring migration or losing compatibility', () => {
