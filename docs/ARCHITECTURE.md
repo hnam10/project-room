@@ -44,15 +44,15 @@ unavailable-summary notice, and strategy failures preserve completed research. A
 refreshes pending unavailable-summary cards. `AiRequestError` carries upstream status for safe availability
 messages; other routes map it to 503 rather than exposing provider details. Preparation records a completed
 availability check so teams can add their own ideas even when AI is unavailable.
-`strategyPlanSchema` defines only `recommendation` (string), `steps` (up to four strings), and
-`essentialScope` (string). Research remains in its separate section rather than being repeated in guidance.
+`strategyPlanSchema` defines only `recommendation` (string), `steps` (up to eight strings), and
+`essentialScope` (string); `aiStrategyPlanSchema` caps model output at six steps. Research remains in its separate section rather than being repeated in guidance.
 Plans are serialized as JSON in the existing strategy description field (up to `STRATEGY_DESCRIPTION_MAX`,
 20,000 characters) through generation, review, approval and editing. `StrategyDetails` reads this schema
 and renders three short sections without Markdown. Older detailed JSON is condensed at read time using
 its direction, action sentences and essential scope; original saved records are not rewritten.
 `StrategyEditor` exposes normal text fields for direction, each step and essential scope in both draft
 review and saved-idea editing. It serializes JSON on change, tolerates incomplete form fields while typing,
-and relies on required fields plus shared API validation before saving. Members can keep one to four steps.
+and relies on required fields plus shared API validation before saving. Members can keep one to eight steps.
 Legacy plain text remains readable. Malformed JSON objects are rejected on review/edit. Other facilitation summaries
 retain their short limit. Preparation cannot create
 direct ideas or tasks; the plan remains a reviewable Strategy draft. Manual refresh keys the draft by its
