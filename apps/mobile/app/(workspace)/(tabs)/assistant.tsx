@@ -47,7 +47,7 @@ export default function AssistantScreen() {
             actionLabel="Open chat"
             onAction={() => router.push('/(workspace)/(tabs)/chat')}
           />
-        ) : null
+        ) : undefined
       }
       renderItem={({ item }) => <SuggestionCard suggestion={item} />}
     />
