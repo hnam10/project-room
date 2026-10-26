@@ -22,8 +22,7 @@ export default function TasksScreen() {
   const { userId } = useAuth();
   const { projectId, snapshot, applyRecord } = useWorkspace();
 
-  const mine =
-    snapshot?.tasks.filter((task) => task.assigneeId === userId).sort((a, b) => a.title.localeCompare(b.title)) ?? [];
+  const mine = snapshot?.tasks.filter((task) => task.assigneeId === userId).sort((a, b) => a.title.localeCompare(b.title)) ?? [];
   const counts = myTaskStatusCounts(snapshot?.tasks ?? [], userId);
   const dueSoon = myTasksDueSoon(snapshot?.tasks ?? [], userId);
   const dueLine = buildDueLine(dueSoon);

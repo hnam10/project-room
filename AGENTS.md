@@ -49,7 +49,7 @@ and approves. Core loop: **Conversations → Insights → Decisions → Actions 
 | Command                    | What it does                                                              |
 | -------------------------- | ------------------------------------------------------------------------- |
 | `npm run dev`              | API (http://localhost:4000) + web (http://localhost:5173) with reload     |
-| `npm run dev:mobile`       | Expo dev server for `apps/mobile` (`EXPO_PUBLIC_*` in `apps/mobile/.env`)   |
+| `npm run dev:mobile`       | Expo dev server for `apps/mobile` (`EXPO_PUBLIC_*` in `apps/mobile/.env`) |
 | `npm run check`            | Everything CI runs except the build: format, lint, typecheck, test        |
 | `npm test`                 | API tests (vitest): AI rules + full HTTP/realtime flow on an in-memory DB |
 | `npm run typecheck`        | TypeScript across all workspaces                                          |

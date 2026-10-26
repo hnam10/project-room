@@ -24,7 +24,9 @@ function ProjectSwitcherTitle({ name, offline, pollsOpen }: { name: string; offl
         </Text>
         {pollsOpen > 0 ? (
           <Pressable onPress={() => router.push('/(workspace)/(tabs)/polls')} hitSlop={6}>
-            <Text style={styles.pollHint}>{pollsOpen} open poll{pollsOpen === 1 ? '' : 's'}</Text>
+            <Text style={styles.pollHint}>
+              {pollsOpen} open poll{pollsOpen === 1 ? '' : 's'}
+            </Text>
           </Pressable>
         ) : null}
       </View>

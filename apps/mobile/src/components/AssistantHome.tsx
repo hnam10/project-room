@@ -5,13 +5,7 @@ import { openPolls, pendingSuggestionCount } from '../features/workspaceSummary'
 import { colors, radius, shadow } from '../theme';
 import { SuggestionCard } from './SuggestionCard';
 
-export function AssistantHome({
-  snapshot,
-  preview,
-}: {
-  snapshot: WorkspaceSnapshot;
-  preview: Suggestion[];
-}) {
+export function AssistantHome({ snapshot, preview }: { snapshot: WorkspaceSnapshot; preview: Suggestion[] }) {
   const router = useRouter();
   const pending = pendingSuggestionCount(snapshot);
   const pollsOpen = openPolls(snapshot).length;
@@ -21,9 +15,7 @@ export function AssistantHome({
       <View style={styles.hero}>
         <Text style={styles.heroTitle}>Project pulse</Text>
         <Text style={styles.heroSub}>
-          {pending > 0
-            ? `${pending} AI suggestion${pending === 1 ? '' : 's'} waiting for you`
-            : 'No pending AI suggestions right now'}
+          {pending > 0 ? `${pending} AI suggestion${pending === 1 ? '' : 's'} waiting for you` : 'No pending AI suggestions right now'}
         </Text>
         <View style={styles.stats}>
           <Stat label="Review" value={String(pending)} accent={pending > 0} />

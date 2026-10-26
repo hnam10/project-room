@@ -34,7 +34,9 @@ export default function PollsScreen() {
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         openCount > 0 ? (
-          <Text style={styles.lead}>{openCount} open poll{openCount === 1 ? '' : 's'} — tap an option to vote.</Text>
+          <Text style={styles.lead}>
+            {openCount} open poll{openCount === 1 ? '' : 's'} — tap an option to vote.
+          </Text>
         ) : (
           <Text style={styles.lead}>Polls opened in meetings appear here. Closed polls stay for the record.</Text>
         )

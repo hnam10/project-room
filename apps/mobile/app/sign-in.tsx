@@ -108,9 +108,7 @@ export default function SignInScreen() {
       }
 
       const identifier = email.trim();
-      const result = password
-        ? await signIn.create({ identifier, password })
-        : await signIn.create({ identifier });
+      const result = password ? await signIn.create({ identifier, password }) : await signIn.create({ identifier });
       await continueSignIn(result);
     } catch (error) {
       Alert.alert('Login failed', clerkMessage(error));
@@ -159,9 +157,7 @@ export default function SignInScreen() {
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>Project Room</Text>
-      <Text style={styles.sub}>
-        {verifying ? 'Enter the verification code we emailed you.' : 'Use the same account as the web app.'}
-      </Text>
+      <Text style={styles.sub}>{verifying ? 'Enter the verification code we emailed you.' : 'Use the same account as the web app.'}</Text>
 
       {!verifying && (
         <>

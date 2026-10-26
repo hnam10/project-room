@@ -23,7 +23,9 @@ export function TaskSummaryStrip({ counts, dueLine }: { counts: TaskStatusCounts
           counts[key] > 0 ? (
             <View key={key} style={styles.chip}>
               <View style={[styles.dot, { backgroundColor: statusColor[key] }]} />
-              <Text style={styles.chipText}>{counts[key]} {label.toLowerCase()}</Text>
+              <Text style={styles.chipText}>
+                {counts[key]} {label.toLowerCase()}
+              </Text>
             </View>
           ) : null,
         )}
@@ -44,7 +46,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 14, fontWeight: '600', color: colors.ink },
   due: { marginTop: 4, fontSize: 12, color: colors.red, fontWeight: '500' },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.bg },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+    backgroundColor: colors.bg,
+  },
   dot: { width: 8, height: 8, borderRadius: 4 },
   chipText: { fontSize: 12, color: colors.ink2, fontWeight: '500' },
 });
