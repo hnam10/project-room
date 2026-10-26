@@ -20,6 +20,7 @@ import { config } from './config.js';
 import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
+import { listPushTokensForMembers } from './repositories/push-tokens.js';
 import { createFile } from './repositories/files.js';
 import { readStoredFile, removeStoredFile, storedFilePath, writeStoredFile } from './services/file-store.js';
 
@@ -94,6 +95,62 @@ describe('workspace API', () => {
     expect(gone.status).toBe(204);
     const bad = await api('/me/push-token', { method: 'POST', body: JSON.stringify({ token: 'nope' }) });
     expect(bad.status).toBe(400);
+  });
+
+  it('allows only configured CORS origins and preserves preflight headers without credentials', async () => {
+    const origin = 'https://mobile.example.com';
+    config.corsOrigins.push(origin);
+    try {
+      for (const method of ['GET', 'OPTIONS']) {
+        const response = await fetch(`${base}/api/health`, { method, headers: { origin } });
+        expect(response.status).toBe(method === 'OPTIONS' ? 204 : 200);
+        expect(response.headers.get('access-control-allow-origin')).toBe(origin);
+        expect(response.headers.get('access-control-allow-credentials')).toBeNull();
+        expect(response.headers.get('access-control-allow-headers')).toBe(
+          'authorization, content-type, x-file-name, x-file-type, ngrok-skip-browser-warning',
+        );
+        expect(response.headers.get('access-control-allow-methods')).toBe('GET,POST,PATCH,DELETE,OPTIONS');
+        expect(response.headers.get('vary')).toContain('Origin');
+      }
+      for (const denied of ['https://evil.example', `${origin}.evil.example`, 'null']) {
+        const response = await fetch(`${base}/api/health`, { method: 'OPTIONS', headers: { origin: denied } });
+        expect(response.status).toBe(204);
+        expect(response.headers.get('access-control-allow-origin')).toBeNull();
+        expect(response.headers.get('access-control-allow-credentials')).toBeNull();
+        expect(response.headers.get('vary')).toContain('Origin');
+      }
+      const native = await fetch(`${base}/api/health`);
+      expect(native.status).toBe(200);
+      expect(native.headers.get('access-control-allow-origin')).toBeNull();
+    } finally {
+      config.corsOrigins.splice(config.corsOrigins.indexOf(origin), 1);
+    }
+  });
+
+  it('revokes only the registration matching the device cleanup secret without a session', async () => {
+    const token = 'ExpoPushToken[revocation-test-device]';
+    const revocationKey = '6c505322-479c-4689-b416-1baa42be238c';
+    const replacementKey = 'c2752a44-c490-416f-af24-97bec52b869e';
+    const revoke = (key?: string) =>
+      fetch(`${base}/api/push-token/revoke`, {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token, revocationKey: key }),
+      });
+    expect((await api('/me/push-token', { method: 'POST', body: JSON.stringify({ token, revocationKey }) })).status).toBe(204);
+    expect((await revoke()).status).toBe(400);
+    expect((await revoke(replacementKey)).status).toBe(204);
+    expect((await listPushTokensForMembers(['alex'])).some((row) => row.token === token)).toBe(true);
+    // Account changes rotate the secret, so delayed cleanup cannot delete a new registration.
+    expect(
+      (await api('/me/push-token', { method: 'POST', member: 'jamie', body: JSON.stringify({ token, revocationKey: replacementKey }) }))
+        .status,
+    ).toBe(204);
+    expect((await revoke(revocationKey)).status).toBe(204);
+    expect((await listPushTokensForMembers(['jamie'])).some((row) => row.token === token)).toBe(true);
+    expect((await revoke(replacementKey)).status).toBe(204);
+    expect((await listPushTokensForMembers(['alex', 'jamie'])).some((row) => row.token === token)).toBe(false);
+    expect((await revoke(replacementKey)).status).toBe(204);
   });
 
   it('sets and clears the project deadline', async () => {

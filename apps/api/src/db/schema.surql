@@ -139,6 +139,7 @@ DEFINE INDEX OVERWRITE file_project_time ON file FIELDS projectId, createdAt;
 DEFINE TABLE OVERWRITE push_token SCHEMAFULL;
 DEFINE FIELD OVERWRITE memberId ON push_token TYPE record<member>;
 DEFINE FIELD OVERWRITE token ON push_token TYPE string ASSERT string::len($value) >= 20 AND string::len($value) <= 200;
+DEFINE FIELD OVERWRITE revocationHash ON push_token TYPE null | string DEFAULT null;
 DEFINE FIELD OVERWRITE updatedAt ON push_token TYPE datetime VALUE time::now();
 DEFINE INDEX OVERWRITE push_token_unique ON push_token FIELDS token UNIQUE;
 DEFINE INDEX OVERWRITE push_token_member ON push_token FIELDS memberId;

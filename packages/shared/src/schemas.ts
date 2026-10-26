@@ -127,5 +127,10 @@ export const pushTokenSchema = z.object({
     .min(20)
     .max(200)
     .regex(/^Expo(nent)?PushToken\[.+\]$/, 'Expected an Expo push token'),
+  revocationKey: z.uuid().optional(),
 });
 export type PushTokenInput = z.input<typeof pushTokenSchema>;
+
+/** Deletion-only device credential, usable after sign-out. */
+export const pushTokenRevocationSchema = pushTokenSchema.extend({ revocationKey: z.uuid() });
+export type PushTokenRevocationInput = z.input<typeof pushTokenRevocationSchema>;

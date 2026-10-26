@@ -1,11 +1,14 @@
 import { ClerkLoaded, ClerkProvider } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { startPushTokenCleanup } from '@/src/push';
 import { StatusBar } from 'expo-status-bar';
 import { clerkPublishableKey } from '@/src/config';
 import { colors } from '@/src/theme';
 
 export default function RootLayout() {
+  useEffect(startPushTokenCleanup, []);
   if (!clerkPublishableKey) {
     return (
       <Stack screenOptions={{ headerShown: false }}>

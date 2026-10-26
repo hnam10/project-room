@@ -29,8 +29,8 @@ meRouter.get('/me', async (_req, res) => {
 });
 
 meRouter.post('/me/push-token', async (req, res) => {
-  const { token } = pushTokenSchema.parse(req.body);
-  await upsertPushToken(caller(res).memberId, token);
+  const { token, revocationKey } = pushTokenSchema.parse(req.body);
+  await upsertPushToken(caller(res).memberId, token, revocationKey);
   res.status(204).end();
 });
 

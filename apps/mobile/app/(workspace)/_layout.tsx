@@ -9,7 +9,7 @@ import { colors } from '@/src/theme';
 
 export default function WorkspaceLayout() {
   const router = useRouter();
-  const { isSignedIn, isLoaded, orgId, getToken } = useAuth();
+  const { isSignedIn, isLoaded, orgId, userId, getToken } = useAuth();
 
   // Bind before the workspace's effects. Those effects run first and load the project.
   if (getToken) bindClerkGetToken(getToken);
@@ -18,7 +18,13 @@ export default function WorkspaceLayout() {
 
   useEffect(() => {
     if (!isSignedIn) return;
-    void registerPushToken().catch(() => undefined);
+    const registration = new AbortController();
+    void registerPushToken(registration.signal).catch(() => undefined);
+    return () => registration.abort();
+  }, [isSignedIn, userId]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
     return onNotificationOpen(() => router.replace('/(workspace)/(tabs)/assistant'));
   }, [isSignedIn, router]);
 

@@ -5,6 +5,17 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-26 — **CORS and mobile push cleanup hardened.** Direct browser requests use the exact
+  comma-separated `CORS_ORIGINS` allowlist without credential headers. Expo HTTP/ticket errors are
+  reported with batch context and invalid-device tickets remove the matching member's token.
+  Mobile registration/removal are serialized and cancelled on workspace cleanup. Device cleanup
+  credentials are saved before registration and retried after offline sign-out, on resume and restart.
+  Push payloads contain only generic text; suggestion titles and project/suggestion ids stay in the
+  authenticated app. Added `expo-crypto` for cryptographically random per-registration revocation
+  secrets (only hashes are stored server-side); this lets cleanup finish after Clerk sign-out.
+  Validation: format/lint/typecheck, 306 tests, and shared/API/web builds passed. Production audit
+  matches the original lockfile (6 high and 14 moderate advisories). Live device delivery is unverified.
+
 - 2026-10-25 — **Settings left the sidebar.** The Settings item is gone from the project menu. `/settings`
   and `/team` open the board. Invites stay on the top-bar button, and the deadline stays on the calendar.
 

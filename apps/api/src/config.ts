@@ -21,6 +21,11 @@ function iceServers(): RTCIceServer[] {
 
 export const config = {
   port: Number(env('PORT', '4000')),
+  /** Exact browser origins allowed to call the API directly. Empty denies cross-origin requests. */
+  corsOrigins: env('CORS_ORIGINS', '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
   /**
    * Where SurrealDB lives. Embedded engines need no server:
    *   mem://                      in-memory, wiped on restart

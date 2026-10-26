@@ -321,6 +321,18 @@ so a switch reloads the project. Channel history is not in the snapshot: Chat lo
 `GET …/channels/:id/messages` (newest 200) for `#general` by default, merges live/sent
 lines, and refetches after a socket reconnect. Pending AI suggestions can notify devices: the app registers an Expo
 push token at `POST /api/me/push-token`, and LIVE SELECT on `suggestion` create sends Expo push.
+Push payloads contain generic text only, with no suggestion title or workspace identifiers, so offline
+sign-out cannot expose workspace content. Expo HTTP/ticket failures are logged; `DeviceNotRegistered`
+removes the token through member-scoped cleanup. The mobile app serializes registration and removal,
+cancels registration when its workspace effect ends, and stores the token plus a random revocation key
+in SecureStore before POST. The server stores only the key's SHA-256 hash. A deletion-only
+`DELETE /api/push-token/revoke` accepts that token/key without a Clerk session; authenticated
+`DELETE /api/me/push-token` remains available for existing clients. Re-registration rotates the key.
+Pending removal survives network failure and restarts, retrying at root startup, app resume, and every
+15 seconds while active (including while signed out). No background delivery or retry is guaranteed
+while the OS suspends the app. Direct cross-origin browser access requires an exact entry in
+`CORS_ORIGINS` (comma separated, empty by default); allowed preflights retain the API headers and
+methods, and CORS credentials are omitted because authentication uses Bearer tokens.
 Google SSO uses Clerk `useSSO` (`oauth_google`). EAS Build profiles in `eas.json` include update
 channels; `eas login` / `eas init` still need an Expo account.
 

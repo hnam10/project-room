@@ -23,7 +23,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown, authenticated = true): Promise<T> {
   const projectId = /^\/projects\/([^/]+)/.exec(path)?.[1];
   const base = apiBaseUrl();
   let res: Response;
@@ -33,7 +33,7 @@ export async function request<T>(method: string, path: string, body?: unknown): 
       headers: {
         'content-type': 'application/json',
         ...tunnelHeaders(base),
-        ...(await authHeaders(projectId && decodeURIComponent(projectId))),
+        ...(authenticated ? await authHeaders(projectId && decodeURIComponent(projectId)) : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -80,6 +80,7 @@ export const api = {
     request<Poll>('POST', `${p(projectId)}/polls/${pollId}/vote`, { optionId }),
   closePoll: (projectId: string, pollId: string) => request<Poll>('POST', `${p(projectId)}/polls/${pollId}/close`),
 
-  registerPushToken: (token: string) => request<void>('POST', '/me/push-token', { token }),
-  unregisterPushToken: (token: string) => request<void>('DELETE', '/me/push-token', { token }),
+  registerPushToken: (token: string, revocationKey: string) => request<void>('POST', '/me/push-token', { token, revocationKey }),
+  unregisterPushToken: (token: string, revocationKey: string) =>
+    request<void>('DELETE', '/push-token/revoke', { token, revocationKey }, false),
 };
