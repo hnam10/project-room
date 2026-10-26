@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Chat accepts pasted images.** Images copied to the clipboard can be pasted directly into
+  the chat composer; they upload through the existing project Files flow, appear as downloadable chat
+  attachments, and are available to Agent Memory for OCR/vision retrieval.
 - 2026-10-25 — **Capture natural direct and tentative chat ideas.** “I want to add no-equipment dorm
   workouts to the fitness app” adds the member's idea; “I am thinking of adding…” saves a pending
   review draft. The interpreter uses topic names/descriptions and recent chat; the service fills omitted

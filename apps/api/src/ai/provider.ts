@@ -176,6 +176,14 @@ export interface MessageHit {
   text: string;
 }
 
+export interface MeetingLineHit {
+  id: string;
+  meetingTitle: string;
+  speakerName: string;
+  spokenAt: string;
+  text: string;
+}
+
 /**
  * Read-only project lookups the @AI tool loop may call. Implementations filter by project.
  * The model never receives SurrealQL.
@@ -184,6 +192,7 @@ export interface ProjectLookup {
   listMembers(): Promise<MemberBrief[]>;
   listTasks(filter: { status: string; assigneeId: string }): Promise<TaskBrief[]>;
   searchMessages(query: string): Promise<MessageHit[]>;
+  searchMeetingLines(query: string): Promise<MeetingLineHit[]>;
   listPendingSuggestions(): Promise<
     { kind: string; title: string; proposal: string | null; taskId: string | null; ideaTitle: string | null }[]
   >;
