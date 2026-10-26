@@ -29,7 +29,6 @@ const SIDE_NAV: [string, string, IconName][] = [
   ['polls', 'Polls', 'flag'],
   ['calendar', 'Calendar', 'calendar'],
   ['files', 'Files', 'file'],
-  ['settings', 'Settings', 'settings'],
 ];
 
 /** App shell for one project: top bar, sidebar, the routed page, and the chat when it's detached. */

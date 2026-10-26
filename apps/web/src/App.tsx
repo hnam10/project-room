@@ -27,14 +27,9 @@ export function App() {
           path="overview"
           element={<PlaceholderPage icon="tasks" title="Overview" text="A project summary dashboard is planned for a later iteration." />}
         />
-        <Route path="team" element={<Navigate to="../settings" replace />} />
+        <Route path="team" element={<Navigate to="../board" replace />} />
+        <Route path="settings" element={<Navigate to="../board" replace />} />
         <Route path="decisions" element={<Navigate to="../polls" replace />} />
-        <Route
-          path="settings"
-          element={
-            <PlaceholderPage icon="settings" title="Settings" text="Members, roles, and project settings will live here. Not built yet." />
-          }
-        />
         <Route path="*" element={<PlaceholderPage icon="alert" title="Page not found" text="That page doesn’t exist in this project." />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
