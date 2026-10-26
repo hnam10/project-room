@@ -6,3 +6,5 @@ apps/api/data
 **/.env.local
 .git
 prototype
+apps/mobile
+.expo

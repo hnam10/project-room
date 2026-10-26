@@ -10,7 +10,9 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
-RUN npm ci
+# apps/mobile (Expo) ships through EAS, not this image; it is excluded in .dockerignore.
+RUN npm ci --include-workspace-root \
+    -w @project-room/shared -w @project-room/api -w @project-room/web
 
 COPY . .
 # The Clerk publishable key is public by design but Vite bakes it in at build time.

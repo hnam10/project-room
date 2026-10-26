@@ -7,6 +7,7 @@ import { ensureClerkMember, verifySessionToken } from '../auth/clerk.js';
 import { authMode } from '../config.js';
 import { relayRtc } from './rtc-relay.js';
 import { dropFromLiveMeeting } from '../services/meetings.js';
+import { notifySuggestionCreated } from '../services/push.js';
 import { devMemberId, projectForCaller, type Caller } from '../http/context.js';
 
 // Pushes database changes to browsers. SurrealDB LIVE SELECT queries report every change to the
@@ -92,7 +93,8 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
       for await (const { action, value } of subscription) {
         const realtimeAction = ACTIONS[action];
         if (!realtimeAction || !value) continue;
-        const record = toPlain<{ projectId?: string }>(value);
+        const record = toPlain<{ projectId?: string; id?: string; kind?: string; status?: string; title?: string }>(value);
+        if (table === 'suggestion' && realtimeAction === 'create') notifySuggestionCreated(record);
         const sockets = record.projectId ? socketsByProject.get(record.projectId) : undefined;
         if (!sockets?.size) continue;
         const message = { type: 'change', table, action: realtimeAction, record } as ServerMessage;

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { clerkMiddleware } from '@clerk/express';
+import { pushTokenRevocationSchema } from '@project-room/shared';
 import { clerk } from './auth/clerk.js';
 import { authMode, config } from './config.js';
 import { authenticate, requireProjectMember } from './http/context.js';
@@ -15,14 +16,36 @@ import { meRouter, projectRouter } from './http/routes/projects.js';
 import { pollsRouter } from './http/routes/polls.js';
 import { suggestionsRouter } from './http/routes/suggestions.js';
 import { tasksRouter } from './http/routes/tasks.js';
+import { revokePushToken } from './repositories/push-tokens.js';
 
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
+  // Mobile (Expo) and other non-proxied clients call /api directly from another origin.
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    res.vary('Origin');
+    if (origin && config.corsOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-file-name, x-file-type, ngrok-skip-browser-warning');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+    }
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
   app.use(express.json({ limit: '100kb' }));
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
+  });
+  // A deletion-only capability lets a device finish cleanup after its Clerk session ends.
+  app.delete('/api/push-token/revoke', async (req, res) => {
+    const { token, revocationKey } = pushTokenRevocationSchema.parse(req.body);
+    await revokePushToken(token, revocationKey);
+    res.status(204).end();
   });
   if (authMode === 'clerk') app.use('/api', clerkMiddleware({ clerkClient: clerk() }));
   app.use('/api', authenticate);

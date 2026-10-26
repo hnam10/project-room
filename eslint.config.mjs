@@ -8,7 +8,17 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', 'apps/api/data/**', 'prototype/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      'apps/api/data/**',
+      'apps/mobile/.expo/**',
+      'apps/mobile/metro.config.js',
+      'docs/demo-video/**',
+      'prototype/**',
+    ],
+  },
   js.configs.recommended,
   tseslint.configs.recommended,
   {
@@ -19,7 +29,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/api/**/*.ts', 'packages/shared/**/*.ts', '*.mjs'],
+    files: ['apps/api/**/*.ts', 'packages/shared/**/*.ts', '*.mjs', 'apps/mobile/scripts/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
   {
@@ -35,6 +45,19 @@ export default tseslint.config(
   {
     // Context modules export a provider together with its hook; that's intentional.
     files: ['apps/web/src/state/**', 'apps/web/src/components/Feedback.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
+    files: ['apps/mobile/**/*.{ts,tsx}'],
+    languageOptions: { globals: globals.browser },
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+    },
+  },
+  {
+    files: ['apps/mobile/src/state/**'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
   prettier,
