@@ -9,6 +9,7 @@ import { migrateLegacyTopics } from '../repositories/brainstorm-topics.js';
 // placeholder members; real Clerk users join the project the first time they open it.
 
 const TABLES = [
+  'note',
   'suggestion',
   'message',
   'task',

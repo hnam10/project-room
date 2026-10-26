@@ -165,6 +165,8 @@ describe('workspace API', () => {
 
     const edited = await api<Note>(path, { method: 'PATCH', body: JSON.stringify({ body: 'Bring two adapters.' }) });
     expect(edited.body).toMatchObject({ title: 'Demo prep', body: 'Bring two adapters.' });
+    const renamed = await api<Note>(path, { method: 'PATCH', body: JSON.stringify({ title: 'Demo day' }) });
+    expect(renamed.body).toMatchObject({ title: 'Demo day', body: 'Bring two adapters.' });
     expect((await api(path, { method: 'DELETE' })).status).toBe(204);
     expect((await api(path, { method: 'DELETE' })).status).toBe(404);
   });

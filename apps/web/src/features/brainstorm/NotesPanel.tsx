@@ -82,24 +82,29 @@ export function NotesPanel() {
   const { projectId, applyRecord, members } = useWorkspace();
   const { notes } = useSnapshot();
   const { memberId } = useSession();
-  const { recent, select, dismiss } = useMeetingCall();
-  const { toastError, confirm } = useFeedback();
+  const { recent, select, dismiss, live } = useMeetingCall();
+  const { toast, toastError, confirm } = useFeedback();
+  const meetingPath = `/p/${projectId}/meeting`;
+  // Switching the shown meeting would tear down a live call, so during one we only go to the room.
+  const leaveForLive = () => {
+    toast('A meeting is live. Its history opens once the meeting ends.');
+    navigate(meetingPath);
+  };
   const navigate = useNavigate();
   const [editing, setEditing] = useState<Note | 'new' | null>(null);
 
   // Only the latest meeting summaries; older ones are in the Meeting tab's history.
   const summarized = recent.filter((m) => m.summary).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  const olderCount = summarized.length - MEETING_NOTES_SHOWN;
+  const hasOlder = summarized.length > MEETING_NOTES_SHOWN;
   const entries: Entry[] = [
     ...notes.map((note): Entry => ({ kind: 'note', at: note.createdAt, note })),
-    ...summarized
-      .slice(0, MEETING_NOTES_SHOWN)
-      .map((meeting): Entry => ({ kind: 'meeting', at: meeting.endedAt ?? meeting.startedAt, meeting })),
+    ...summarized.slice(0, MEETING_NOTES_SHOWN).map((meeting): Entry => ({ kind: 'meeting', at: meeting.startedAt, meeting })),
   ].sort((a, b) => b.at.localeCompare(a.at));
 
   const openHistory = () => {
+    if (live) return leaveForLive();
     dismiss();
-    navigate(`/p/${projectId}/meeting`);
+    navigate(meetingPath);
   };
 
   const remove = async (note: Note) => {
@@ -113,9 +118,10 @@ export function NotesPanel() {
   };
 
   const openMeeting = async (meeting: Meeting) => {
+    if (live) return leaveForLive();
     try {
       await select(projectId, meeting.id);
-      navigate(`/p/${projectId}/meeting`);
+      navigate(meetingPath);
     } catch (error) {
       toastError(error);
     }
@@ -184,11 +190,11 @@ export function NotesPanel() {
             </article>
           ),
         )}
-        {olderCount > 0 && (
+        {hasOlder && (
           <button className="idea-add note-history" onClick={openHistory}>
             <span>
               <Icon name="mic" />
-              {olderCount} older meeting {olderCount === 1 ? 'note' : 'notes'} · Meeting history
+              Older meeting notes · Meeting history
             </span>
           </button>
         )}
