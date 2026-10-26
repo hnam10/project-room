@@ -8,7 +8,8 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 - 2026-10-26 — **Notes tab.** Brainstorm → Notes lists project-wide member notes (new `note` table, author-only
   edit/delete, realtime) and the AI summary of every ended meeting, read-only, with Open meeting. Both are
   brainstorm-style tickets: team notes light purple, AI meeting notes light pink. Only the last two meeting
-  summaries show; a tile links to the Meeting tab's history for older ones. API flow test
+  slots are considered before filtering for summaries; a tile links to the Meeting tab's history when older ended
+  meetings have summaries. Live meetings are excluded. API flow test
   covers create, snapshot, realtime, author-only edits and validation.
 - 2026-10-25 — **Chat accepts pasted images.** Images copied to the clipboard can be pasted directly into
   the chat composer; they upload through the existing project Files flow, appear as downloadable chat

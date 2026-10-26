@@ -93,9 +93,10 @@ export function NotesPanel() {
   const navigate = useNavigate();
   const [editing, setEditing] = useState<Note | 'new' | null>(null);
 
-  // Only the latest meeting summaries; older ones are in the Meeting tab's history.
-  const summarized = recent.filter((m) => m.summary).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  const hasOlder = summarized.length > MEETING_NOTES_SHOWN;
+  // Only summaries from the latest ended meetings; older ones are in the Meeting tab's history.
+  const ended = recent.filter((m) => m.status === 'ended').sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  const summarized = ended.slice(0, MEETING_NOTES_SHOWN).filter((m) => m.summary);
+  const hasOlder = ended.slice(MEETING_NOTES_SHOWN).some((m) => m.summary);
   const entries: Entry[] = [
     ...notes.map((note): Entry => ({ kind: 'note', at: note.createdAt, note })),
     ...summarized.slice(0, MEETING_NOTES_SHOWN).map((meeting): Entry => ({ kind: 'meeting', at: meeting.startedAt, meeting })),
