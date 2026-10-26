@@ -1,4 +1,4 @@
-import { readStrategyPlan, STRATEGY_DESCRIPTION_MAX, type StrategyPlan } from '@project-room/shared';
+import { readStrategyPlan, STRATEGY_DESCRIPTION_MAX, STRATEGY_STEPS_MAX, type StrategyPlan } from '@project-room/shared';
 
 /** Accepts partially filled form fields while the saved plan still uses the strict shared schema. */
 function editablePlan(description: string): StrategyPlan | null {
@@ -15,7 +15,7 @@ function editablePlan(description: string): StrategyPlan | null {
       typeof value.essentialScope === 'string' &&
       Array.isArray(value.steps) &&
       value.steps.length >= 1 &&
-      value.steps.length <= 4 &&
+      value.steps.length <= STRATEGY_STEPS_MAX &&
       value.steps.every((step) => typeof step === 'string')
     ) {
       return { recommendation: value.recommendation, steps: value.steps, essentialScope: value.essentialScope };
@@ -77,9 +77,17 @@ export function StrategyEditor({ description, onChange }: { description: string;
             </button>
           </div>
         ))}
-        <button type="button" className="btn sm" disabled={plan.steps.length >= 4} onClick={() => update({ steps: [...plan.steps, ''] })}>
-          Add step
-        </button>
+        <div className="strategy-editor-add">
+          <button
+            type="button"
+            className="btn sm"
+            disabled={plan.steps.length >= STRATEGY_STEPS_MAX}
+            onClick={() => update({ steps: [...plan.steps, ''] })}
+          >
+            Add step
+          </button>
+          {plan.steps.length >= STRATEGY_STEPS_MAX && <span>Up to {STRATEGY_STEPS_MAX} steps.</span>}
+        </div>
       </fieldset>
       <label className="form-row">
         Essential scope

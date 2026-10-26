@@ -123,7 +123,7 @@ prototype/         the first static prototype; do not build on it
   tasks or polls already created are unaffected. New AI topics never replace a topic automatically.
 - Topic strategies contain only a recommended direction, a short step-by-step plan and essential scope.
   Each section and each step uses one or two short sentences; no separate focus/why, deliverables,
-  success criteria or next-step gates. Product plans have at most four concrete steps, simple choices fewer.
+  success criteria or next-step gates. AI product plans usually have three or four steps (never more than six), simple choices fewer; members may add up to eight.
   Keep guidance specific and provisional; never invent research or user feedback.
 - New strategies use the shared `strategyPlanSchema` JSON format with plain-text field values, rendered
   as sections and steps. Preserve legacy text strategies; do not require Markdown rendering.

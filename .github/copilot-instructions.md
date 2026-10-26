@@ -28,7 +28,7 @@ The rules that matter most when suggesting code:
   and still requires confirmation, without shortlisting. A heart never approves or creates a decision.
 - No Make task shortcut on idea or strategy cards; approval-generated next-step tasks remain reviewable.
 - Strategies contain only recommended direction, short steps and essential scope. Use one or two
-  sentences per section/step, at most four steps, without separate focus/why or deliverable/criteria
+  sentences per section/step, at most six AI steps (members may add up to eight), without separate focus/why or deliverable/criteria
   fields. Keep guidance specific and realistic; never invent sources or feedback.
 - Strategy generation uses `strategyPlanSchema` JSON with plain-text fields. Render its sections/steps
   directly; legacy text remains readable without Markdown.

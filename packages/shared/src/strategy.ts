@@ -48,11 +48,19 @@ const legacyStrategyPlanSchema = z.object({
   }),
 });
 
+/** AI plans stay at six steps; members can add two more while editing. */
+export const STRATEGY_AI_STEPS_MAX = 6;
+export const STRATEGY_STEPS_MAX = 8;
+
 /** The three concise sections used for new strategy responses. */
 export const strategyPlanSchema = z.object({
   recommendation: z.string().min(1).max(500),
-  steps: z.array(z.string().min(1).max(350)).min(1).max(4),
+  steps: z.array(z.string().min(1).max(350)).min(1).max(STRATEGY_STEPS_MAX),
   essentialScope: z.string().min(1).max(500),
+});
+
+export const aiStrategyPlanSchema = strategyPlanSchema.extend({
+  steps: strategyPlanSchema.shape.steps.max(STRATEGY_AI_STEPS_MAX),
 });
 
 export type StrategyPlan = z.infer<typeof strategyPlanSchema>;
@@ -80,7 +88,7 @@ export function readStrategyPlan(description: string): StrategyPlan | null {
     if (!legacy.success) return null;
     return {
       recommendation: brief(legacy.data.recommendation.direction, 500),
-      steps: legacy.data.steps.slice(0, 4).map((step) => brief(step.action, 350)),
+      steps: legacy.data.steps.slice(0, STRATEGY_AI_STEPS_MAX).map((step) => brief(step.action, 350)),
       essentialScope: brief(legacy.data.scope.essential.join('; '), 500) || 'Not specified in the saved strategy.',
     };
   } catch {
