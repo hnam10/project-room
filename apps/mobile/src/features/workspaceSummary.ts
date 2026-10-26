@@ -1,4 +1,4 @@
-import type { Poll, Task, TaskStatus, WorkspaceSnapshot } from '@project-room/shared';
+import type { Poll, Task, WorkspaceSnapshot } from '@project-room/shared';
 import { pendingAssistantSuggestions } from './assistantSuggestions';
 
 export function pendingSuggestionCount(snapshot: WorkspaceSnapshot): number {

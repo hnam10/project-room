@@ -1,7 +1,7 @@
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text } from 'react-native';
 import { clearAppBadge, unregisterPushToken } from '../push';
 import { colors } from '../theme';
 import { Icon } from './Icon';

@@ -3,7 +3,7 @@
  *   node apps/mobile/scripts/generate-icons.mjs
  * Requires: npm install sharp --no-save (or devDependency)
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
