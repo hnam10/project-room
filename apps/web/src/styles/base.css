@@ -96,7 +96,10 @@ button {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  pointer-events: none;
+}
+.btn:disabled:hover {
+  border-color: var(--line);
+  background: var(--surface);
 }
 .btn.primary {
   background: var(--accent);

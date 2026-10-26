@@ -60,7 +60,7 @@ export const strategyPlanSchema = z.object({
 });
 
 export const aiStrategyPlanSchema = strategyPlanSchema.extend({
-  steps: z.array(z.string().min(1).max(350)).min(1).max(STRATEGY_AI_STEPS_MAX),
+  steps: strategyPlanSchema.shape.steps.max(STRATEGY_AI_STEPS_MAX),
 });
 
 export type StrategyPlan = z.infer<typeof strategyPlanSchema>;
@@ -88,7 +88,7 @@ export function readStrategyPlan(description: string): StrategyPlan | null {
     if (!legacy.success) return null;
     return {
       recommendation: brief(legacy.data.recommendation.direction, 500),
-      steps: legacy.data.steps.slice(0, 4).map((step) => brief(step.action, 350)),
+      steps: legacy.data.steps.slice(0, STRATEGY_AI_STEPS_MAX).map((step) => brief(step.action, 350)),
       essentialScope: brief(legacy.data.scope.essential.join('; '), 500) || 'Not specified in the saved strategy.',
     };
   } catch {
