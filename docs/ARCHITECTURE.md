@@ -9,7 +9,8 @@
         └────────── WebSocket /ws ◀── realtime/hub ◀──── LIVE SELECT ◀──────────┘
 ```
 
-npm workspaces monorepo: `packages/shared` (types + zod), `apps/api`, `apps/web`. In development
+npm workspaces monorepo: `packages/shared` (types + zod), `apps/api`, `apps/web`, `apps/mobile`
+(Expo companion). In development
 Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :4000.
 
 ## Data model (SurrealDB, `apps/api/src/db/schema.surql`)
@@ -28,6 +29,7 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 | `suggestion` | **Structured AI output** awaiting review, including `brainstorm_analysis`, idea drafts and task drafts; `status` = `pending` / `approved` / `dismissed` | `sourceMessageId`, `ideaId`, `originIdeaId`, `createdTaskIds` |
 
 | `file` | Metadata for a shared project file (name, size, type, uploader). The bytes are not in the database. | `uploadedById → member` |
+| `push_token` | Expo push token for a member's device (mobile companion) | `memberId → member` |
 
 All records carry `projectId`; repositories always filter by it.
 
@@ -283,10 +285,11 @@ Deleting a file deletes the Agent Memory document too.
 
 ## Web app
 
-- Routes (`App.tsx`): `/p/:projectId/{board,chat,meeting,brainstorm,polls,calendar,files,overview,settings}`
-  inside `WorkspaceLayout`; `/p/:projectId/popout/chat` is the standalone chat window. `/team` redirects to
-  `settings`. Members and roles belong there; workload stays on the planned Overview page. The sidebar
-  lists the working pages plus Settings. Overview has no sidebar item until that dashboard exists.
+- Routes (`App.tsx`): `/p/:projectId/{board,chat,meeting,brainstorm,polls,calendar,files,overview}`
+  inside `WorkspaceLayout`; `/p/:projectId/popout/chat` is the standalone chat window. `/settings` and
+  `/team` redirect to the board. The sidebar lists the working pages. Overview has no sidebar item until
+  that dashboard exists. Invites stay on the top-bar button. The project deadline stays on the calendar.
+  Workload stays on the planned Overview page.
 - Calendar (`features/calendar/`): tasks that have a due date, grouped into Monday-start weeks. This week
   is listed first. Each week is seven columns: the weekday sits above the date, and that day's tasks stack
   underneath. Tasks with no due date stay in a list beside the weeks. Dragging a task onto a day sets or
@@ -307,6 +310,19 @@ Deleting a file deletes the Agent Memory document too.
   - `popup` — fallback `window.open` to the popout route; synced through realtime, docks back via
     `BroadcastChannel`.
 - The dock's height and the chat/brainstorm split are draggable (`features/dock/ResizeHandle.tsx`).
+
+## Mobile app (`apps/mobile`)
+
+Expo Router companion: Assistant, Chat, and My tasks against the same API. Screens are React Native
+(not web components). Colour tokens in `src/theme.ts` match `apps/web/src/styles/base.css` (purple
+accent, dashed suggestion roles, board status colours). The workspace header title switches Clerk
+organizations (`/choose-team`); the account icon signs out. `WorkspaceProvider` is keyed by `orgId`
+so a switch reloads the project. Channel history is not in the snapshot: Chat loads
+`GET …/channels/:id/messages` (newest 200) for `#general` by default, merges live/sent
+lines, and refetches after a socket reconnect. Pending AI suggestions can notify devices: the app registers an Expo
+push token at `POST /api/me/push-token`, and LIVE SELECT on `suggestion` create sends Expo push.
+Google SSO uses Clerk `useSSO` (`oauth_google`). EAS Build profiles in `eas.json` include update
+channels; `eas login` / `eas init` still need an Expo account.
 
 ## Configuration (`apps/api/.env`)
 

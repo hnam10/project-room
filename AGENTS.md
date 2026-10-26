@@ -49,6 +49,7 @@ and approves. Core loop: **Conversations → Insights → Decisions → Actions 
 | Command                    | What it does                                                              |
 | -------------------------- | ------------------------------------------------------------------------- |
 | `npm run dev`              | API (http://localhost:4000) + web (http://localhost:5173) with reload     |
+| `npm run dev:mobile`       | Expo dev server for `apps/mobile` (`EXPO_PUBLIC_*` in `apps/mobile/.env`)   |
 | `npm run check`            | Everything CI runs except the build: format, lint, typecheck, test        |
 | `npm test`                 | API tests (vitest): AI rules + full HTTP/realtime flow on an in-memory DB |
 | `npm run typecheck`        | TypeScript across all workspaces                                          |
@@ -81,6 +82,10 @@ apps/web/          React 19 + Vite + React Router
   src/state/       session (current member), workspace (project data + realtime), chatWindow, meetingCall
   src/api/         REST client + realtime hook
   src/styles/      plain CSS split by feature; tokens in base.css
+apps/mobile/       Expo Router companion (Assistant, Chat, My tasks; Clerk Expo + same API)
+  app/             file-based routes
+  src/api/         REST + WebSocket client (uses `EXPO_PUBLIC_API_URL`)
+  src/state/       workspace snapshot + realtime (subset of the web app)
 prototype/         the first static prototype; do not build on it
 ```
 

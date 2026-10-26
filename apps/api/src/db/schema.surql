@@ -135,6 +135,14 @@ DEFINE FIELD OVERWRITE memoryDocumentId ON file TYPE null | string DEFAULT null 
 DEFINE FIELD OVERWRITE createdAt     ON file TYPE datetime DEFAULT time::now() READONLY;
 DEFINE INDEX OVERWRITE file_project_time ON file FIELDS projectId, createdAt;
 
+-- Expo push tokens for the mobile companion. A member can have several devices.
+DEFINE TABLE OVERWRITE push_token SCHEMAFULL;
+DEFINE FIELD OVERWRITE memberId ON push_token TYPE record<member>;
+DEFINE FIELD OVERWRITE token ON push_token TYPE string ASSERT string::len($value) >= 20 AND string::len($value) <= 200;
+DEFINE FIELD OVERWRITE updatedAt ON push_token TYPE datetime VALUE time::now();
+DEFINE INDEX OVERWRITE push_token_unique ON push_token FIELDS token UNIQUE;
+DEFINE INDEX OVERWRITE push_token_member ON push_token FIELDS memberId;
+
 -- Backfill records from before the brainstorming fields existed: touching them fills every NONE field
 -- with its DEFAULT ALWAYS, so readers can trust arrays like researchSources. A no-op once done.
 -- ponytail: keyed on researchSources (added with most late fields); add a WHERE for any field added later.

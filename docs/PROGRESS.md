@@ -5,9 +5,46 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-25 — **Settings left the sidebar.** The Settings item is gone from the project menu. `/settings`
+  and `/team` open the board. Invites stay on the top-bar button, and the deadline stays on the calendar.
+
 - 2026-10-25 — **Chat accepts pasted images.** Images copied to the clipboard can be pasted directly into
   the chat composer; they upload through the existing project Files flow, appear as downloadable chat
   attachments, and are available to Agent Memory for OCR/vision retrieval.
+- 2026-10-25 — **Mobile companion feels fuller.** Assistant opens with a project pulse summary, quick links,
+  and preview cards; Tasks shows workload/due chips; Chat/Polls/Tasks empty states guide next steps. New
+  Polls tab (vote + close, read-only when closed). Tab and app icon badges track pending Assistant items;
+  header shows open poll count. `workspaceSummary` helpers and `syncAppBadge` round out push UX on device.
+
+- 2026-10-25 — **Mobile Chat loads server history.** The tab no longer treats a missing fetch as an
+  empty channel. It shows loading/error, keeps sent and realtime lines until the GET returns, merges
+  them with the last 200 messages, defaults to `#general`, and refetches on reconnect.
+
+- 2026-10-25 — **Expo companion gaps for approve, SSO and push.** Mobile idea drafts can be edited and
+  given a topic before approve. Sign-in has Continue with Google (`useSSO`). Devices register Expo push
+  tokens; a new reviewable suggestion notifies project members (“AI suggestion waiting for your approval”).
+  `eas.json` has preview/production update channels. Still needs an Expo account for `eas build` / `eas update`,
+  and Google must be enabled on the Clerk application.
+
+- 2026-10-25 — **Tab bar icons on mobile.** Assistant, Chat and Tasks use `expo-symbols` (sparkles, chat,
+  checklist) so the bottom nav matches the header icons.
+
+- 2026-10-25 — **Switch project from the mobile header.** The title is the current project and opens the
+  team list; the top-right “Sign out” label is an account icon with Switch project / Sign out. Switching
+  remounts the workspace on the new Clerk organization.
+
+- 2026-10-25 — **Mobile UI uses the web colour system.** `apps/mobile/src/theme.ts` now copies the web
+  tokens (purple accent, ink/line surfaces, brainstorm yellow / research blue / strategy teal). Chat is a
+  named thread instead of blue bubbles; pending suggestion cards keep the dashed destination colours;
+  task cards use the board column colours. Screens stay React Native — only tokens and layout were
+  aligned, not the web DOM.
+
+- 2026-10-25 — **Expo mobile companion (initial).** Added `apps/mobile` (Expo Router): Clerk email/password
+  sign-in, team picker, Assistant tab (approve/dismiss pending suggestions), channel chat, and my-tasks
+  status updates against the same API and `@project-room/shared`. API sends CORS headers for direct mobile
+  clients. Configure `EXPO_PUBLIC_API_URL` (LAN IP on a device) and `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`.
+  `eas.json` is ready for EAS Build; push notifications and EAS Update are not wired yet.
+
 - 2026-10-25 — **Capture natural direct and tentative chat ideas.** “I want to add no-equipment dorm
   workouts to the fitness app” adds the member's idea; “I am thinking of adding…” saves a pending
   review draft. The interpreter uses topic names/descriptions and recent chat; the service fills omitted
@@ -496,8 +533,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
       remember messages and poll results, and recall that memory before suggesting.
 - [ ] **Era eval harness** (Eon prize) — the local runner is in (`npm run eval -w apps/api`, see Done). Still open:
       convert an Era Slack/Jira export to its dataset shape, then compare hosts and with/without Agent Memory.
-- [ ] **Expo mobile companion** (Expo prize) — `apps/mobile`: approval notifications, approve/dismiss,
-      chat, my tasks; Clerk Expo sign-in; EAS Build/Update.
+- [ ] **EAS Build / Update on a device** (Expo prize leftover) — code and `eas.json` channels are in;
+      run `eas login`, `eas init`, then `eas build` / `eas update` with the Expo account.
 - [ ] **Overview page** — progress, overdue tasks, upcoming deadlines, open polls, workload per member.
 
 - [ ] **Brainstorm grouping** — themes as columns and a comparison view for proposals; starting a vote still needs confirmation.
@@ -581,6 +618,17 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
+
+- 2026-10-25 — **Settings is not a sidebar item.** The project menu stays on the working pages. Invites stay
+  on the top-bar button, and the deadline stays on the calendar. This supersedes keeping Team inside a
+  Settings page in the sidebar (2026-10-24).
+
+- 2026-10-25 — **Push tokens live on the member, not the project.** A phone belongs to a person; notifying
+  a project looks up that project's members and their devices. SurrealDB reserves `$token`, so queries bind `$pushToken`.
+
+- 2026-10-25 — **Mobile copies web colour tokens instead of sharing CSS.** React Native cannot use the
+  web stylesheet; duplicating `base.css` values in `apps/mobile/src/theme.ts` keeps the product look
+  without a new shared styling package.
 
 - 2026-10-25 — **Capture tentative concrete ideas as suggestions.** Members naturally say “thinking of
   adding” rather than issuing commands. Preserve that contribution for review while direct “want to add”

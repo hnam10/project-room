@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,magenta \"npm run dev -w @project-room/api\" \"npm run dev -w @project-room/web\"",
+    "dev:mobile": "npm run start -w @project-room/mobile",
     "build": "npm run build -w @project-room/shared && npm run build -w @project-room/api && npm run build -w @project-room/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

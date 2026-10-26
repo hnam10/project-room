@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { projectUpdateSchema, type WorkspaceSnapshot } from '@project-room/shared';
+import { projectUpdateSchema, pushTokenSchema, type WorkspaceSnapshot } from '@project-room/shared';
 import { getAiProvider } from '../../ai/index.js';
 import { listFiles } from '../../repositories/files.js';
 import { listIdeas } from '../../repositories/ideas.js';
 import { listProjectPolls } from '../../repositories/polls.js';
+import { deletePushToken, upsertPushToken } from '../../repositories/push-tokens.js';
 import { getMember, listChannels, listProjectsForMember, updateProject } from '../../repositories/projects.js';
 import { listSuggestions } from '../../repositories/suggestions.js';
 import { listTasks } from '../../repositories/tasks.js';
@@ -25,6 +26,18 @@ meRouter.get('/me', async (_req, res) => {
     return;
   }
   res.json({ member, projects, auth: authMode, ai: { provider: getAiProvider().name, isMock: getAiProvider().isMock } });
+});
+
+meRouter.post('/me/push-token', async (req, res) => {
+  const { token } = pushTokenSchema.parse(req.body);
+  await upsertPushToken(caller(res).memberId, token);
+  res.status(204).end();
+});
+
+meRouter.delete('/me/push-token', async (req, res) => {
+  const { token } = pushTokenSchema.parse(req.body);
+  await deletePushToken(caller(res).memberId, token);
+  res.status(204).end();
 });
 
 /** Mounted under /api/projects/:projectId (after requireProjectMember). */

@@ -86,6 +86,16 @@ describe('workspace API', () => {
     expect(status).toBe(403);
   });
 
+  it('registers and removes an Expo push token for the caller', async () => {
+    const token = 'ExponentPushToken[abcdefghijklmnopqrstuv]';
+    const saved = await api('/me/push-token', { method: 'POST', body: JSON.stringify({ token }) });
+    expect(saved.status).toBe(204);
+    const gone = await api('/me/push-token', { method: 'DELETE', body: JSON.stringify({ token }) });
+    expect(gone.status).toBe(204);
+    const bad = await api('/me/push-token', { method: 'POST', body: JSON.stringify({ token: 'nope' }) });
+    expect(bad.status).toBe(400);
+  });
+
   it('sets and clears the project deadline', async () => {
     const before = await api<WorkspaceSnapshot>('/projects/hackathon/snapshot');
     const denied = await api('/projects/hackathon', {
