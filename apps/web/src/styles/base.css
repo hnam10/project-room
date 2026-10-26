@@ -16,12 +16,14 @@
   --brainstorm: #9a6700; /* brainstorm text on white; matches the yellow idea tickets */
   --brainstorm-weak: #fdf1c4;
   /* AI colour roles, the same on every page: ideas are yellow (--amber / --brainstorm), research is blue,
-     polls are green (--green). */
+     polls are green (--green), meeting notes are pink (--meeting-note). */
   --research: #2f6fdb;
   --research-weak: #e8f0fd;
   /* Brainstorm directions (theme Strategy): the topic-wide approach, apart from yellow ideas. */
   --direction: #0e8a8a;
   --direction-weak: #dcf1f0;
+  --meeting-note: #a8326a; /* AI meeting notes in the Notes tab; 5.4:1 on --meeting-note-weak */
+  --meeting-note-weak: #fde8f1;
   --red: #dc4b4b;
   --radius: 10px;
   --shadow: 0 1px 2px rgba(20, 24, 40, 0.05);

@@ -7,6 +7,7 @@ import {
   MAX_FILE_BYTES,
   type Idea,
   type Message,
+  type Note,
   type Project,
   type ProjectFile,
   type ServerMessage,
@@ -140,6 +141,34 @@ describe('workspace API', () => {
     });
     expect(moved.body.status).toBe('done');
     expect((await api(`/projects/hackathon/tasks/${created.body.id}`, { method: 'DELETE' })).status).toBe(204);
+  });
+
+  it('shares notes live and lets only the author edit or delete them', async () => {
+    const live = listen('hackathon');
+    await live.ready;
+    const created = await api<Note>('/projects/hackathon/notes', {
+      method: 'POST',
+      body: JSON.stringify({ title: '  Demo prep  ', body: 'Bring the HDMI adapter.' }),
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ title: 'Demo prep', body: 'Bring the HDMI adapter.', authorId: 'alex', projectId: 'hackathon' });
+    await live.waitFor((e) => e.type === 'change' && e.table === 'note' && e.record.id === created.body.id);
+    live.ws.close();
+
+    const snapshot = await api<WorkspaceSnapshot>('/projects/hackathon/snapshot', { member: 'jamie' });
+    expect(snapshot.body.notes.map((n) => n.id)).toContain(created.body.id);
+
+    const path = `/projects/hackathon/notes/${created.body.id}`;
+    expect((await api(path, { method: 'PATCH', member: 'jamie', body: JSON.stringify({ title: 'Mine now' }) })).status).toBe(403);
+    expect((await api(path, { method: 'DELETE', member: 'jamie' })).status).toBe(403);
+    expect((await api('/projects/hackathon/notes', { method: 'POST', body: JSON.stringify({ title: ' ' }) })).status).toBe(400);
+
+    const edited = await api<Note>(path, { method: 'PATCH', body: JSON.stringify({ body: 'Bring two adapters.' }) });
+    expect(edited.body).toMatchObject({ title: 'Demo prep', body: 'Bring two adapters.' });
+    const renamed = await api<Note>(path, { method: 'PATCH', body: JSON.stringify({ title: 'Demo day' }) });
+    expect(renamed.body).toMatchObject({ title: 'Demo day', body: 'Bring two adapters.' });
+    expect((await api(path, { method: 'DELETE' })).status).toBe(204);
+    expect((await api(path, { method: 'DELETE' })).status).toBe(404);
   });
 
   it('goes from conversation to AI suggestion to approved tasks, live', async () => {

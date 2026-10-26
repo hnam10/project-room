@@ -13,7 +13,7 @@ import { devMemberId, projectForCaller, type Caller } from '../http/context.js';
 // realtime tables; each change is forwarded to the sockets subscribed to that record's project.
 // Because the source is the database, changes made by any API instance or tool reach clients.
 
-const TABLES: RealtimeTable[] = ['task', 'channel', 'message', 'idea', 'suggestion', 'file', 'poll', 'meeting', 'transcript_line'];
+const TABLES: RealtimeTable[] = ['task', 'channel', 'message', 'idea', 'suggestion', 'file', 'poll', 'meeting', 'transcript_line', 'note'];
 const ACTIONS: Record<string, RealtimeAction | undefined> = { CREATE: 'create', UPDATE: 'update', DELETE: 'delete' };
 
 export interface RealtimeHub {

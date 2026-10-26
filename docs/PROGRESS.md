@@ -5,6 +5,11 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-26 — **Notes tab.** Brainstorm → Notes lists project-wide member notes (new `note` table, author-only
+  edit/delete, realtime) and the AI summary of every ended meeting, read-only, with Open meeting. Both are
+  brainstorm-style tickets: team notes light purple, AI meeting notes light pink. Only the last two meeting
+  summaries show; a tile links to the Meeting tab's history for older ones. API flow test
+  covers create, snapshot, realtime, author-only edits and validation.
 - 2026-10-25 — **Chat accepts pasted images.** Images copied to the clipboard can be pasted directly into
   the chat composer; they upload through the existing project Files flow, appear as downloadable chat
   attachments, and are available to Agent Memory for OCR/vision retrieval.
@@ -577,7 +582,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - A question that shares no words with a message older than the 80-line thread will not bring that message back. SurrealDB Agent Memory still does not remember chat; it recalls uploaded files.
 - AI only reacts to new messages; it doesn't yet watch deadlines/workload on a schedule (the seeded
   "risk" suggestion shows the intended UX).
-- Mind Map and Notes tabs are placeholders.
+- Mind Map tab is a placeholder.
+- Meeting history (Meeting tab) lists the 20 most recent meetings only (`listMeetings` limit).
 - Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log

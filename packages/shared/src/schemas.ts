@@ -29,6 +29,17 @@ export type TaskCreateInput = z.input<typeof taskCreateSchema>;
 export const taskUpdateSchema = taskCreateSchema.partial();
 export type TaskUpdateInput = z.input<typeof taskUpdateSchema>;
 
+const noteFields = {
+  title: z.string().trim().min(1).max(120),
+  body: z.string().trim().max(10000),
+};
+export const noteCreateSchema = z.object({ ...noteFields, body: noteFields.body.default('') });
+export type NoteCreateInput = z.input<typeof noteCreateSchema>;
+
+/** No defaults here: a PATCH without `body` must leave the saved body alone. */
+export const noteUpdateSchema = z.object(noteFields).partial();
+export type NoteUpdateInput = z.input<typeof noteUpdateSchema>;
+
 /** Fields a member can change on the project itself. */
 export const projectUpdateSchema = z.object({
   dueDate: isoDate.nullable(),

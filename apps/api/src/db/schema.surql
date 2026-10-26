@@ -135,6 +135,16 @@ DEFINE FIELD OVERWRITE memoryDocumentId ON file TYPE null | string DEFAULT null 
 DEFINE FIELD OVERWRITE createdAt     ON file TYPE datetime DEFAULT time::now() READONLY;
 DEFINE INDEX OVERWRITE file_project_time ON file FIELDS projectId, createdAt;
 
+-- Member-written notes. Meeting summaries are shown beside them but stay on the meeting record.
+DEFINE TABLE OVERWRITE note SCHEMAFULL;
+DEFINE FIELD OVERWRITE projectId ON note TYPE record<project>;
+DEFINE FIELD OVERWRITE authorId  ON note TYPE record<member>;
+DEFINE FIELD OVERWRITE title     ON note TYPE string ASSERT string::len($value) > 0 AND string::len($value) <= 120;
+DEFINE FIELD OVERWRITE body      ON note TYPE string DEFAULT ALWAYS '' ASSERT string::len($value) <= 10000;
+DEFINE FIELD OVERWRITE createdAt ON note TYPE datetime DEFAULT time::now() READONLY;
+DEFINE FIELD OVERWRITE updatedAt ON note TYPE datetime VALUE time::now();
+DEFINE INDEX OVERWRITE note_project_time ON note FIELDS projectId, createdAt;
+
 -- Backfill records from before the brainstorming fields existed: touching them fills every NONE field
 -- with its DEFAULT ALWAYS, so readers can trust arrays like researchSources. A no-op once done.
 -- ponytail: keyed on researchSources (added with most late fields); add a WHERE for any field added later.
