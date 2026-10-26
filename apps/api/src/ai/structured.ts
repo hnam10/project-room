@@ -1,4 +1,4 @@
-import { PRIORITIES, STRATEGY_DESCRIPTION_MAX, strategyPlanSchema, type ActionItem, type Priority } from '@project-room/shared';
+import { PRIORITIES, STRATEGY_DESCRIPTION_MAX, aiStrategyPlanSchema, type ActionItem, type Priority } from '@project-room/shared';
 import { z } from 'zod';
 import { interpretChatIntent } from './chat-intent.js';
 import type { OpenAiClient } from './openai.js';
@@ -303,7 +303,7 @@ ${
     ? `CONCISE STRATEGY REQUIREMENTS:
 Return only three fields: recommendation (a string), steps (an array of strings), and essentialScope (a string).
 recommendation: one or two short sentences giving one focused, provisional direction for this topic.
-steps: three or four numbered-by-order actions for a product, or two or three for a simple decision.
+steps: three or four numbered-by-order actions for a product, or two or three for a simple decision; never more than six.
 Each step must be just one or two short sentences describing a concrete action. Do not add titles,
 subfields, focus/why labels, deliverables, success criteria, decision gates or separate explanations.
 essentialScope: one or two short sentences describing the minimum useful outcome and what can wait.
@@ -326,11 +326,11 @@ Return this exact shape, without wrapping it in strategy, summary, ideas or task
 <web_research>${input.research.map((result) => `<result url="${result.url}" title="${result.title}">${result.content}</result>`).join('\n') || '(none)'}</web_research>`;
     const output =
       input.trigger === 'problem_created'
-        ? { strategy: await parse(strategyPlanSchema, prompt), summary: '', ideas: [], tasks: [] }
+        ? { strategy: await parse(aiStrategyPlanSchema, prompt), summary: '', ideas: [], tasks: [] }
         : { ...(await parse(FacilitateSchema, prompt)), strategy: null };
     const knownUrls = new Set(input.research.map((result) => result.url));
     const existing = new Set(input.ideas.map((idea) => norm(idea.title)));
-    const strategy = input.trigger === 'problem_created' ? strategyPlanSchema.parse(output.strategy) : null;
+    const strategy = input.trigger === 'problem_created' ? aiStrategyPlanSchema.parse(output.strategy) : null;
     if (strategy) {
       if (JSON.stringify(strategy, null, 2).length > STRATEGY_DESCRIPTION_MAX)
         throw new Error('Strategy roadmap exceeds the supported size');

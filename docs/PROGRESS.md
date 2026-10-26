@@ -582,6 +582,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-26 — **Strategies: AI up to six steps, members up to eight.** Four was too tight for real plans (Add step
+  silently did nothing at four). The AI still aims for two to four steps; members get two spare slots, and a full
+  editor greys out Add step with an "Up to 8 steps." note.
 - 2026-10-25 — **Capture tentative concrete ideas as suggestions.** Members naturally say “thinking of
   adding” rather than issuing commands. Preserve that contribution for review while direct “want to add”
   requests create member-authored cards; use a sole topic by default unless an explicit target conflicts.

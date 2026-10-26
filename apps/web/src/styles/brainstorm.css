@@ -165,6 +165,13 @@
 .strategy-editor-step > .btn {
   margin-top: 4px;
 }
+.strategy-editor-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
 .strategy-plan section {
   margin-top: 16px;
 }
