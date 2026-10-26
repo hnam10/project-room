@@ -183,6 +183,17 @@ export interface ProjectFile {
   memoryDocumentId: string | null;
 }
 
+/** A member-written project note. Only its author may edit or delete it. */
+export interface Note {
+  id: string;
+  projectId: string;
+  authorId: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Everything the workspace UI needs for one project, in one request. */
 export interface WorkspaceSnapshot {
   project: Project;
@@ -194,4 +205,6 @@ export interface WorkspaceSnapshot {
   polls: Poll[];
   suggestions: Suggestion[];
   files: ProjectFile[];
+  /** Member notes, newest first. */
+  notes: Note[];
 }

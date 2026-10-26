@@ -18,14 +18,15 @@ import { useSession } from './session';
 // One project's data, kept in sync with the server: loaded once as a snapshot, then patched
 // by realtime events and by the records our own API calls return (both are idempotent upserts).
 
-type CollectionTable = 'task' | 'channel' | 'idea' | 'poll' | 'suggestion' | 'file';
-const COLLECTION: Record<CollectionTable, 'tasks' | 'channels' | 'ideas' | 'polls' | 'suggestions' | 'files'> = {
+type CollectionTable = 'task' | 'channel' | 'idea' | 'poll' | 'suggestion' | 'file' | 'note';
+const COLLECTION: Record<CollectionTable, 'tasks' | 'channels' | 'ideas' | 'polls' | 'suggestions' | 'files' | 'notes'> = {
   task: 'tasks',
   channel: 'channels',
   idea: 'ideas',
   poll: 'polls',
   suggestion: 'suggestions',
   file: 'files',
+  note: 'notes',
 };
 
 interface State {
@@ -60,6 +61,7 @@ function withoutRemoved(snapshot: WorkspaceSnapshot, removed: ReadonlySet<string
     polls: keep('poll', snapshot.polls),
     suggestions: keep('suggestion', snapshot.suggestions),
     files: keep('file', snapshot.files),
+    notes: keep('note', snapshot.notes),
   };
 }
 

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { projectUpdateSchema, type WorkspaceSnapshot } from '@project-room/shared';
 import { getAiProvider } from '../../ai/index.js';
 import { listFiles } from '../../repositories/files.js';
+import { listNotes } from '../../repositories/notes.js';
 import { listIdeas } from '../../repositories/ideas.js';
 import { listProjectPolls } from '../../repositories/polls.js';
 import { getMember, listChannels, listProjectsForMember, updateProject } from '../../repositories/projects.js';
@@ -36,13 +37,14 @@ projectRouter.patch('/', async (req, res) => {
 
 projectRouter.get('/snapshot', async (_req, res) => {
   const { project, members } = ctx(res);
-  const [channels, tasks, ideas, polls, suggestions, files] = await Promise.all([
+  const [channels, tasks, ideas, polls, suggestions, files, notes] = await Promise.all([
     listChannels(project.id),
     listTasks(project.id),
     listIdeas(project.id),
     listProjectPolls(project.id),
     listSuggestions(project.id),
     listFiles(project.id),
+    listNotes(project.id),
   ]);
   const snapshot: WorkspaceSnapshot = {
     project,
@@ -53,6 +55,7 @@ projectRouter.get('/snapshot', async (_req, res) => {
     polls,
     suggestions,
     files,
+    notes,
   };
   res.json(snapshot);
 });

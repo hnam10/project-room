@@ -28,6 +28,7 @@ Vite serves the web app on :5173 and proxies `/api` and `/ws` to the API on :400
 | `suggestion` | **Structured AI output** awaiting review, including `brainstorm_analysis`, idea drafts and task drafts; `status` = `pending` / `approved` / `dismissed` | `sourceMessageId`, `ideaId`, `originIdeaId`, `createdTaskIds` |
 
 | `file` | Metadata for a shared project file (name, size, type, uploader). The bytes are not in the database. | `uploadedById → member` |
+| `note` | Member-written project note (title, body). Only the author may edit or delete it (`ForbiddenError` otherwise). | `authorId → member` |
 
 All records carry `projectId`; repositories always filter by it.
 
@@ -262,6 +263,13 @@ The document id is stored on the file. On `@AI`, the engine asks Agent Memory fo
 latest part of the channel thread as the search, and passes only those to the model; the file bytes are not.
 Word and PowerPoint files are stored for download and are not sent.
 Deleting a file deletes the Agent Memory document too.
+
+## Notes
+
+The Brainstorm panel's Notes tab (`features/brainstorm/NotesPanel.tsx`) is project-wide. It lists `note` records
+(`/projects/:id/notes`, in the snapshot and realtime) and, read-only beside them, the AI summary and confirmed
+"Notes for next time" of the two latest ended meetings (older ones: Meeting tab history), read from the meeting records `useMeetingCall().recent` already holds.
+Summaries are not copied into `note`; Open meeting shows that meeting's full summary view.
 
 ## Auth (`apps/api/src/http/context.ts`, `apps/api/src/auth/clerk.ts`)
 

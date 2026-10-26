@@ -93,7 +93,7 @@ export function MeetingPage() {
           <button className="btn primary">Start meeting</button>
           {recent.length > 0 && (
             <>
-              <h2>Recent meetings</h2>
+              <h2>Meeting history</h2>
               <ul className="recent-meetings">
                 {recent.map((r) => (
                   <li key={r.id}>

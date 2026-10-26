@@ -7,6 +7,9 @@ import type {
   IdeaUpdateInput,
   Member,
   Message,
+  Note,
+  NoteCreateInput,
+  NoteUpdateInput,
   Project,
   ProjectFile,
   ProjectUpdateInput,
@@ -110,6 +113,11 @@ export const api = {
   updateTask: (projectId: string, taskId: string, patch: TaskUpdateInput) =>
     request<Task>('PATCH', `${p(projectId)}/tasks/${taskId}`, patch),
   deleteTask: (projectId: string, taskId: string) => request<void>('DELETE', `${p(projectId)}/tasks/${taskId}`),
+
+  createNote: (projectId: string, input: NoteCreateInput) => request<Note>('POST', `${p(projectId)}/notes`, input),
+  updateNote: (projectId: string, noteId: string, patch: NoteUpdateInput) =>
+    request<Note>('PATCH', `${p(projectId)}/notes/${noteId}`, patch),
+  deleteNote: (projectId: string, noteId: string) => request<void>('DELETE', `${p(projectId)}/notes/${noteId}`),
 
   messages: (projectId: string, channelId: string) => request<Message[]>('GET', `${p(projectId)}/channels/${channelId}/messages`),
   sendMessage: (projectId: string, channelId: string, text: string, fileId?: string) =>

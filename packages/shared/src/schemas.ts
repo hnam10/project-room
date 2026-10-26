@@ -29,6 +29,15 @@ export type TaskCreateInput = z.input<typeof taskCreateSchema>;
 export const taskUpdateSchema = taskCreateSchema.partial();
 export type TaskUpdateInput = z.input<typeof taskUpdateSchema>;
 
+export const noteCreateSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  body: z.string().trim().max(10000).default(''),
+});
+export type NoteCreateInput = z.input<typeof noteCreateSchema>;
+
+export const noteUpdateSchema = noteCreateSchema.partial();
+export type NoteUpdateInput = z.input<typeof noteUpdateSchema>;
+
 /** Fields a member can change on the project itself. */
 export const projectUpdateSchema = z.object({
   dueDate: isoDate.nullable(),

@@ -15,6 +15,7 @@ import { meRouter, projectRouter } from './http/routes/projects.js';
 import { pollsRouter } from './http/routes/polls.js';
 import { suggestionsRouter } from './http/routes/suggestions.js';
 import { tasksRouter } from './http/routes/tasks.js';
+import { notesRouter } from './http/routes/notes.js';
 
 export function createApp() {
   const app = express();
@@ -37,6 +38,7 @@ export function createApp() {
   project.use('/channels', channelsRouter);
   project.use('/ideas', ideasRouter);
   project.use('/files', filesRouter);
+  project.use('/notes', notesRouter);
   project.use('/suggestions', suggestionsRouter);
   project.use('/polls', pollsRouter);
   project.use('/meetings', meetingsRouter);

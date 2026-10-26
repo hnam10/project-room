@@ -11,6 +11,7 @@ import { BrainstormSuggestionCard } from './BrainstormSuggestionCard';
 import { BrainstormTopicSuggestionCard } from './BrainstormTopicSuggestionCard';
 import { BrainstormTopicTabs } from './BrainstormTopicTabs';
 import { BrainstormGuide } from './BrainstormGuide';
+import { NotesPanel } from './NotesPanel';
 import { BrainstormAnalysisCard } from './BrainstormAnalysisCard';
 import { isCurrentWebSuggestion, isSimilarWebSuggestion } from './similarWebSuggestion';
 import { ActionItemsCard } from '../chat/ActionItemsCard';
@@ -192,12 +193,12 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
         {tabButton('notes', 'Notes')}
         <div className="panel-actions">{headerActions}</div>
       </div>
-      {topics.length > 0 && (
+      {tab === 'ideas' && topics.length > 0 && (
         <BrainstormTopicTabs topics={topics} selectedId={problem?.id} onSelect={chooseTopic} onNew={() => setDialog({ kind: 'problem' })} />
       )}
       <div className="panel-body">
         {tab !== 'ideas' ? (
-          <div className="empty-state">Notes isn’t built yet — planned for a later iteration.</div>
+          <NotesPanel />
         ) : (
           <>
             {(pendingTopics.length > 0 || pendingTopicChanges.length > 0) && (
