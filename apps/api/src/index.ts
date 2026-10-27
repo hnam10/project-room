@@ -38,7 +38,7 @@ server.listen(config.port, () => {
         ? ' — set OPENAI_API_KEY or NEBIUS_API_KEY for a real model'
         : config.openaiApiKey
           ? ''
-          : ' — set OPENAI_API_KEY to send @AI, Ask the project, and meeting summaries to OpenAI'
+          : ' — OPENAI_API_KEY can be set to use different AI models'
     })`,
   );
 });
