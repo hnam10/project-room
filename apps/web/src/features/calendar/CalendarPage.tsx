@@ -40,6 +40,8 @@ function compareTasks(a: Task, b: Task): number {
 
 /** Weeks rendered ahead of this week on first paint; more load when you scroll near the bottom. */
 const INITIAL_FUTURE_WEEKS = 4;
+/** Bound automatic padding from dates; scrolling can still extend the range. */
+const MAX_AUTO_WEEKS = 52;
 /** How many weeks to add when the scroll reaches either end. */
 const WEEK_PAGE = 6;
 /** Minimum height of a week row in the scroll area. */
@@ -63,11 +65,15 @@ function formatMonthYear(iso: string): string {
   return parseIsoDate(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-function monthForWeek(weekStart: string, today: string): string {
+function monthAnchor(weekStart: string, today: string): string {
   const days = weekDays(weekStart);
-  if (days.includes(today)) return formatMonthYear(today);
+  if (days.includes(today)) return today;
   const firstInWeek = days.find((day) => dayNumber(day) === 1);
-  return formatMonthYear(firstInWeek ?? addDays(weekStart, 3));
+  return firstInWeek ?? addDays(weekStart, 3);
+}
+
+function monthForWeek(weekStart: string, today: string): string {
+  return formatMonthYear(monthAnchor(weekStart, today));
 }
 
 function requiredWeekPadding(thisWeek: string, cursor: string, deadline: string | null, tasks: Task[]): { past: number; future: number } {
@@ -75,7 +81,7 @@ function requiredWeekPadding(thisWeek: string, cursor: string, deadline: string 
   let future = INITIAL_FUTURE_WEEKS;
   const note = (iso: string | null) => {
     if (!iso) return;
-    const delta = weeksFromToday(thisWeek, iso);
+    const delta = Math.max(-MAX_AUTO_WEEKS, Math.min(MAX_AUTO_WEEKS, weeksFromToday(thisWeek, iso)));
     if (delta > future) future = delta;
     if (delta < 0 && -delta > past) past = -delta;
   };
@@ -94,6 +100,7 @@ export function CalendarPage() {
   const [dragging, setDragging] = useState(false);
   const today = todayIso();
   const [cursor, setCursor] = useState(today);
+  const viewDate = useRef(today);
   const [scrollPast, setScrollPast] = useState(0);
   const [scrollFuture, setScrollFuture] = useState(INITIAL_FUTURE_WEEKS);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -127,8 +134,8 @@ export function CalendarPage() {
     const el = scrollerRef.current;
     if (!week || !el) return;
     const node = document.getElementById(`week-${week}`);
-    if (!node) return;
     pendingFocus.current = '';
+    if (!node) return;
     const header = el.querySelector('.agenda-dow');
     const headerHeight = header instanceof HTMLElement ? header.offsetHeight : 0;
     const top = node.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - headerHeight;
@@ -157,7 +164,8 @@ export function CalendarPage() {
       if (block.getBoundingClientRect().top <= anchor) weekStart = start;
     }
     if (weekStart) {
-      const next = monthForWeek(weekStart, today);
+      viewDate.current = monthAnchor(weekStart, today);
+      const next = formatMonthYear(viewDate.current);
       setHeadMonth((current) => (current === next ? current : next));
     }
   }, [today]);
@@ -173,10 +181,12 @@ export function CalendarPage() {
   }
 
   function stepMonth(delta: number) {
-    const base = parseIsoDate(cursor);
+    const base = parseIsoDate(viewDate.current);
     const target = new Date(base.getFullYear(), base.getMonth() + delta, 1);
     const iso = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-01`;
-    focusDate(iso);
+    const week = startOfWeek(iso);
+    // A month can start in this week while its label still belongs to today's month.
+    focusDate(monthForWeek(week, today) === formatMonthYear(iso) ? iso : addDays(week, 7));
   }
 
   function onCalendarScroll() {
@@ -190,13 +200,13 @@ export function CalendarPage() {
     const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
     if (el.scrollTop > rowStep && remaining < rowStep) {
       scrollLock.current = true;
-      setScrollFuture((count) => count + WEEK_PAGE);
+      setScrollFuture(futureCount + WEEK_PAGE);
       return;
     }
     if (userScrolled.current && el.scrollTop < rowStep) {
       scrollLock.current = true;
       prependHeight.current = el.scrollHeight;
-      setScrollPast((count) => count + WEEK_PAGE);
+      setScrollPast(pastCount + WEEK_PAGE);
     }
   }
 

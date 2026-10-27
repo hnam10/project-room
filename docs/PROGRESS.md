@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-27 — **Calendar navigation and layout review fixes.** Automatic date padding is capped at 52 weeks
+  in each direction, missing focus targets are cleared, month navigation starts from the displayed month,
+  scroll expansion grows the rendered range, and narrow weeks grow to fit all seven days and their tasks.
+
 - 2026-10-26 — **Calendar scrolls like a week view.** Week titles are gone. Weekday names stay in one sticky
   header, the visible month sits beside the Calendar title, four week rows fit in the scroll area with four future
   weeks preloaded ahead of this week, days share

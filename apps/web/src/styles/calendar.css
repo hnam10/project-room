@@ -320,6 +320,7 @@
   display: flex;
   flex-direction: column;
   overflow: auto;
+  overflow-anchor: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -731,13 +732,15 @@
     display: block;
   }
   .agenda-week-block {
+    height: auto;
     min-height: 0;
   }
   .agenda-days {
     grid-template-columns: 1fr;
+    flex-shrink: 0;
   }
   .agenda-day {
-    min-height: 0;
+    min-height: 72px;
   }
   .agenda-day-head .icon-btn.small {
     opacity: 1;
