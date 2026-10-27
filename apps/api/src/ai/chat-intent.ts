@@ -77,7 +77,7 @@ Output only the supplied JSON schema.`;
 export async function interpretChatIntent(client: Pick<OpenAiClient, 'parse'>, model: string, input: ChatIntentInput): Promise<ChatIntent> {
   const result = await client.parse({
     model,
-    maxTokens: 600,
+    maxTokens: 2000,
     system: SYSTEM,
     content: JSON.stringify(input),
     schema: intentSchema,
