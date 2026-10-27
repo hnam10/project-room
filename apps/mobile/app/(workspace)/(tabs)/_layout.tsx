@@ -12,16 +12,17 @@ function ProjectSwitcherTitle({ name, offline, pollsOpen }: { name: string; offl
   const router = useRouter();
   const label = offline ? `${name} (offline)` : name;
   return (
-    <Pressable
-      onPress={() => router.push('/choose-team')}
-      accessibilityRole="button"
-      accessibilityLabel={`Current project ${label}. Switch project`}
-      style={styles.titleHit}
-    >
+    <View style={styles.titleHit}>
       <View style={styles.titleCol}>
-        <Text numberOfLines={1} style={styles.title}>
-          {label}
-        </Text>
+        <Pressable
+          onPress={() => router.push('/choose-team')}
+          accessibilityRole="button"
+          accessibilityLabel={`Current project ${label}. Switch project`}
+        >
+          <Text numberOfLines={1} style={styles.title}>
+            {label}
+          </Text>
+        </Pressable>
         {pollsOpen > 0 ? (
           <Pressable onPress={() => router.push('/(workspace)/(tabs)/polls')} hitSlop={6}>
             <Text style={styles.pollHint}>
@@ -30,8 +31,10 @@ function ProjectSwitcherTitle({ name, offline, pollsOpen }: { name: string; offl
           </Pressable>
         ) : null}
       </View>
-      <Icon name="chevronDown" size={14} color={colors.muted} />
-    </Pressable>
+      <Pressable onPress={() => router.push('/choose-team')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Switch project">
+        <Icon name="chevronDown" size={14} color={colors.muted} />
+      </Pressable>
+    </View>
   );
 }
 

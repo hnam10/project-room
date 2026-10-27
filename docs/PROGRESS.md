@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-26 — **Mobile typecheck resolves shared source.** `apps/mobile` keeps Expo's `react-native`
+  condition and adds `development`, so `@project-room/shared` typechecks from source when `dist` is
+  not built yet. CI failed with `Cannot find module '@project-room/shared'`.
+
 - 2026-10-26 — **CORS and mobile push cleanup hardened.** Direct browser requests use the exact
   comma-separated `CORS_ORIGINS` allowlist without credential headers. Expo HTTP/ticket errors are
   reported with batch context and invalid-device tickets remove the matching member's token.
