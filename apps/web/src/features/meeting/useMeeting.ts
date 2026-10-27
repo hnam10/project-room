@@ -81,7 +81,7 @@ export function useMeeting(projectId: string) {
 
   const listeners = useRef(new Set<(msg: ServerRtc) => void>());
   const sender = useRef<((msg: ClientRtc) => boolean) | null>(null);
-  useRealtime(
+  const connection = useRealtime(
     projectId,
     memberId,
     apply,
@@ -100,5 +100,5 @@ export function useMeeting(projectId: string) {
     return () => void listeners.current.delete(fn);
   }, []);
 
-  return { sendSignal, onSignal, current, recent, loaded, reload, apply, applyPoll, setCurrent, dismiss, select };
+  return { sendSignal, onSignal, connection, current, recent, loaded, reload, apply, applyPoll, setCurrent, dismiss, select };
 }

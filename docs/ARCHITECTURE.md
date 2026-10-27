@@ -213,6 +213,15 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
   `GET /meetings/rtc-config` tells clients which mode is on. The speaker is always the caller.
 - **Voice:** WebRTC mesh. `rtc` offer/answer/ICE signals are relayed between participants over `/ws` (`realtime/rtc-relay.ts`); STUN/TURN
   come from `RTC_ICE_SERVERS`.
+  `useMeshAudio` subscribes as soon as a member joins and buffers signals until microphone/ICE setup completes.
+  The meeting-scoped `meshAudio.ts` transport serializes local negotiation and received signals per peer,
+  resolves offer collisions with polite rollback, and discards candidates for ignored offers. Missing offers
+  are retransmitted and disconnected/failed peers receive bounded ICE restarts without replacing healthy
+  connections or microphone tracks. Signaling/network reconnection and Reconnect audio retry failed pairs.
+  Remote playback retries when tracks unmute/become playable; autoplay blocks retain an Enable audio control
+  on both the meeting page and floating call bar. Transcript capture remains independent of peer connectivity.
+  Cross-network audio may require an authenticated TURN relay; deployment/testing guidance is in
+  [MEETING_AUDIO.md](MEETING_AUDIO.md). Automated transport tests run in the existing API Vitest harness.
 
 - **Live AI:** new lines trigger `MeetingAi` (separate from `AiProvider`; Nebius when `NEBIUS_API_KEY` is set, otherwise the OpenAI fast model) which stores
 
