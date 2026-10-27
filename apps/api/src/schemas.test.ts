@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { projectUpdateSchema, taskCreateSchema, taskUpdateSchema } from '@project-room/shared';
 
+it('keeps omitted task fields unset so a column move cannot clear them', () => {
+  expect(taskUpdateSchema.parse({ status: 'progress' })).toEqual({ status: 'progress' });
+  expect(taskUpdateSchema.parse({ priority: 'high' })).toEqual({ priority: 'high' });
+  expect(taskUpdateSchema.parse({ assigneeId: null })).toEqual({ assigneeId: null });
+});
+
 describe.each([
   ['project update', projectUpdateSchema],
   ['task create', taskCreateSchema],

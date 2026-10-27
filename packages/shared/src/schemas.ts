@@ -16,17 +16,27 @@ import {
 const isoDate = z.iso.date('Expected a valid calendar date (YYYY-MM-DD)');
 const id = z.string().min(1).max(64);
 
-export const taskCreateSchema = z.object({
+const taskFields = {
   title: z.string().trim().min(1).max(120),
-  status: z.enum(TASK_STATUSES).default('todo'),
-  priority: z.enum(PRIORITIES).default('medium'),
-  label: z.enum(TASK_LABELS).default('feature'),
-  assigneeId: id.nullable().default(null),
-  dueDate: isoDate.nullable().default(null),
+  status: z.enum(TASK_STATUSES),
+  priority: z.enum(PRIORITIES),
+  label: z.enum(TASK_LABELS),
+  assigneeId: id.nullable(),
+  dueDate: isoDate.nullable(),
+};
+
+export const taskCreateSchema = z.object({
+  ...taskFields,
+  status: taskFields.status.default('todo'),
+  priority: taskFields.priority.default('medium'),
+  label: taskFields.label.default('feature'),
+  assigneeId: taskFields.assigneeId.default(null),
+  dueDate: taskFields.dueDate.default(null),
 });
 export type TaskCreateInput = z.input<typeof taskCreateSchema>;
 
-export const taskUpdateSchema = taskCreateSchema.partial();
+/** No defaults here: a PATCH that omits a field must leave the saved value alone. */
+export const taskUpdateSchema = z.object(taskFields).partial();
 export type TaskUpdateInput = z.input<typeof taskUpdateSchema>;
 
 const noteFields = {
