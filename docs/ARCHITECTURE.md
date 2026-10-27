@@ -295,12 +295,11 @@ Summaries are not copied into `note`; Open meeting shows that meeting's full sum
   inside `WorkspaceLayout`; `/p/:projectId/popout/chat` is the standalone chat window. `/team` redirects to
   `settings`. Members and roles belong there; workload stays on the planned Overview page. The sidebar
   lists the working pages plus Settings. Overview has no sidebar item until that dashboard exists.
-- Calendar (`features/calendar/`): tasks that have a due date, grouped into Monday-start weeks. This week
-  is listed first. Each week is seven columns: the weekday sits above the date, and that day's tasks stack
-  underneath. Tasks with no due date stay in a list beside the weeks. Dragging a task onto a day sets or
-  moves its due date through the existing task update. The project deadline is a chip in the
-  calendar header (`PATCH /api/projects/:projectId`): the chip sets the date, and the day is marked on
-  the agenda. Opening a task still edits it in the task dialog.
+- Calendar (`features/calendar/`): Monday-start week grid with a sticky weekday header; the title month
+  tracks scroll. Four week rows are visible; past and future weeks load as you scroll (hidden scrollbars).
+  Undated tasks sit in a side rail; drag onto a day to set `dueDate` via the existing task update. Project
+  deadline is a header chip (`PATCH /api/projects/:projectId`); that day is flagged on the grid. Tasks open
+  in the task dialog.
 - State: `SessionProvider` (current member) → `WorkspaceProvider` (project snapshot, messages per channel,
   realtime) → `ChatWindowProvider` (where the chat panel lives) → `MeetingCallProvider` (the meeting call).
 - The meeting call (`state/meetingCall.tsx`) lives above the routed pages: mic, peers' audio, transcription and
