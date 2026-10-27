@@ -5,6 +5,18 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-27 — **Meeting peer-audio recovery** (`fix/meeting-peer-audio`). Buffered early signals while
+  microphone/config setup completes; serialized negotiation and signal handling; ignored rejected-offer
+  candidates; retransmitted missing offers and restarted ICE after failed/persistent disconnected states.
+  Recovery preserves healthy peers, microphone tracks, mute state and transcription. Added Reconnect audio
+  and made autoplay Enable audio available from the floating call bar; playback retries as tracks become ready.
+  Transport regression tests use fake browser peers in the existing Vitest harness, without new dependencies.
+  Browser audio verification remains unconfirmed: both the three-peer synthetic check and an independent
+  native WebRTC loopback baseline failed to connect in this environment. Temporary fixtures/server were removed.
+  Members reported different networks/browsers; documented the existing TURN configuration requirement in
+  [MEETING_AUDIO.md](MEETING_AUDIO.md). No relay credentials or production settings were changed.
+  Full check passes with 299 tests (12 transport regressions); the web production bundle builds.
+
 - 2026-10-26 — **Notes tab.** Brainstorm → Notes lists project-wide member notes (new `note` table, author-only
   edit/delete, realtime) and the AI summary of every ended meeting, read-only, with Open meeting. Both are
   brainstorm-style tickets: team notes light purple, AI meeting notes light pink. Only the last two meeting
@@ -545,7 +557,8 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Local `npm run check` still stops at the repository-wide Prettier baseline (103 unrelated files).
   The full suite passed 110 tests. Meeting start now retries a write conflict that made its concurrency
   test fail intermittently on earlier runs.
-- Meetings: no TURN relay, so peer connections may fail on strict networks (transcript and AI still work).
+- Meetings: the default ICE configuration has STUN only. Cross-network peer audio can still fail without
+  a deployed TURN relay (transcript and AI work independently). See [MEETING_AUDIO.md](MEETING_AUDIO.md).
 - Meetings: live state, the AI trigger and the signaling relay are in-process (single API instance).
 - Meetings: trigger state (cooldowns, running summary, call counts) is in memory and resets on API restart.
 - Meetings: when the AI is re-invited it reads lines spoken while it was removed, and the end-of-meeting summary
@@ -587,6 +600,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
+
+- 2026-10-27 — **Recover audio transports independently.** Retry offers/ICE on the existing peer connection
+  instead of rebuilding only one side or using mute toggles. Keep microphone/transcription and healthy
+  member pairs running; network paths blocked by NAT still need a configured TURN relay.
 
 - 2026-10-26 — **Strategies: AI up to six steps, members up to eight.** Four was too tight for real plans (Add step
   silently did nothing at four). The AI still aims for two to four steps; members get two spare slots, and a full

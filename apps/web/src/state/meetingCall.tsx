@@ -12,17 +12,48 @@ import { useTranscriber } from '../features/meeting/useTranscriber';
 import { useSession } from './session';
 import { useWorkspace } from './workspace';
 
-function RemoteAudio({ stream, onBlocked }: { stream: MediaStream; onBlocked: () => void }) {
+function RemoteAudio({ stream, onBlocked, onPlaying }: { stream: MediaStream; onBlocked: () => void; onPlaying: () => void }) {
   const ref = useRef<HTMLAudioElement>(null);
-  const blocked = useRef(onBlocked);
+  const callbacks = useRef({ onBlocked, onPlaying });
   useEffect(() => {
-    blocked.current = onBlocked;
+    callbacks.current = { onBlocked, onPlaying };
   });
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let active = true;
+    const tracks = new Set<MediaStreamTrack>();
+    const play = () => {
+      if (!active) return;
+      void el
+        .play()
+        .then(() => {
+          if (active) callbacks.current.onPlaying();
+        })
+        .catch((error: unknown) => {
+          if (active && error instanceof DOMException && error.name === 'NotAllowedError') callbacks.current.onBlocked();
+        });
+    };
+    const attach = () => {
+      for (const track of stream.getAudioTracks()) {
+        if (tracks.has(track)) continue;
+        tracks.add(track);
+        track.addEventListener('unmute', play);
+      }
+      play();
+    };
     el.srcObject = stream;
-    el.play().catch(() => blocked.current());
+    el.addEventListener('canplay', play);
+    stream.addEventListener('addtrack', attach);
+    attach();
+    return () => {
+      active = false;
+      el.removeEventListener('canplay', play);
+      stream.removeEventListener('addtrack', attach);
+      for (const track of tracks) track.removeEventListener('unmute', play);
+      el.pause();
+      el.srcObject = null;
+    };
   }, [stream]);
   return <audio ref={ref} autoPlay />;
 }
@@ -106,14 +137,16 @@ function useCallState() {
     };
   }, [joined, projectId, meetingId]);
 
-  const { peers, localStream, remoteStreams, micError } = useMeshAudio({
-    enabled: joined && !stopped && iceReady,
+  const { peers, localStream, remoteStreams, micError, retryAudio } = useMeshAudio({
+    enabled: joined && !stopped,
     meetingId,
     me: memberId,
     participantIds: meeting?.participantIds ?? [],
     iceServers: ice?.servers ?? [],
     sendSignal,
     onSignal,
+    configurationReady: iceReady,
+    signalingReady: meetingState.connection === 'online',
     muted,
   });
   const sendClip = useCallback(
@@ -193,9 +226,11 @@ function useCallState() {
     localStream,
     remoteStreams,
     micError,
+    retryAudio,
     audioFailed: [...peers].some(([id, state]) => state === 'failed' && (meeting?.participantIds ?? []).includes(id)),
     blocked,
     setBlocked,
+    enableAudio: async () => setBlocked(!(await playBlockedAudio())),
     supported: serverStt || browser.supported,
     listening: serverStt ? clips.listening : browser.listening,
     error: serverStt ? clips.error : browser.error,
@@ -219,7 +254,17 @@ export function MeetingCallProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="meeting-audio" hidden>
         {call.joined &&
-          [...call.remoteStreams].map(([id, stream]) => <RemoteAudio key={id} stream={stream} onBlocked={() => call.setBlocked(true)} />)}
+          [...call.remoteStreams].map(([id, stream]) => (
+            <RemoteAudio
+              key={id}
+              stream={stream}
+              onBlocked={() => call.setBlocked(true)}
+              onPlaying={() => {
+                if (![...document.querySelectorAll<HTMLAudioElement>('.meeting-audio audio')].some((audio) => audio.paused))
+                  call.setBlocked(false);
+              }}
+            />
+          ))}
       </div>
       {call.joined && !onMeetingPage && call.meeting && (
         <div className="meeting-mini" role="region" aria-label="Meeting in progress">
@@ -227,6 +272,16 @@ export function MeetingCallProvider({ children }: { children: ReactNode }) {
           <NavLink to="meeting" className="meeting-mini-title" title="Back to the meeting">
             {call.meeting.title}
           </NavLink>
+          {call.blocked && (
+            <button className="btn sm" onClick={() => void call.enableAudio()}>
+              Enable audio
+            </button>
+          )}
+          {call.audioFailed && (
+            <button className="btn sm" onClick={call.retryAudio}>
+              Reconnect audio
+            </button>
+          )}
           <button
             className={`call-btn${call.muted ? ' off' : ''}`}
             aria-pressed={call.muted}
@@ -252,6 +307,14 @@ export function useMeetingCall(): MeetingCall {
 }
 
 /** Plays remote audio the browser blocked from autoplaying; needs a click on the page. */
-export function playBlockedAudio(): void {
-  document.querySelectorAll<HTMLAudioElement>('.meeting-audio audio').forEach((a) => void a.play().catch(() => {}));
+export async function playBlockedAudio(): Promise<boolean> {
+  const results = await Promise.all(
+    [...document.querySelectorAll<HTMLAudioElement>('.meeting-audio audio')].map((audio) =>
+      audio.play().then(
+        () => true,
+        () => false,
+      ),
+    ),
+  );
+  return results.every(Boolean);
 }

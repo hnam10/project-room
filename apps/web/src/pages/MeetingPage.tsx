@@ -12,7 +12,7 @@ import { MeetingSummaryView } from '../features/meeting/MeetingSummaryView';
 import { MeetingTimer } from '../features/meeting/MeetingTimer';
 import { Participants } from '../features/meeting/Participants';
 import { TranscriptView } from '../features/meeting/TranscriptView';
-import { playBlockedAudio, useMeetingCall } from '../state/meetingCall';
+import { useMeetingCall } from '../state/meetingCall';
 import { useWorkspace } from '../state/workspace';
 
 const AI_MIN_W = 240;
@@ -133,14 +133,18 @@ export function MeetingPage() {
                 <h2>In the call</h2>
                 {joined && call.micError && <p className="meeting-notice">Microphone unavailable — others can’t hear you.</p>}
                 {joined && call.audioFailed && (
-                  <p className="meeting-notice">Can’t connect audio on this network — the transcript and AI still work.</p>
+                  <div className="meeting-notice">
+                    Can’t connect audio on this network — the transcript and AI still work.{' '}
+                    <button className="btn sm" onClick={call.retryAudio}>
+                      Reconnect audio
+                    </button>
+                  </div>
                 )}
                 {joined && call.blocked && (
                   <button
                     className="btn"
                     onClick={() => {
-                      playBlockedAudio();
-                      call.setBlocked(false);
+                      void call.enableAudio();
                     }}
                   >
                     Click to enable audio
