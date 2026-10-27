@@ -5,6 +5,15 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-27 — **Calendar navigation and layout review fixes.** Automatic date padding is capped at 52 weeks
+  in each direction, missing focus targets are cleared, month navigation starts from the displayed month,
+  scroll expansion grows the rendered range, and narrow weeks grow to fit all seven days and their tasks.
+
+- 2026-10-26 — **Calendar scrolls like a week view.** Week titles are gone. Weekday names stay in one sticky
+  header, the visible month sits beside the Calendar title, four week rows fit in the scroll area with four future
+  weeks preloaded ahead of this week, days share
+  one bordered grid per week (today is only the date circle), scrollbars are hidden, and scrolling loads more
+  weeks in either direction so a task with no due date can be dropped on a later day.
 - 2026-10-26 — **Notes tab.** Brainstorm → Notes lists project-wide member notes (new `note` table, author-only
   edit/delete, realtime) and the AI summary of every ended meeting, read-only, with Open meeting. Both are
   brainstorm-style tickets: team notes light purple, AI meeting notes light pink. Only the last two meeting
@@ -587,6 +596,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
+
+- 2026-10-26 — **The calendar scrolls through untitled weeks.** Week titles ("This week", "Next week") made the
+  page a list, and only weeks that already had a task were drawn, so an undated task had no later day to
+  land on. A week now fills the view under a sticky weekday header, and scrolling either way loads more weeks.
 
 - 2026-10-26 — **Strategies: AI up to six steps, members up to eight.** Four was too tight for real plans (Add step
   silently did nothing at four). The AI still aims for two to four steps; members get two spare slots, and a full

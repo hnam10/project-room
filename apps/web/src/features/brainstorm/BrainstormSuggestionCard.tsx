@@ -90,7 +90,6 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
         wide
         open={editing}
         title={`Review AI ${draftKind}`}
-        eyebrow={suggestion.ideaId ? 'The existing idea changes only when you approve' : 'Nothing is added until you approve'}
         onClose={() => setEditing(false)}
         onSubmit={() => void approve()}
         footer={

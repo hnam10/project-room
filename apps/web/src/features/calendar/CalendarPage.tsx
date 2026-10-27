@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import type { Member, Task, TaskStatus } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
@@ -7,6 +7,7 @@ import { api } from '../../api/client';
 import { TaskDialog, type TaskDialogState } from '../board/TaskDialog';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
 import {
+  addDays,
   dayNumber,
   daysBetween,
   formatLong,
@@ -16,7 +17,6 @@ import {
   startOfWeek,
   todayIso,
   weekDays,
-  weekRangeLabel,
   weekRelation,
   weekdayShort,
 } from '../../lib/dates';
@@ -38,18 +38,57 @@ function compareTasks(a: Task, b: Task): number {
   return a.num - b.num;
 }
 
-function weeksToShow(tasks: Task[], deadline: string | null, today: string, cursor: string): string[] {
-  const starts = new Set<string>([startOfWeek(today), startOfWeek(cursor)]);
-  for (const task of tasks) {
-    if (task.dueDate) starts.add(startOfWeek(task.dueDate));
-  }
-  if (deadline) starts.add(startOfWeek(deadline));
-  return [...starts].sort();
+/** Weeks rendered ahead of this week on first paint; more load when you scroll near the bottom. */
+const INITIAL_FUTURE_WEEKS = 4;
+/** Bound automatic padding from dates; scrolling can still extend the range. */
+const MAX_AUTO_WEEKS = 52;
+/** How many weeks to add when the scroll reaches either end. */
+const WEEK_PAGE = 6;
+/** Minimum height of a week row in the scroll area. */
+const MIN_WEEK_ROW_HEIGHT = 148;
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function weekSpan(thisWeek: string, pastCount: number, futureCount: number): string[] {
+  return Array.from({ length: pastCount + futureCount + 1 }, (_, index) => addDays(thisWeek, (index - pastCount) * 7));
+}
+
+function weeksFromToday(thisWeek: string, iso: string): number {
+  return Math.round(daysBetween(thisWeek, startOfWeek(iso)) / 7);
 }
 
 function isWeekend(iso: string): boolean {
   const weekday = parseIsoDate(iso).getDay();
   return weekday === 0 || weekday === 6;
+}
+
+function formatMonthYear(iso: string): string {
+  return parseIsoDate(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function monthAnchor(weekStart: string, today: string): string {
+  const days = weekDays(weekStart);
+  if (days.includes(today)) return today;
+  const firstInWeek = days.find((day) => dayNumber(day) === 1);
+  return firstInWeek ?? addDays(weekStart, 3);
+}
+
+function monthForWeek(weekStart: string, today: string): string {
+  return formatMonthYear(monthAnchor(weekStart, today));
+}
+
+function requiredWeekPadding(thisWeek: string, cursor: string, deadline: string | null, tasks: Task[]): { past: number; future: number } {
+  let past = 0;
+  let future = INITIAL_FUTURE_WEEKS;
+  const note = (iso: string | null) => {
+    if (!iso) return;
+    const delta = Math.max(-MAX_AUTO_WEEKS, Math.min(MAX_AUTO_WEEKS, weeksFromToday(thisWeek, iso)));
+    if (delta > future) future = delta;
+    if (delta < 0 && -delta > past) past = -delta;
+  };
+  note(cursor);
+  note(deadline);
+  for (const task of tasks) note(task.dueDate);
+  return { past, future };
 }
 
 export function CalendarPage() {
@@ -61,10 +100,20 @@ export function CalendarPage() {
   const [dragging, setDragging] = useState(false);
   const today = todayIso();
   const [cursor, setCursor] = useState(today);
+  const viewDate = useRef(today);
+  const [scrollPast, setScrollPast] = useState(0);
+  const [scrollFuture, setScrollFuture] = useState(INITIAL_FUTURE_WEEKS);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const pendingFocus = useRef(startOfWeek(today));
+  const userScrolled = useRef(false);
+  const scrollLock = useRef(false);
+  const prependHeight = useRef<number | null>(null);
+  const [focusKey, setFocusKey] = useState(0);
   const deadline = project.dueDate;
   const deadlineSaving = useRef(false);
   const pendingTaskUpdates = useRef(new Map<string, symbol>());
   const [savingDeadline, setSavingDeadline] = useState(false);
+  const [headMonth, setHeadMonth] = useState(() => monthForWeek(startOfWeek(todayIso()), todayIso()));
 
   useEffect(() => {
     const pending = pendingTaskUpdates.current;
@@ -75,12 +124,90 @@ export function CalendarPage() {
     };
   }, []);
 
+  const thisWeek = startOfWeek(today);
+  const required = requiredWeekPadding(thisWeek, cursor, deadline, tasks);
+  const pastCount = Math.max(scrollPast, required.past);
+  const futureCount = Math.max(scrollFuture, required.future);
+
   useLayoutEffect(() => {
-    document.getElementById(`week-${startOfWeek(cursor)}`)?.scrollIntoView({ block: 'start' });
-  }, [cursor]);
+    const week = pendingFocus.current;
+    const el = scrollerRef.current;
+    if (!week || !el) return;
+    const node = document.getElementById(`week-${week}`);
+    pendingFocus.current = '';
+    if (!node) return;
+    const header = el.querySelector('.agenda-dow');
+    const headerHeight = header instanceof HTMLElement ? header.offsetHeight : 0;
+    const top = node.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - headerHeight;
+    el.scrollTop = Math.max(0, top);
+  }, [pastCount, futureCount, cursor, focusKey]);
+
+  useLayoutEffect(() => {
+    const el = scrollerRef.current;
+    const previousHeight = prependHeight.current;
+    prependHeight.current = null;
+    if (el && previousHeight != null) el.scrollTop += el.scrollHeight - previousHeight;
+    scrollLock.current = false;
+  }, [pastCount, futureCount]);
+
+  const syncHeadMonth = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const header = el.querySelector('.agenda-dow');
+    const headerHeight = header instanceof HTMLElement ? header.offsetHeight : 36;
+    const anchor = el.getBoundingClientRect().top + headerHeight + 8;
+    let weekStart: string | null = null;
+    for (const block of el.querySelectorAll<HTMLElement>('.agenda-week-block')) {
+      const id = block.querySelector('.agenda-week')?.id;
+      if (!id?.startsWith('week-')) continue;
+      const start = id.slice(5);
+      if (block.getBoundingClientRect().top <= anchor) weekStart = start;
+    }
+    if (weekStart) {
+      viewDate.current = monthAnchor(weekStart, today);
+      const next = formatMonthYear(viewDate.current);
+      setHeadMonth((current) => (current === next ? current : next));
+    }
+  }, [today]);
+
+  useLayoutEffect(() => {
+    syncHeadMonth();
+  }, [pastCount, futureCount, syncHeadMonth]);
 
   function focusDate(iso: string) {
+    pendingFocus.current = startOfWeek(iso);
     setCursor(iso);
+    setFocusKey((k) => k + 1);
+  }
+
+  function stepMonth(delta: number) {
+    const base = parseIsoDate(viewDate.current);
+    const target = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+    const iso = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-01`;
+    const week = startOfWeek(iso);
+    // A month can start in this week while its label still belongs to today's month.
+    focusDate(monthForWeek(week, today) === formatMonthYear(iso) ? iso : addDays(week, 7));
+  }
+
+  function onCalendarScroll() {
+    const el = scrollerRef.current;
+    if (!el) return;
+    syncHeadMonth();
+    if (scrollLock.current) return;
+    const row = el.querySelector<HTMLElement>('.agenda-week-block');
+    const rowStep = row?.offsetHeight ?? MIN_WEEK_ROW_HEIGHT;
+    if (el.scrollTop > 24) userScrolled.current = true;
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (el.scrollTop > rowStep && remaining < rowStep) {
+      scrollLock.current = true;
+      setScrollFuture(futureCount + WEEK_PAGE);
+      return;
+    }
+    if (userScrolled.current && el.scrollTop < rowStep) {
+      scrollLock.current = true;
+      prependHeight.current = el.scrollHeight;
+      setScrollPast(pastCount + WEEK_PAGE);
+    }
   }
 
   async function saveDeadline(dueDate: string | null) {
@@ -160,10 +287,7 @@ export function CalendarPage() {
   }
 
   const showRail = undated.length > 0;
-  const weekStarts = weeksToShow(tasks, deadline, today, cursor);
-  const thisWeek = startOfWeek(today);
-  const upcomingWeeks = weekStarts.filter((start) => start >= thisWeek);
-  const earlierWeeks = weekStarts.filter((start) => start < thisWeek).reverse();
+  const weeks = weekSpan(thisWeek, pastCount, futureCount);
   const overdue = tasks.filter(
     (task): task is Task & { dueDate: string } => !!task.dueDate && task.dueDate < today && task.status !== 'done',
   );
@@ -176,9 +300,25 @@ export function CalendarPage() {
           <Icon name="calendar" />
         </span>
         <div className="page-title">
-          <h1>Calendar</h1>
+          <h1>
+            Calendar
+            <span className="calendar-period">{headMonth}</span>
+          </h1>
         </div>
-        <DeadlineCard deadline={deadline} today={today} disabled={savingDeadline} onChange={(dueDate) => void saveDeadline(dueDate)} />
+        <div className="calendar-head-tools">
+          <div className="calendar-nav" role="group" aria-label="Calendar navigation">
+            <button type="button" className="icon-btn" aria-label="Previous month" onClick={() => stepMonth(-1)}>
+              <Icon name="chevron" />
+            </button>
+            <button type="button" className="btn sm" onClick={() => focusDate(today)}>
+              Today
+            </button>
+            <button type="button" className="icon-btn" aria-label="Next month" onClick={() => stepMonth(1)}>
+              <Icon name="chevron" />
+            </button>
+          </div>
+          <DeadlineCard deadline={deadline} today={today} disabled={savingDeadline} onChange={(dueDate) => void saveDeadline(dueDate)} />
+        </div>
       </section>
 
       {overdueDate && (
@@ -194,10 +334,9 @@ export function CalendarPage() {
       )}
 
       <div className={`calendar-body${showRail ? ' with-rail' : ''}`}>
-        <div className="calendar-main">
+        <div className="calendar-main" ref={scrollerRef} onScroll={onCalendarScroll}>
           <WeekAgenda
-            upcoming={upcomingWeeks}
-            earlier={earlierWeeks}
+            weeks={weeks}
             today={today}
             deadline={deadline}
             byDay={byDay}
@@ -250,13 +389,17 @@ function CalendarRail({
 }) {
   return (
     <aside className="calendar-rail" aria-label="Tasks with no due date">
-      <section>
-        <h2>No due date</h2>
-        <p className="rail-hint">Drag onto a day</p>
+      <section className="calendar-rail-section">
+        <header className="calendar-rail-head">
+          <h2>No due date</h2>
+          <span className="calendar-rail-count">{undated.length}</span>
+        </header>
+        <p className="rail-hint">Drag onto a day to schedule</p>
         <ul className="undated-list">
           {undated.map((task) => (
             <li key={task.id}>
               <DraggableTask taskId={task.id} onOpen={() => onOpen(task)} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+                <span className={`prio prio-${task.priority}`} aria-hidden="true" />
                 <span className="num">#{task.num}</span>
                 <span className="undated-title">{task.title}</span>
                 <Avatar member={task.assigneeId ? members.get(task.assigneeId) : undefined} />
@@ -407,8 +550,7 @@ function DeadlineCard({
 }
 
 function WeekAgenda({
-  upcoming,
-  earlier,
+  weeks,
   today,
   deadline,
   byDay,
@@ -422,8 +564,7 @@ function WeekAgenda({
   onDragLeaveDay,
   onDropDay,
 }: {
-  upcoming: string[];
-  earlier: string[];
+  weeks: string[];
   today: string;
   deadline: string | null;
   byDay: Map<string, Task[]>;
@@ -453,17 +594,16 @@ function WeekAgenda({
   };
   return (
     <div className="agenda">
-      {upcoming.map((start) => (
-        <WeekSection key={start} start={start} {...weekProps} />
+      <div className="agenda-dow" aria-hidden="true">
+        {WEEKDAYS.map((label) => (
+          <span key={label}>{label}</span>
+        ))}
+      </div>
+      {weeks.map((start) => (
+        <div key={start} className="agenda-week-block">
+          <WeekSection start={start} {...weekProps} />
+        </div>
       ))}
-      {earlier.length > 0 && (
-        <section className="agenda-earlier" aria-label="Earlier weeks">
-          <h2>Earlier</h2>
-          {earlier.map((start) => (
-            <WeekSection key={start} start={start} {...weekProps} />
-          ))}
-        </section>
-      )}
     </div>
   );
 }
@@ -498,13 +638,7 @@ function WeekSection({
   onDropDay: (day: string, event: DragEvent) => void;
 }) {
   return (
-    <section className={`agenda-week${start === startOfWeek(today) ? ' current' : ''}`} aria-label={weekRelation(start, today)}>
-      <header className="agenda-week-head" id={`week-${start}`}>
-        <h2>
-          {weekRelation(start, today)}
-          <span>{weekRangeLabel(start)}</span>
-        </h2>
-      </header>
+    <section className="agenda-week" id={`week-${start}`} aria-label={weekRelation(start, today)}>
       <div className="agenda-days">
         {weekDays(start).map((day) => (
           <AgendaDay
@@ -582,7 +716,10 @@ function AgendaDay({
       <header className="agenda-day-head">
         <div className="agenda-date">
           <span className="dow">{weekdayShort(day)}</span>
-          <span className={`dom${isToday ? ' is-today' : ''}`}>{dayNumber(day)}</span>
+          <span className="dom-row">
+            {dayNumber(day) === 1 && <span className="month">{parseIsoDate(day).toLocaleDateString('en-US', { month: 'short' })}</span>}
+            <span className={`dom${isToday ? ' is-today' : ''}`}>{dayNumber(day)}</span>
+          </span>
         </div>
         <button type="button" className="icon-btn small" aria-label={`Add a task due ${formatLong(day)}`} onClick={() => onAdd(day)}>
           <Icon name="plus" />
