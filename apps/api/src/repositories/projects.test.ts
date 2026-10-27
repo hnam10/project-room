@@ -1,6 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeDb, connectDb } from '../db/client.js';
-import { addProjectMember, ensureProject, getProject, listChannels, listMembers, upsertMember } from './projects.js';
+import {
+  addProjectMember,
+  ensureProject,
+  getMember,
+  getProject,
+  listChannels,
+  listMembers,
+  setMemberName,
+  setProjectName,
+  upsertMember,
+} from './projects.js';
 
 // Provisioning used by Clerk mode: Clerk users and organizations become members and projects on first use.
 
@@ -32,6 +42,19 @@ describe('Clerk provisioning', () => {
     const project = await getProject('org_abc');
     expect(project?.memberIds).toEqual(['user_1', 'user_2']);
     expect((await listMembers(project!.memberIds)).map((m) => m.name)).toEqual(['Mina', 'Joon']);
+  });
+
+  it('updates a Clerk project name and member name in place', async () => {
+    await ensureProject({ id: 'org_rename', name: 'Before' });
+    await upsertMember({ id: 'user_rename', name: 'Before', color: '#111111', role: 'lead' });
+    await addProjectMember('org_rename', 'user_rename');
+
+    await setProjectName('org_rename', 'After');
+    await setMemberName('user_rename', 'After Name');
+
+    expect(await getProject('org_rename')).toMatchObject({ name: 'After', memberIds: ['user_rename'] });
+    expect(await getMember('user_rename')).toMatchObject({ name: 'After Name', color: '#111111', role: 'lead' });
+    expect((await listChannels('org_rename')).map((channel) => channel.name)).toEqual(['general']);
   });
 
   it('provisions one project and channel when requests arrive together', async () => {

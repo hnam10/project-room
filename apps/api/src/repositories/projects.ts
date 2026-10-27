@@ -54,6 +54,17 @@ export async function createChannel(projectId: string, input: ChannelCreateInput
   return channel;
 }
 
+/** Updates the display name copied from Clerk. Color and role stay as they are. */
+export async function setMemberName(memberId: string, name: string): Promise<Member> {
+  const member = await queryOne<Member>(
+    'UPDATE ONLY $id SET name = $name RETURN AFTER',
+    { id: rid('member', memberId), name },
+    { retryConflict: true },
+  );
+  if (!member) throw new NotFoundError('Member');
+  return member;
+}
+
 /** Creates or refreshes a member's profile (used for members whose identity comes from Clerk). */
 export function upsertMember(member: Member): Promise<Member | null> {
   return queryOne<Member>(
@@ -79,6 +90,17 @@ export async function ensureProject(project: Pick<Project, 'id' | 'name'>): Prom
     { id, name: project.name, channel: rid('channel', `${project.id}-general`) },
     { retryConflict: true },
   );
+}
+
+/** Updates the project name copied from its Clerk organization. */
+export async function setProjectName(projectId: string, name: string): Promise<Project> {
+  const project = await queryOne<Project>(
+    `UPDATE ONLY $id SET name = $name RETURN AFTER`,
+    { id: rid('project', projectId), name },
+    { retryConflict: true },
+  );
+  if (!project) throw new NotFoundError('Project');
+  return project;
 }
 
 /** Adds a member to a project (no-op when already a member). */

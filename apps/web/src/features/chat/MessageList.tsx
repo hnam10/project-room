@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { useFeedback } from '../../components/Feedback';
 import { useSnapshot, useWorkspace } from '../../state/workspace';
+import { memberDisplayName, useClerkIdentities } from '../account/clerkIdentityContext';
 import { ActionItemsCard } from './ActionItemsCard';
 
 const MENTION = /(@(?:AI|team|alex|jamie|taylor|morgan)\b)/gi;
@@ -50,6 +51,7 @@ function MessageText({ text }: { text: string }) {
 
 export function MessageList({ channelId, scrollRef }: { channelId: string; scrollRef: React.RefObject<HTMLDivElement | null> }) {
   const { projectId, messages, loadMessages, members } = useWorkspace();
+  const identities = useClerkIdentities();
   const { suggestions, files } = useSnapshot();
   const { toastError } = useFeedback();
   const list = messages(channelId);
@@ -86,7 +88,7 @@ export function MessageList({ channelId, scrollRef }: { channelId: string; scrol
               </span>
             ) : (
               <span className="msg-author" style={{ '--c': member?.color } as React.CSSProperties}>
-                {member?.name ?? 'Former member'}
+                {memberDisplayName(identities, m.authorId, member?.name)}
               </span>
             )}
             <span className="msg-text">
