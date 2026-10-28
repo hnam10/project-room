@@ -153,9 +153,15 @@ export function FilesPage() {
                     <Icon name="download" />
                     Download
                   </button>
-                  <button className="btn sm danger-ghost" type="button" disabled={deletingId === file.id} onClick={() => void remove(file)}>
+                  <button
+                    className="icon-btn danger"
+                    type="button"
+                    aria-label={`Delete ${file.name}`}
+                    title="Delete"
+                    disabled={deletingId === file.id}
+                    onClick={() => void remove(file)}
+                  >
                     <Icon name="trash" />
-                    Delete
                   </button>
                 </div>
               </li>

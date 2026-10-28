@@ -5,6 +5,11 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-27 — **Dragging a task keeps its assignee.** A status or priority move sent only that field, but the task
+  update schema filled every omitted field with the create defaults, so the assignee, due date, priority
+  and label were cleared. Updates now change only the fields that were sent. An explicit empty assignee
+  still unassigns. Schema and HTTP tests cover a column move and a deliberate unassign.
+
 - 2026-10-27 — **Calendar navigation and layout review fixes.** Automatic date padding is capped at 52 weeks
   in each direction, missing focus targets are cleared, month navigation starts from the displayed month,
   scroll expansion grows the rendered range, and narrow weeks grow to fit all seven days and their tasks.
@@ -596,6 +601,10 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 - Files have no in-browser preview or version history. Delete removes the record, the bytes, and the Agent Memory document when one was stored.
 
 ## Decision log
+
+- 2026-10-27 — **Task updates do not reuse create defaults.** Dragging a card only sends the new column. Applying
+  create defaults to missing fields wiped the assignee, due date, priority and label. The update schema
+  has no defaults, matching notes. Sending `assigneeId: null` still unassigns.
 
 - 2026-10-26 — **The calendar scrolls through untitled weeks.** Week titles ("This week", "Next week") made the
   page a list, and only weeks that already had a task were drawn, so an undated task had no later day to

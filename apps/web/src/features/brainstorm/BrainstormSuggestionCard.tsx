@@ -6,6 +6,7 @@ import { Modal } from '../../components/Modal';
 import { useFeedback } from '../../components/Feedback';
 import { useWorkspace } from '../../state/workspace';
 import { IdeaDetails } from './IdeaDetails';
+import { IdeaSources } from './IdeaSources';
 import { StrategyDetails } from './StrategyDetails';
 import { StrategyEditor } from './StrategyEditor';
 
@@ -59,20 +60,15 @@ export function BrainstormSuggestionCard({ suggestion }: { suggestion: Suggestio
           <strong>Topic:</strong> {topics.find((topic) => topic.id === suggestion.topicId)?.title ?? 'Choose a topic during review'}
         </p>
       )}
-      {draft.theme === 'Strategy' ? <StrategyDetails description={draft.description} /> : <IdeaDetails description={draft.description} />}
+      {draft.theme === 'Strategy' ? (
+        <StrategyDetails description={draft.description} />
+      ) : (
+        <IdeaDetails description={draft.description} title={draft.title} />
+      )}
       <p className="ai-draft-reason">
         <strong>Why:</strong> {suggestion.reason}
       </p>
-      {(suggestion.researchSources ?? []).length > 0 && (
-        <div className="idea-sources">
-          <strong>Research:</strong>
-          {(suggestion.researchSources ?? []).map((source) => (
-            <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
-              {source.title}
-            </a>
-          ))}
-        </div>
-      )}
+      <IdeaSources sources={suggestion.researchSources ?? []} label="Research" title={draft.title} />
       <div className="action-buttons">
         <button
           className={`btn ${draftKind === 'strategy' ? 'direction-btn' : 'idea-btn'} sm`}

@@ -173,6 +173,64 @@ button {
   width: 24px;
   height: 24px;
 }
+.icon-btn.danger:hover:not(:disabled) {
+  background: #fdeeee;
+  color: var(--red);
+}
+.icon-btn.danger:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.card-tool {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.card-tool:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.card-tool.danger:hover {
+  background: #fdeeee;
+  color: var(--red);
+}
+.card-tool .icon {
+  width: 14px;
+  height: 14px;
+}
+.card-tool.solo {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+}
+.corner-x {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.corner-x:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.corner-x:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.corner-x .icon {
+  width: 14px;
+  height: 14px;
+}
 
 .select-btn {
   position: relative;

@@ -144,15 +144,23 @@ export function NotesPanel() {
         {entries.map((entry) =>
           entry.kind === 'note' ? (
             <article className="idea note-card" key={`note:${entry.note.id}`}>
+              {entry.note.authorId === memberId && (
+                <button
+                  type="button"
+                  className="corner-x"
+                  aria-label={`Delete ${entry.note.title}`}
+                  title="Delete"
+                  onClick={() => void remove(entry.note)}
+                >
+                  <Icon name="x" />
+                </button>
+              )}
               <h3>{entry.note.title}</h3>
               {entry.note.body && <p className="note-body">{entry.note.body}</p>}
               {entry.note.authorId === memberId && (
                 <div className="idea-stage-actions">
                   <button type="button" onClick={() => setEditing(entry.note)}>
                     Edit
-                  </button>
-                  <button type="button" className="idea-delete" onClick={() => void remove(entry.note)}>
-                    Delete
                   </button>
                 </div>
               )}
