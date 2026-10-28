@@ -42,7 +42,7 @@ export function BrainstormAnalysisCard({ suggestion }: { suggestion: Suggestion 
     <article className="brainstorm-analysis">
       <strong>{suggestion.title.startsWith('Topic research:') ? 'Topic research' : 'Research · related idea'}</strong>
       {hasSummary ? (
-        <IdeaDetails description={suggestion.proposal ?? ''} previewLength={120} />
+        <IdeaDetails description={suggestion.proposal ?? ''} title={suggestion.title} previewLength={120} />
       ) : (
         <p>Summary not available for this earlier result.</p>
       )}

@@ -229,8 +229,14 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                     <button className="btn sm" onClick={() => setDialog({ kind: 'problem', idea: problem })}>
                       Edit topic
                     </button>
-                    <button className="btn danger-ghost sm" onClick={() => void remove(problem)}>
-                      Delete
+                    <button
+                      type="button"
+                      className="icon-btn danger"
+                      aria-label={`Delete ${problem.title}`}
+                      title="Delete topic"
+                      onClick={() => void remove(problem)}
+                    >
+                      <Icon name="trash" />
                     </button>
                   </div>
                 </>

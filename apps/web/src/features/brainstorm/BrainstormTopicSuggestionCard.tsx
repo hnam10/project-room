@@ -66,7 +66,7 @@ export function BrainstormTopicSuggestionCard({ suggestion }: { suggestion: Sugg
         <Icon name="sparkle" /> {suggestion.ideaId ? 'Topic change' : 'New topic'} · review required
       </strong>
       <h3>{draft.title}</h3>
-      <IdeaDetails description={draft.description} />
+      <IdeaDetails description={draft.description} title={draft.title} />
       <p>
         <strong>Why:</strong> {suggestion.reason}
       </p>
