@@ -680,6 +680,11 @@ it('keeps web research available when AI classification is rate limited, then re
   expect(source.proposal).toContain('summary is unavailable');
   expect(first.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(false);
   expect(first.body.find((item) => item.title === 'Topic research status')?.proposal).toContain('usage limit');
+  // A retry whose summary is dropped still saves a strategy citing the source; that must not block the next retry.
+  const summarize = vi.spyOn(getAiProvider(), 'summarizeResearch').mockResolvedValueOnce([]);
+  const skipped = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
+  summarize.mockRestore();
+  expect(skipped.body.find((item) => item.ideaDraft?.theme === 'Strategy')?.researchSources[0]?.url).toBe('https://example.com/fitness');
   const retry = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
   expect(retry.status).toBe(201);
   expect(retry.body.find((item) => item.id === source.id)?.reason).not.toContain('summary unavailable');
@@ -705,6 +710,11 @@ it('brings only new sources when the team asks to research again', async () => {
 
   const none = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
   expect(none.body.find((item) => item.title === 'Topic research status')?.proposal).toContain('No new sources');
+  // The strategy still cites the sources already shown.
+  expect(none.body.find((item) => item.ideaDraft?.theme === 'Strategy')?.researchSources.map((s) => s.url)).toEqual([
+    'https://one.example/fitness',
+    'https://two.example/fitness',
+  ]);
 });
 
 it('returns research and an honest status if strategy generation fails', async () => {

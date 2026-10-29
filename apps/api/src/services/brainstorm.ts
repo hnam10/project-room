@@ -297,17 +297,16 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
   // Research again should bring new sources, not the cards (or saved sources) the team already has.
   // A pending card still waiting for its AI summary is retried instead (see the upgrade below).
   const awaitingSummary = (item: Suggestion) => item.status === 'pending' && item.reason.includes('AI summary unavailable');
+  // A strategy citing the same URL must not block that retry.
+  const retry = new Set(previous.filter(awaitingSummary).flatMap((item) => item.researchSources.map((source) => source.url)));
   const shown = new Set(
     manual
-      ? [...previous.filter((item) => !awaitingSummary(item)), problem].flatMap((item) => item.researchSources.map((source) => source.url))
+      ? [...previous, problem].flatMap((item) => item.researchSources.map((source) => source.url)).filter((url) => !retry.has(url))
       : [],
   );
-  const results = search.error
-    ? []
-    : similarWebResults(
-        problem,
-        search.results.filter((result) => !shown.has(result.url)),
-      );
+  // Shown sources still back the strategy; they are only left out of the new research cards.
+  const relevant = search.error ? [] : similarWebResults(problem, search.results);
+  const results = relevant.filter((result) => !shown.has(result.url));
   let summaries: Awaited<ReturnType<AiProvider['summarizeResearch']>> = [];
   if (results.length && !aiFailure) {
     try {
@@ -355,7 +354,7 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
   let strategyDescription = '';
   if (!aiFailure) {
     try {
-      const output = await ai.facilitateBrainstorm({ trigger: 'problem_created', problem, ideas: [], research: results, mode });
+      const output = await ai.facilitateBrainstorm({ trigger: 'problem_created', problem, ideas: [], research: relevant, mode });
       strategyDescription = output.strategy ? JSON.stringify(output.strategy, null, 2) : output.summary.trim();
     } catch (error) {
       recordFailure(error);
@@ -371,7 +370,7 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
           reason: `A starting approach for this topic${ai.isMock ? ' (mock AI)' : ''}. Review before saving.`,
           ideaDraft: { title: `Approach: ${problem.title}`.slice(0, 80), description: strategyDescription, theme: 'Strategy' },
           brainstormTrigger: 'problem_created',
-          researchSources: results.map(({ title, url }) => ({ title, url })),
+          researchSources: relevant.map(({ title, url }) => ({ title, url })),
         },
         idFor(projectId, problem.id, String(problem.boardVersion), 'strategy-json', manual ? strategyDescription : 'initial'),
       ),
