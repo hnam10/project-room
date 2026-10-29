@@ -16,8 +16,10 @@ export interface WebResearch {
   error: string | null;
 }
 
-/** Search is isolated here so AI providers never receive a key and callers can distinguish unavailable from empty. */
-/** `since` (YYYY-MM-DD) keeps only pages with a detectable publish date on or after it. */
+/**
+ * Search is isolated here so AI providers never receive a key and callers can distinguish unavailable from empty.
+ * `since` (YYYY-MM-DD) keeps only pages with a detectable publish date on or after it.
+ */
 export async function researchWeb(query: string, since?: string): Promise<WebResearch> {
   if (!config.tavilyApiKey) return { configured: false, results: [], error: null };
   try {
