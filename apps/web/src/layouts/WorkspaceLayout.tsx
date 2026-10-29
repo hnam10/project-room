@@ -75,7 +75,7 @@ function Shell() {
 }
 
 function TopBar() {
-  const { snapshot } = useWorkspace();
+  const { snapshot, online } = useWorkspace();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const project = snapshot!.project;
@@ -104,10 +104,12 @@ function TopBar() {
           onChange={(e) => navigate(`board${e.target.value ? `?q=${encodeURIComponent(e.target.value)}` : ''}`, { replace: true })}
         />
       </label>
-      <div className="member-stack" aria-label="Project members">
-        {snapshot!.members.map((m) => (
-          <Avatar key={m.id} member={m} />
-        ))}
+      <div className="member-stack" aria-label="Members here now">
+        {snapshot!.members
+          .filter((m) => online.includes(m.id))
+          .map((m) => (
+            <Avatar key={m.id} member={m} />
+          ))}
       </div>
       <InviteButton>
         <button className="icon-btn round invite-button" aria-label="Invite member">

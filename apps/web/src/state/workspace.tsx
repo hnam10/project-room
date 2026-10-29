@@ -110,6 +110,8 @@ interface Workspace {
   snapshot: WorkspaceSnapshot | null;
   error: string | null;
   connection: ConnectionState;
+  /** Member ids with the project open right now. */
+  online: string[];
   members: Map<string, Member>;
   messages: (channelId: string) => Message[] | undefined;
   loadMessages: (channelId: string) => Promise<void>;
@@ -170,10 +172,15 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
     [projectId],
   );
 
-  const connection = useRealtime(
+  const { connection, online } = useRealtime(
     projectId,
     memberId,
     (event) => {
+      // project also changes on every new task (taskCounter); refetch only when someone joined.
+      if (event.table === 'project') {
+        if (event.record.memberIds.join() !== state.snapshot?.project.memberIds.join()) reload();
+        return;
+      }
       const key = removalKey(event.table, event.record.id);
       if (key && event.action === 'delete') removedKeys.current.add(key);
       else if (key && removedKeys.current.has(key)) return;
@@ -196,6 +203,7 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
       snapshot: state.snapshot,
       error: state.error,
       connection,
+      online,
       members: new Map((state.snapshot?.members ?? []).map((m) => [m.id, m])),
       messages: (channelId) => state.messages[channelId],
       loadMessages,
@@ -214,7 +222,7 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
       applyProject: (project) => dispatch({ type: 'project', project }),
       reload,
     }),
-    [projectId, state, connection, loadMessages, activeChannelId, reload],
+    [projectId, state, connection, online, loadMessages, activeChannelId, reload],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

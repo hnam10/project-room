@@ -17,8 +17,10 @@ export function useRealtime(
   onSignal?: (msg: ServerRtc) => void,
   /** Filled with a function that sends a WebRTC signal on the open socket (false if it isn't open). */
   sendRef?: RefObject<((msg: ClientRtc) => boolean) | null>,
-): ConnectionState {
+): { connection: ConnectionState; online: string[] } {
   const [state, setState] = useState<ConnectionState>('connecting');
+  /** Member ids with this project open right now. */
+  const [online, setOnline] = useState<string[]>([]);
   const handlers = useRef({ onEvent, onReconnect, onSignal });
   useLayoutEffect(() => {
     handlers.current = { onEvent, onReconnect, onSignal };
@@ -48,6 +50,8 @@ export function useRealtime(
           retry = 0;
         } else if (msg.type === 'change') {
           handlers.current.onEvent(msg);
+        } else if (msg.type === 'presence') {
+          setOnline(msg.memberIds);
         } else if (msg.type === 'rtc') {
           handlers.current.onSignal?.(msg);
         }
@@ -74,5 +78,5 @@ export function useRealtime(
     };
   }, [projectId, memberId, sendRef]);
 
-  return state;
+  return { connection: state, online };
 }

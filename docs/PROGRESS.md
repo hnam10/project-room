@@ -5,6 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **New members appear without a refresh.** Joining adds the member to `project.memberIds`, but
+  `project` was not a realtime table, so teammates only saw them after reloading. The hub now broadcasts
+  `project` changes and open workspaces refetch the snapshot when `memberIds` changed. HTTP/realtime test covers a join.
+- 2026-10-29 — **Header shows who is here now.** Like Google Docs, the avatar stack lists only members with the
+  project open. The hub sends a `presence` message (unique member ids of the project's sockets) on every
+  subscribe and disconnect. Realtime test covers join and leave.
 - 2026-10-27 — **Dragging a task keeps its assignee.** A status or priority move sent only that field, but the task
   update schema filled every omitted field with the create defaults, so the assignee, due date, priority
   and label were cleared. Updates now change only the fields that were sent. An explicit empty assignee
