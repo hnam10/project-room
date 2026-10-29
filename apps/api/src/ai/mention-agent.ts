@@ -389,7 +389,7 @@ ${input.messages.map(formatLine).join('\n') || '(no messages)'}
 
   let nudged = false;
   for (let round = 0; round < MAX_ROUNDS; round++) {
-    const turn = await client.chat({ model, maxTokens: 2048, messages: [...history], tools: TOOLS });
+    const turn = await client.chat({ model, maxTokens: 4096, messages: [...history], tools: TOOLS });
     const calls = turn.toolCalls.slice(0, MAX_CALLS_PER_ROUND);
     if (!calls.length) {
       if (!nudged) {

@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **Clerk profile names stay authoritative.** Organization membership name differences
+  trigger a profile refresh before writing, so stale public data cannot restore an old name after
+  the refresh window expires. Regression coverage includes full names, usernames and profile outages.
 - 2026-10-27 — **Dragging a task keeps its assignee.** A status or priority move sent only that field, but the task
   update schema filled every omitted field with the create defaults, so the assignee, due date, priority
   and label were cleared. Updates now change only the fields that were sent. An explicit empty assignee
