@@ -2,6 +2,7 @@ import type { Idea, Member } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { IdeaDetails } from './IdeaDetails';
+import { IdeaSources } from './IdeaSources';
 import { StrategyDetails } from './StrategyDetails';
 
 export function IdeaCard(props: {
@@ -16,16 +17,26 @@ export function IdeaCard(props: {
   const { idea } = props;
   return (
     <article className={`idea${idea.theme === 'Strategy' ? ' direction idea-strategy' : ''}`}>
+      <button
+        type="button"
+        className={idea.theme === 'Strategy' ? 'card-tool solo danger' : 'corner-x'}
+        onClick={props.onDelete}
+        aria-label={`Delete ${idea.title}`}
+        title="Delete"
+      >
+        <Icon name={idea.theme === 'Strategy' ? 'trash' : 'x'} />
+      </button>
       {idea.taskId && <span className="idea-converted">✓ On the board</span>}
       <h3>{idea.title}</h3>
-      {idea.theme === 'Strategy' ? <StrategyDetails description={idea.description} /> : <IdeaDetails description={idea.description} />}
+      {idea.theme === 'Strategy' ? (
+        <StrategyDetails description={idea.description} />
+      ) : (
+        <IdeaDetails description={idea.description} title={idea.title} onEdit={props.onEdit} />
+      )}
       {idea.researchStale && <span className="idea-stale">Research may be outdated after this edit</span>}
       <div className="idea-stage-actions">
         <button type="button" onClick={props.onEdit}>
           Edit
-        </button>
-        <button type="button" className="idea-delete" onClick={props.onDelete} aria-label={`Delete ${idea.title}`}>
-          Delete
         </button>
         {idea.approved ? (
           <strong>Approved</strong>
@@ -35,16 +46,7 @@ export function IdeaCard(props: {
           </button>
         )}
       </div>
-      {idea.researchSources?.length > 0 && (
-        <div className="idea-sources">
-          <strong>Sources:</strong>
-          {idea.researchSources.map((source) => (
-            <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
-              {source.title}
-            </a>
-          ))}
-        </div>
-      )}
+      <IdeaSources sources={idea.researchSources ?? []} label="Sources" title={idea.title} />
       <div className="idea-foot">
         <Avatar member={props.author} />
         {props.author?.name ?? 'Former member'}
@@ -55,8 +57,8 @@ export function IdeaCard(props: {
             aria-pressed={props.voted}
             aria-label={`${props.voted ? 'Remove heart from' : 'Heart'} ${idea.title}`}
           >
-            <Icon name="heart" />
             {idea.voterIds.length}
+            <Icon name="heart" />
           </button>
         </span>
       </div>
