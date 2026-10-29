@@ -123,6 +123,7 @@ const ResearchSummarySchema = z.object({
   summaries: z.array(
     z.object({
       url: z.string().describe('Exact URL from one supplied result'),
+      title: z.string().describe('A plain 2-6 word label for what this source covers, e.g. "Pet-sitting marketplace guide"'),
       summary: z.string().describe('One or two original sentences describing what this existing idea does, at most 240 characters'),
     }),
   ),
@@ -231,7 +232,11 @@ ${results.map((result) => `<result url="${result.url}" title="${result.title}">$
         seen.add(item.url);
         return true;
       })
-      .map((item) => ({ url: item.url, summary: item.summary.replace(/\s+/g, ' ').trim().slice(0, 240) }));
+      .map((item) => ({
+        url: item.url,
+        title: item.title.replace(/\s+/g, ' ').trim().slice(0, 60),
+        summary: item.summary.replace(/\s+/g, ' ').trim().slice(0, 240),
+      }));
   }
 
   async function brainstorm({

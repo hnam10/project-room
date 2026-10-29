@@ -40,7 +40,11 @@ export function BrainstormAnalysisCard({ suggestion }: { suggestion: Suggestion 
   };
   return (
     <article className="brainstorm-analysis">
-      <strong>{suggestion.title.startsWith('Topic research:') ? 'Topic research' : 'Research · related idea'}</strong>
+      <strong>
+        {suggestion.title.startsWith('Topic research:')
+          ? suggestion.title.slice('Topic research:'.length).trim()
+          : 'Research · related idea'}
+      </strong>
       {hasSummary ? (
         <IdeaDetails description={suggestion.proposal ?? ''} title={suggestion.title} previewLength={120} />
       ) : (

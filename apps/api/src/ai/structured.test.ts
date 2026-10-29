@@ -58,8 +58,12 @@ describe('structured provider', () => {
   it('summarizes supplied research and drops invented source URLs', async () => {
     const { provider, parse } = providerReturning({
       summaries: [
-        { url: 'https://example.com/planner', summary: 'A calendar that helps student groups coordinate due dates.' },
-        { url: 'https://unknown.example', summary: 'Unknown claim' },
+        {
+          url: 'https://example.com/planner',
+          title: '  Group  deadline calendar ',
+          summary: 'A calendar that helps student groups coordinate due dates.',
+        },
+        { url: 'https://unknown.example', title: 'Unknown', summary: 'Unknown claim' },
       ],
     });
     const summaries = await provider.summarizeResearch({
@@ -69,7 +73,11 @@ describe('structured provider', () => {
       ],
     });
     expect(summaries).toEqual([
-      { url: 'https://example.com/planner', summary: 'A calendar that helps student groups coordinate due dates.' },
+      {
+        url: 'https://example.com/planner',
+        title: 'Group deadline calendar',
+        summary: 'A calendar that helps student groups coordinate due dates.',
+      },
     ]);
     expect(parse.mock.calls[0]![0].content).toContain('<results>');
   });
