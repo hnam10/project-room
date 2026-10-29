@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useParams, useSearchParams } from 'react-
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
 import { AccountButton, InviteButton, TeamSwitcher } from '../features/account/ClerkAccount';
-import { useClerkIdentity } from '../features/account/clerkIdentityContext';
+import { useClerkIdentity, useClerkProjectName } from '../features/account/clerkIdentityContext';
 import { DetachedChat } from '../features/dock/DetachedChat';
 import { ChannelDialog } from '../features/chat/ChannelDialog';
 import { ChatWindowProvider } from '../state/chatWindow';
@@ -79,13 +79,14 @@ function TopBar() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const project = snapshot!.project;
+  const projectName = useClerkProjectName(project);
 
   return (
     <header className="topbar">
       <div className="brand">
         <strong>Project Room</strong>
         <span className="crumb-sep">/</span>
-        <span className="crumb-project">{project.name}</span>
+        <span className="crumb-project">{projectName}</span>
       </div>
       {/* <nav className="top-tabs" aria-label="Workspace views">
         {TOP_TABS.map(([path, label]) => (

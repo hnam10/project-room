@@ -283,9 +283,6 @@
   font-size: 11px;
   text-decoration: underline;
 }
-.idea-stage-actions .idea-delete {
-  color: var(--red);
-}
 .idea-stage-actions strong,
 .idea-stale {
   font-size: 11px;
@@ -340,6 +337,10 @@
   border: 1px solid rgba(0, 0, 0, 0.04);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
+.idea:has(> .card-tool.solo),
+.idea:has(> .corner-x) {
+  padding-right: 32px;
+}
 .idea-strategy {
   --paper: var(--direction-weak);
 }
@@ -357,11 +358,24 @@
 .idea-details {
   flex: 1;
 }
-.idea-details button {
-  margin-top: 4px;
+.idea-more {
   color: var(--accent);
-  font-size: 11px;
+  font-size: inherit;
+  font-weight: 600;
+}
+.idea-more:hover {
   text-decoration: underline;
+}
+/* The modal renders inside the card, so its text must not pick up the card's compact paragraph styles. */
+.modal .idea-details-full {
+  margin: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 .idea-foot {
   /* Author and voting sit at the bottom of the card, however short its text is. */
@@ -389,6 +403,11 @@
   gap: 3px;
   white-space: nowrap;
   color: var(--ink-2);
+}
+/* The heart icon is the rightmost glyph, so it sits on the same vertical line as the corner remove control. */
+.idea:has(> .corner-x) .idea-foot button,
+.idea:has(> .card-tool.solo) .idea-foot button {
+  margin-right: -22px;
 }
 .idea-foot button.voted {
   color: var(--accent);
@@ -462,6 +481,27 @@
   color: var(--research);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+.idea .idea-sources a {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modal .idea-sources-full {
+  display: grid;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+.idea-sources-full a {
+  color: var(--research);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
 }
 .brainstorm-topic-navigation {
   display: flex;

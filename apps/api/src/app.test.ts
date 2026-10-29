@@ -154,7 +154,13 @@ describe('workspace API', () => {
   it('numbers new tasks after the existing ones and supports edit/delete', async () => {
     const created = await api<Task>('/projects/hackathon/tasks', {
       method: 'POST',
-      body: JSON.stringify({ title: 'Write README', assigneeId: 'morgan' }),
+      body: JSON.stringify({
+        title: 'Write README',
+        assigneeId: 'morgan',
+        priority: 'high',
+        label: 'docs',
+        dueDate: '2026-12-01',
+      }),
     });
     expect(created.status).toBe(201);
     expect(created.body.num).toBe(19);
@@ -162,7 +168,25 @@ describe('workspace API', () => {
       method: 'PATCH',
       body: JSON.stringify({ status: 'done' }),
     });
-    expect(moved.body.status).toBe('done');
+    expect(moved.body).toMatchObject({
+      status: 'done',
+      title: 'Write README',
+      assigneeId: 'morgan',
+      priority: 'high',
+      label: 'docs',
+      dueDate: '2026-12-01',
+    });
+    const unassigned = await api<Task>(`/projects/hackathon/tasks/${created.body.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assigneeId: null }),
+    });
+    expect(unassigned.body).toMatchObject({
+      status: 'done',
+      assigneeId: null,
+      priority: 'high',
+      label: 'docs',
+      dueDate: '2026-12-01',
+    });
     expect((await api(`/projects/hackathon/tasks/${created.body.id}`, { method: 'DELETE' })).status).toBe(204);
   });
 

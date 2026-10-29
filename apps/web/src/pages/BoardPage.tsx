@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { Task } from '@project-room/shared';
 import { Icon } from '../components/Icon';
+import { memberDisplayName, useClerkIdentities, useClerkProjectName } from '../features/account/clerkIdentityContext';
 import { Dock } from '../features/dock/Dock';
 import { TaskBoard } from '../features/board/TaskBoard';
 import { TaskDialog, type TaskDialogState } from '../features/board/TaskDialog';
@@ -10,6 +11,8 @@ import { useSnapshot } from '../state/workspace';
 
 export function BoardPage() {
   const { project, tasks, members, ideas } = useSnapshot();
+  const projectName = useClerkProjectName(project);
+  const identities = useClerkIdentities();
   const [params] = useSearchParams();
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [assignee, setAssignee] = useState<string>('all');
@@ -32,7 +35,7 @@ export function BoardPage() {
           {project.emoji}
         </span>
         <div className="page-title">
-          <h1>{project.name}</h1>
+          <h1>{projectName}</h1>
           <p>{project.description}</p>
         </div>
         <div className="progress">
@@ -51,7 +54,7 @@ export function BoardPage() {
               <option value="all">Filter: Everyone</option>
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.name}
+                  {memberDisplayName(identities, m.id, m.name)}
                 </option>
               ))}
               <option value="">Unassigned</option>

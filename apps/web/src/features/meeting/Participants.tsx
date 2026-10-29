@@ -1,5 +1,6 @@
 import type { Meeting } from '@project-room/shared';
 import { AI_AUTHOR } from '@project-room/shared';
+import { useClerkIdentity } from '../account/clerkIdentityContext';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { useSession } from '../../state/session';
@@ -9,7 +10,7 @@ import { useSpeaking } from './useSpeaking';
 function Tile({ id, stream, muted }: { id: string; stream: MediaStream | null; muted: boolean }) {
   const { members } = useWorkspace();
   const speaking = useSpeaking(muted ? null : stream);
-  const name = members.get(id)?.name ?? 'Unknown';
+  const name = useClerkIdentity(id)?.name ?? members.get(id)?.name ?? 'Unknown';
   return (
     <li className={`meeting-tile${speaking ? ' speaking' : ''}`} aria-label={`${name}${muted ? ', muted' : speaking ? ', speaking' : ''}`}>
       <Avatar member={members.get(id)} />

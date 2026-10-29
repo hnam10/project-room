@@ -280,7 +280,8 @@ Summaries are not copied into `note`; Open meeting shows that meeting's full sum
 
 - `authenticate` runs on every `/api` route and sets the `Caller` (`memberId`, `orgId`).
   - Clerk mode: `clerkMiddleware()` then `getAuth()`; 401 without a session. The Clerk user id is the
-    member id; the member row is created from the Clerk profile on first use.
+    member id; the member row is created from the Clerk profile on first use, and its name is refreshed when
+    that profile changes.
   - Test-only dev mode (no keys): `x-member-id` header. `index.ts` refuses to start a server in this mode.
 - `projectForCaller()` decides project access for both HTTP (`requireProjectMember`) and the WebSocket.
   In Clerk mode the session's `orgId` must equal the project id; the project (with `#general`) and the

@@ -3,6 +3,7 @@ import { AI_AUTHOR, type TranscriptLine } from '@project-room/shared';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { useWorkspace } from '../../state/workspace';
+import { memberDisplayName, useClerkIdentities } from '../account/clerkIdentityContext';
 import { FileChip } from '../chat/MessageList';
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -13,6 +14,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-di
  */
 export function TranscriptView({ lines: all, interim: speaking }: { lines: TranscriptLine[]; interim: string }) {
   const { projectId, members } = useWorkspace();
+  const identities = useClerkIdentities();
   const text = (l: TranscriptLine) => (l.fileId ? <FileChip projectId={projectId} fileId={l.fileId} name={l.text} /> : l.text);
   const box = useRef<HTMLDivElement>(null);
   const [pinned, setPinned] = useState(true);
@@ -54,7 +56,7 @@ export function TranscriptView({ lines: all, interim: speaking }: { lines: Trans
             <div className="t-line" key={l.id}>
               {l.source === 'ai' ? <Avatar id={AI_AUTHOR} /> : <Avatar member={members.get(l.speakerId)} />}
               <div>
-                <b>{l.source === 'ai' ? 'AI' : (members.get(l.speakerId)?.name ?? 'Unknown')}</b>{' '}
+                <b>{l.source === 'ai' ? 'AI' : memberDisplayName(identities, l.speakerId, members.get(l.speakerId)?.name, 'Unknown')}</b>{' '}
                 {l.source === 'chat' && (
                   <span className="t-chat">
                     <Icon name="message" /> chat
