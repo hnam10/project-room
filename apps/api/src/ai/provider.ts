@@ -101,6 +101,8 @@ export interface ResearchSummaryInput {
 export interface ResearchSummary {
   url: string;
   summary: string;
+  /** A short label for the source (a few words); topic research cards use it as their heading. */
+  title?: string;
 }
 
 export interface BrainstormInput {

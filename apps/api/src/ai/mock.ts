@@ -179,6 +179,7 @@ export const mockProvider: AiProvider = {
   async summarizeResearch({ idea, results }) {
     return results.map((result) => ({
       url: result.url,
+      title: result.title.split(/[:|–]/)[0]!.trim().slice(0, 60),
       summary: `“${result.title}” is a related approach to “${idea.title}”. Check the source for its specific features and audience.`,
     }));
   },

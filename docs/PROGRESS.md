@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **Cleaner topic research cards.** The research status ("Research is ready…") replaces the intro line
+  inside the "Research the topic" card instead of a separate purple box. Topic research cards show a short
+  AI-written label (2-6 words, fallback: the source title) instead of the generic "Topic research" heading.
 - 2026-10-29 — **Clerk profile names stay authoritative.** Organization membership name differences
   trigger a profile refresh before writing, so stale public data cannot restore an old name after
   the refresh window expires. Regression coverage includes full names, usernames and profile outages.

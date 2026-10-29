@@ -289,7 +289,7 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
   }
   const search = await researchWeb(`${problem.title} ${problem.description.slice(0, 160)} research approaches`);
   const results = search.error ? [] : similarWebResults(problem, search.results);
-  let summaries: { url: string; summary: string }[] = [];
+  let summaries: Awaited<ReturnType<AiProvider['summarizeResearch']>> = [];
   if (results.length && !aiFailure) {
     try {
       summaries = await ai.summarizeResearch({ idea: problem, results });
@@ -321,7 +321,7 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
         projectId,
         {
           kind: 'brainstorm_analysis',
-          title: `Topic research: ${source.title}`,
+          title: `Topic research: ${summary.title || source.title}`,
           proposal: summary.summary.replace(/\s+/g, ' ').trim().slice(0, 400),
           reason,
           ideaId: problem.id,
