@@ -151,15 +151,18 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
     return () => keys.clear();
   }, [projectId]);
 
+  // The mount fetch and the first subscription both reload; only the newest response may land.
+  const reloadSeq = useRef(0);
   const reload = useCallback(() => {
     const requested = projectId;
+    const seq = ++reloadSeq.current;
     api
       .snapshot(requested)
       .then((snapshot) => {
-        if (snapshot.project.id !== projectRef.current) return;
+        if (snapshot.project.id !== projectRef.current || seq !== reloadSeq.current) return;
         dispatch({ type: 'loaded', snapshot: withoutRemoved(snapshot, removedKeys.current) });
       })
-      .catch((e: Error) => dispatch({ type: 'failed', error: e.message }));
+      .catch((e: Error) => seq === reloadSeq.current && dispatch({ type: 'failed', error: e.message }));
   }, [projectId]);
 
   useEffect(reload, [reload, memberId]);

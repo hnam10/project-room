@@ -6,8 +6,8 @@ export type ConnectionState = 'connecting' | 'online' | 'offline';
 
 /**
  * Subscribes to live changes for a project over /ws and reconnects with backoff.
- * `onReconnect` fires after a dropped connection comes back, so callers can refetch
- * anything they may have missed while offline.
+ * `onReconnect` fires each time the socket is subscribed (the first time too), so callers can refetch
+ * anything that changed before the subscription started or while offline.
  */
 export function useRealtime(
   projectId: string | undefined,
@@ -32,7 +32,6 @@ export function useRealtime(
     let retry = 0;
     let timer: number | undefined;
     let closed = false;
-    let wasOnline = false;
 
     const connect = async () => {
       setState('connecting');
@@ -45,8 +44,7 @@ export function useRealtime(
         const msg = JSON.parse(String(raw.data)) as ServerMessage;
         if (msg.type === 'ready') {
           setState('online');
-          if (wasOnline) handlers.current.onReconnect?.();
-          wasOnline = true;
+          handlers.current.onReconnect?.();
           retry = 0;
         } else if (msg.type === 'change') {
           handlers.current.onEvent(msg);
