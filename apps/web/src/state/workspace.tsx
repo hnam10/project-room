@@ -121,7 +121,7 @@ interface Workspace {
   applyRecord: (table: RealtimeTable, record: { id: string }, removed?: boolean) => void;
   /** Checks local and realtime deletion tombstones before applying a late response or rollback. */
   isRecordRemoved: (table: RealtimeTable, id: string) => boolean;
-  /** Replaces the project on the snapshot. The project table is not a realtime stream. */
+  /** Replaces the project on the snapshot (also done for live `project` events). */
   applyProject: (project: Project) => void;
   reload: () => void;
 }
@@ -176,9 +176,10 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
     projectId,
     memberId,
     (event) => {
-      // project also changes on every new task (taskCounter); refetch only when someone joined.
+      // A new member also needs their profile, so refetch; any other project edit (due date) applies in place.
       if (event.table === 'project') {
         if (event.record.memberIds.join() !== state.snapshot?.project.memberIds.join()) reload();
+        else dispatch({ type: 'project', project: event.record });
         return;
       }
       const key = removalKey(event.table, event.record.id);
