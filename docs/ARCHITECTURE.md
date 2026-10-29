@@ -246,9 +246,14 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
 ## Realtime
 
 `realtime/hub.ts` opens one `LIVE SELECT` per realtime table at startup. Each change is converted with
-`toPlain()` and sent to the WebSocket clients subscribed to that record's `projectId`. Because changes
+`toPlain()` and sent to the WebSocket clients subscribed to that record's `projectId` (a `project` record
+goes to its own id). Because changes
 come from the database, writes from any API instance (or a DB console) reach clients. The web
 `WorkspaceProvider` merges events into its snapshot with idempotent upserts and refetches after a reconnect.
+A `project` change refetches the snapshot (which carries the member list) only when `memberIds` changed;
+`project` also updates on every new task (`taskCounter`).
+Presence: on every subscribe and socket close the hub sends `{ type: 'presence', memberIds }` (members with the
+project open) to that project's sockets; the header avatar stack shows only those members.
 
 ## Files
 
