@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **Plainer AI suggestion tone.** The shared system prompt in `ai/structured.ts` now asks for simple,
+  jargon-free, practical advice and a direct answer (not a business plan) for everyday choices. Mock tests are
+  unaffected; check quality with `npm run eval -w apps/api` against a real model.
 - 2026-10-29 — **Clerk profile names stay authoritative.** Organization membership name differences
   trigger a profile refresh before writing, so stale public data cannot restore an old name after
   the refresh window expires. Regression coverage includes full names, usernames and profile outages.
