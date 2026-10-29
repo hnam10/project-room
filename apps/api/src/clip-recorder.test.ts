@@ -51,13 +51,46 @@ afterEach(() => {
   vi.useRealTimers();
 });
 function start() {
-  const send = vi.fn(async (_clip: Blob) => {});
+  const send = vi.fn(async (_clip: Blob): Promise<boolean | void> => {});
   const listening = vi.fn();
   const error = vi.fn();
-  const stop = startClipRecorder({ stream: {} as MediaStream, send, onListening: listening, onError: error });
+  const status = vi.fn();
+  const stop = startClipRecorder({ stream: {} as MediaStream, send, onListening: listening, onError: error, onStatus: status });
   stops.push(stop);
-  return { send, listening, error, stop };
+  return { send, listening, error, stop, status };
 }
+it('distinguishes verified silence, an upload and a speech service returning no text', async () => {
+  const { send, status } = start();
+  await vi.advanceTimersByTimeAsync(6000);
+  expect(status).toHaveBeenLastCalledWith('No sound detected in the last clip');
+  FakeContext.level = 0.1;
+  send.mockResolvedValue(false);
+  await vi.advanceTimersByTimeAsync(6000);
+  expect(status).toHaveBeenCalledWith('Sending your speech for transcription…');
+  expect(status).toHaveBeenLastCalledWith('Speech service found no speech in the last clip');
+  send.mockResolvedValue(true);
+  await vi.advanceTimersByTimeAsync(6000);
+  expect(status).toHaveBeenLastCalledWith('Last clip transcribed successfully');
+});
+it('shows the first failed upload status and does not overwrite stopped state with a late response', async () => {
+  FakeContext.level = 0.1;
+  const { send, status, stop } = start();
+  send.mockRejectedValue({ status: 403 });
+  await vi.advanceTimersByTimeAsync(6000);
+  expect(status).toHaveBeenLastCalledWith('Transcription upload failed (403)');
+  let finish!: (value: boolean) => void;
+  send.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  await vi.advanceTimersByTimeAsync(6000);
+  stop();
+  finish(true);
+  await Promise.resolve();
+  expect(status).toHaveBeenLastCalledWith('Transcription is stopped');
+});
 it('sends clips even when the browser leaves audio analysis suspended', async () => {
   FakeContext.state = 'suspended';
   const { send, listening } = start();

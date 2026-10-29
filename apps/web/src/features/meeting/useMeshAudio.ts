@@ -126,10 +126,11 @@ export function useMeshAudio({
     if (signalingReady) controller.current?.signalingRestored();
   }, [signalingReady]);
   const retryAudio = useCallback(() => controller.current?.signalingRestored(), []);
+  const checkAudio = useCallback(() => controller.current?.check() ?? Promise.resolve([]), []);
   useEffect(() => {
     if (!enabled) return;
     window.addEventListener('online', retryAudio);
     return () => window.removeEventListener('online', retryAudio);
   }, [enabled, retryAudio]);
-  return { peers, localStream, remoteStreams, micError, retryAudio };
+  return { peers, localStream, remoteStreams, micError, retryAudio, checkAudio };
 }

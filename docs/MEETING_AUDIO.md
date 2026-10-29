@@ -50,6 +50,14 @@ Reference: [WebRTC TURN server guidance](https://webrtc.org/getting-started/turn
 
 ## Verify the actual call
 
+For a missing speaker, open **Audio check** below the participants on that person's browser and click
+**Check my microphone**. It reports the selected input, ended/disabled/browser-muted track states and a
+live sound meter. Compare this with their system input meter. The latest clip status distinguishes
+silence, upload failure (with HTTP status), no speech returned by the service and successful storage.
+Audio sent/received byte counts identify transport activity, but can grow during silence, so do not
+interpret them as proof that intelligible speech was delivered. The check reveals no IP addresses,
+SDP or relay credentials and stops its analysis when closed or the page changes.
+
 Test two browsers/devices on different networks, then add a third participant. Check that every member
 hears every other member, including after a delayed microphone prompt, simultaneous joins, mute/unmute,
 temporary connectivity loss and leaving/rejoining. Confirm the remaining pairs keep hearing each other

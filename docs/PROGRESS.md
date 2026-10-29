@@ -5,6 +5,15 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **In-call audio check for missing voices/transcripts.** A member can open Audio check
+  and deliberately start a local microphone meter, see the selected input/track state, and inspect
+  per-participant audio byte counts without exposing network addresses, credentials or SDP. Transcript
+  status distinguishes skipped silence, empty recordings, uploading, no recognized speech, successful
+  storage and the first upload failure (including HTTP status). This is diagnosis, not a claim that
+  the reported three-device failure is resolved. Added status/late-response and sanitized-stat tests.
+  309 tests pass. Browser synthetic-input check confirms silence and sound detection; no real devices
+  or speech service were exercised. Root check retains pre-existing CRLF formatting drift.
+
 - 2026-10-29 — **Transcription no longer depends on a running audio analyser.** A suspended browser
   AudioContext returned zeroes and discarded every six-second recording while still showing Listening.
   Only verified silence is skipped now; unavailable/suspended analysis sends the clip for server-side

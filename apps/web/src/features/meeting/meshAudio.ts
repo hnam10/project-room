@@ -1,6 +1,12 @@
 import type { RtcSignal, ServerRtc } from '@project-room/shared';
 
 export type PeerState = 'connecting' | 'connected' | 'failed';
+export interface AudioPeerCheck {
+  id: string;
+  state: RTCPeerConnectionState;
+  sent: number;
+  received: number;
+}
 const CONNECT_TIMEOUT_MS = 10_000;
 const DISCONNECT_GRACE_MS = 3_000;
 
@@ -181,6 +187,26 @@ export function createMeshAudio(options: Options) {
 
   return {
     receive,
+    async check(): Promise<AudioPeerCheck[]> {
+      return Promise.all(
+        [...peers].map(async ([id, peer]) => {
+          let sent = 0;
+          let received = 0;
+          try {
+            const stats = await peer.pc.getStats();
+            stats.forEach((raw) => {
+              const row = raw as { type: string; kind?: string; mediaType?: string; bytesSent?: number; bytesReceived?: number };
+              if ((row.kind ?? row.mediaType) !== 'audio') return;
+              if (row.type === 'outbound-rtp') sent += row.bytesSent ?? 0;
+              if (row.type === 'inbound-rtp') received += row.bytesReceived ?? 0;
+            });
+          } catch {
+            /* A connection may close during a check. */
+          }
+          return { id, state: peer.pc.connectionState, sent, received };
+        }),
+      );
+    },
     sync(ids: string[]) {
       if (stopped) return;
       const previous = members;

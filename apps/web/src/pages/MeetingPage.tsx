@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { useAttachFiles, useFileDrop } from '../features/chat/useAttachFiles';
 import { ResizeHandle } from '../features/dock/ResizeHandle';
 import { ConsentDialog } from '../features/meeting/ConsentDialog';
+import { AudioCheck } from '../features/meeting/AudioCheck';
 import { MeetingAiPanel } from '../features/meeting/MeetingAiPanel';
 import { MeetingChat } from '../features/meeting/MeetingChat';
 import { LastTimeCard } from '../features/meeting/LastTimeCard';
@@ -151,6 +152,14 @@ export function MeetingPage() {
                   </button>
                 )}
                 <Participants meeting={meeting} localStream={call.localStream} remoteStreams={call.remoteStreams} muted={muted} />
+                {joined && (
+                  <AudioCheck
+                    stream={call.localStream}
+                    check={call.checkAudio}
+                    transcript={call.transcriptionStatus}
+                    names={new Map(snapshot?.members.map((member) => [member.id, member]) ?? [])}
+                  />
+                )}
               </section>
               <section
                 className={fileOver ? 'file-over' : undefined}

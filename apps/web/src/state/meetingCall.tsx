@@ -137,7 +137,7 @@ function useCallState() {
     };
   }, [joined, projectId, meetingId]);
 
-  const { peers, localStream, remoteStreams, micError, retryAudio } = useMeshAudio({
+  const { peers, localStream, remoteStreams, micError, retryAudio, checkAudio } = useMeshAudio({
     enabled: joined && !stopped,
     meetingId,
     me: memberId,
@@ -151,13 +151,13 @@ function useCallState() {
   });
   const sendClip = useCallback(
     async (clip: Blob) => {
-      if (!meetingId) return;
+      if (!meetingId) return false;
       try {
-        await meetingsApi.postAudio(projectId, meetingId, clip);
+        return !!(await meetingsApi.postAudio(projectId, meetingId, clip));
       } catch (e) {
         // 409: the meeting ended or expired. Stop transcribing.
         if (e instanceof ApiError && e.status === 409) setStoppedId(meetingId);
-        else throw e;
+        throw e;
       }
     },
     [projectId, meetingId],
@@ -227,6 +227,13 @@ function useCallState() {
     remoteStreams,
     micError,
     retryAudio,
+    checkAudio,
+    transcriptionStatus: muted
+      ? 'Transcription paused while muted'
+      : serverStt
+        ? clips.status
+        : (browser.error ??
+          (browser.listening ? 'Browser speech recognition is listening' : 'Browser speech recognition is not listening')),
     audioFailed: [...peers].some(([id, state]) => state === 'failed' && (meeting?.participantIds ?? []).includes(id)),
     blocked,
     setBlocked,

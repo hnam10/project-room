@@ -1,12 +1,13 @@
 interface Options {
   stream: MediaStream;
-  send: (clip: Blob) => Promise<void>;
+  send: (clip: Blob) => Promise<boolean | void>;
   onListening: (listening: boolean) => void;
   onError: (error: string | null) => void;
+  onStatus?: (status: string) => void;
 }
 
 /** Each member records their own microphone. Analysis only avoids sending verified silence. */
-export function startClipRecorder({ stream, send, onListening, onError }: Options) {
+export function startClipRecorder({ stream, send, onListening, onError, onStatus }: Options) {
   let stopped = false;
   let failures = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -45,6 +46,7 @@ export function startClipRecorder({ stream, send, onListening, onError }: Option
     stopped = true;
     clearTimeout(timer);
     onListening(false);
+    onStatus?.('Recording could not start');
     onError('Microphone recording stopped. Leave and rejoin to retry, and check your microphone permissions.');
   };
   const record = () => {
@@ -68,15 +70,23 @@ export function startClipRecorder({ stream, send, onListening, onError }: Option
         reliable = true;
         record();
         const clip = new Blob(parts, { type: rec.mimeType });
-        if (silent || !clip.size) return;
+        if (silent || !clip.size) {
+          onStatus?.(silent ? 'No sound detected in the last clip' : 'The recorder produced an empty clip');
+          return;
+        }
+        onStatus?.('Sending your speech for transcription…');
         void send(clip).then(
-          () => {
+          (saved) => {
             if (!stopped) {
               failures = 0;
               onError(null);
+              onStatus?.(saved === false ? 'Speech service found no speech in the last clip' : 'Last clip transcribed successfully');
             }
           },
-          () => {
+          (error: unknown) => {
+            if (stopped) return;
+            const status = typeof error === 'object' && error !== null && 'status' in error ? error.status : undefined;
+            onStatus?.(`Transcription upload failed${typeof status === 'number' ? ` (${status})` : ''}`);
             if (!stopped && ++failures >= 3)
               onError('Transcription keeps failing, so your speech isn’t transcribed. Check your connection.');
           },
@@ -89,6 +99,7 @@ export function startClipRecorder({ stream, send, onListening, onError }: Option
       fail();
     }
   };
+  onStatus?.('Recording microphone; waiting for the first clip…');
   record();
   return () => {
     stopped = true;
@@ -104,5 +115,6 @@ export function startClipRecorder({ stream, send, onListening, onError }: Option
     if (ctx && ctx.state !== 'closed') void ctx.close().catch(() => {});
     onListening(false);
     onError(null);
+    onStatus?.('Transcription is stopped');
   };
 }

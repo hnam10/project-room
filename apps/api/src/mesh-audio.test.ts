@@ -21,6 +21,7 @@ class FakePeer {
   addTransceiver = vi.fn();
   addIceCandidate = vi.fn(async () => {});
   restartIce = vi.fn();
+  getStats = vi.fn(async () => new Map<string, unknown>());
   setLocalDescription = vi.fn(async () => {
     const type = this.signalingState === 'have-remote-offer' ? 'answer' : 'offer';
     this.localDescription = { type, toJSON: () => ({ type, sdp: 'test' }) };
@@ -82,6 +83,22 @@ function setup(me = 'a', members = ['a', 'z']) {
   return { controller, send, state, remove, receive, peer: FakePeer.all[0]! };
 }
 const flush = () => vi.advanceTimersByTimeAsync(0);
+
+it('reports audio transport counters without returning addresses, credentials or other media stats', async () => {
+  const { controller, peer } = setup();
+  peer.state('connected');
+  peer.getStats.mockResolvedValue(
+    new Map([
+      ['out', { type: 'outbound-rtp', kind: 'audio', bytesSent: 123 }],
+      ['in', { type: 'inbound-rtp', kind: 'audio', bytesReceived: 456 }],
+      ['video', { type: 'outbound-rtp', kind: 'video', bytesSent: 999 }],
+      ['candidate', { type: 'local-candidate', address: 'private-address' }],
+    ]),
+  );
+  expect(await controller.check()).toEqual([{ id: 'z', state: 'connected', sent: 123, received: 456 }]);
+  peer.getStats.mockRejectedValue(new Error('closed'));
+  expect(await controller.check()).toEqual([{ id: 'z', state: 'connected', sent: 0, received: 0 }]);
+});
 
 it('negotiates every pair in a three-person mesh and replaces only the returning member connections', async () => {
   const network = new Map<string, ReturnType<typeof createMeshAudio>>();
