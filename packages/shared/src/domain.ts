@@ -109,17 +109,7 @@ export interface ResearchSource {
 }
 
 export type SuggestionKind = 'action_items' | 'risk' | 'idea' | 'brainstorm_topic' | 'poll' | 'meeting_notes' | 'brainstorm_analysis';
-export const BRAINSTORM_TRIGGERS = [
-  'problem_created',
-  'first_idea',
-  'multiple_ideas',
-  'research_completed',
-  'idea_updated',
-  'discussion_inactive',
-  'ideas_shortlisted',
-  'idea_approved',
-  'manual',
-] as const;
+export const BRAINSTORM_TRIGGERS = ['problem_created', 'first_idea', 'idea_updated', 'idea_approved', 'manual'] as const;
 export type BrainstormTrigger = (typeof BRAINSTORM_TRIGGERS)[number];
 export type SuggestionStatus = 'pending' | 'approved' | 'dismissed';
 

@@ -17,6 +17,8 @@ The rules that matter most when suggesting code:
 - Each brainstorm topic has its own board (`topicId`). Require a topic before creating cards. Prepare
   research and reviewable strategies first, then let members add ideas. Editing/deleting a topic clears
   that topic's board; clear-ideas preserves research and strategies. Existing tasks/polls remain.
+  Strategies take the team's problem as stated (no survey/validation steps) and cite surveys or studies from
+  the last four years found by the topic's web search.
 - Classify the brainstorming goal before developing ideas. Topic preparation can research any goal;
   later non-product idea exploration stays context-based. Keep every AI draft reviewable.
 - Internally use Option for a direct choice (such as cuisine for dinner), Product for something to build, and Strategy

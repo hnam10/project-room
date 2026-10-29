@@ -268,12 +268,14 @@ export function BrainstormPanel({ className = '', headerActions }: { className?:
                       {!aiBusy && aiUnavailable && <span className="brainstorm-section-status">AI unavailable</span>}
                     </summary>
                     <div className="brainstorm-disclosure-content">
-                      <BrainstormGuide ideas={ideas} suggestions={suggestions} onRun={runAi} busy={aiBusy} attempted={automaticAttempts} />
-                      {researchStatus && (
-                        <p className="brainstorm-research-status" role="status">
-                          {researchStatus}
-                        </p>
-                      )}
+                      <BrainstormGuide
+                        ideas={ideas}
+                        suggestions={suggestions}
+                        onRun={runAi}
+                        busy={aiBusy}
+                        attempted={automaticAttempts}
+                        status={researchStatus}
+                      />
                       {problem.researchSources.length > 0 && (
                         <div className="idea-sources">
                           <strong>Saved research</strong>

@@ -6,7 +6,7 @@ imports this file, so there is one source of truth.
 
 ## What this is
 
-Project Room is an AI-powered collaborative workspace for student and hackathon teams. Chat,
+Project Room is an AI-powered collaborative workspace for individuals and teams of any kind. Chat,
 a task board and a brainstorming board are connected by an **AI action engine** that turns
 conversation into structured suggestions (tasks, ideas, polls, risks) which the team reviews
 and approves. Core loop: **Conversations → Insights → Decisions → Actions → Progress**.
@@ -124,7 +124,9 @@ prototype/         the first static prototype; do not build on it
 - Topic strategies contain only a recommended direction, a short step-by-step plan and essential scope.
   Each section and each step uses one or two short sentences; no separate focus/why, deliverables,
   success criteria or next-step gates. AI product plans usually have three or four steps (never more than six), simple choices fewer; members may add up to eight.
-  Keep guidance specific and provisional; never invent research or user feedback.
+  Keep guidance specific and provisional; never invent research or user feedback. Take the team's problem as
+  stated: no survey, interview or validation steps. Base steps on surveys/studies from the topic's web search
+  (last four years only) when found, citing the URL.
 - New strategies use the shared `strategyPlanSchema` JSON format with plain-text field values, rendered
   as sections and steps. Preserve legacy text strategies; do not require Markdown rendering.
 - Members edit strategies through ordinary text fields for the direction, steps and scope. JSON is an

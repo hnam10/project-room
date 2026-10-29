@@ -15,8 +15,7 @@
 .brainstorm-analysis {
   border: 1.5px dashed var(--research);
 }
-.brainstorm-research h3,
-.brainstorm-research-status {
+.brainstorm-research h3 {
   color: var(--research);
 }
 .brainstorm-topic-draft {
@@ -602,14 +601,6 @@
 .brainstorm-topic-inbox .brainstorm-topic-draft {
   margin: 12px 0 0;
 }
-.brainstorm-research-status {
-  padding: 10px 12px;
-  background: var(--accent-weak);
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 /* ---------- Notes tab ---------- */
 /* Same tickets as Brainstorm: team notes are light purple, AI meeting notes are light pink. */
 .notes-intro {

@@ -73,6 +73,7 @@ describe('sourced brainstorm research', () => {
     expect(strategy.ideaDraft?.theme).toBe('Strategy');
     expect(strategy.ideaDraft?.description).toContain('Students miss group deadlines');
     expect(research.researchSources).toEqual([{ title: 'Student group deadline planning app', url: 'https://deadlines.example/product' }]);
+    expect(research.title).toBe('Topic research: Student group deadline planning app');
     expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', ideaId: problem.id })).body).toEqual([]);
     for (const item of result.body) await call('POST', `/suggestions/${item.id}/dismiss`, {});
   });
@@ -143,8 +144,6 @@ describe('sourced brainstorm research', () => {
     const vague = await call<Idea>('POST', '/ideas', { title: 'test' });
     expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'first_idea', ideaId: vague.body.id })).body).toEqual([]);
     expect(web).not.toHaveBeenCalled();
-    expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'discussion_inactive' })).body).toEqual([]);
-    expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'multiple_ideas' })).body).toEqual([]);
 
     const specific = await call<Idea>('POST', '/ideas', { title: 'Student workload tracker' });
     web.mockResolvedValue({

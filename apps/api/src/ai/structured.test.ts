@@ -47,7 +47,8 @@ describe('structured provider', () => {
     expect(wireSchema.properties).toHaveProperty('recommendation');
     expect(wireSchema.properties).not.toHaveProperty('strategy');
     expect(wireSchema.properties).not.toHaveProperty('tasks');
-    expect(prompt).toContain('equipment as one hypothesis');
+    expect(prompt).toContain('do not add steps to run surveys or interviews');
+    expect(prompt).toContain('Use only research supplied below');
     expect(prompt).toContain('one or two short sentences');
     expect(prompt).toContain('no Markdown');
     expect(prompt).toContain('do not impose interviews, market research or a product roadmap');
@@ -73,8 +74,12 @@ describe('structured provider', () => {
   it('summarizes supplied research and drops invented source URLs', async () => {
     const { provider, parse } = providerReturning({
       summaries: [
-        { url: 'https://example.com/planner', summary: 'A calendar that helps student groups coordinate due dates.' },
-        { url: 'https://unknown.example', summary: 'Unknown claim' },
+        {
+          url: 'https://example.com/planner',
+          title: '  Group  deadline calendar ',
+          summary: 'A calendar that helps student groups coordinate due dates.',
+        },
+        { url: 'https://unknown.example', title: 'Unknown', summary: 'Unknown claim' },
       ],
     });
     const summaries = await provider.summarizeResearch({
@@ -84,7 +89,11 @@ describe('structured provider', () => {
       ],
     });
     expect(summaries).toEqual([
-      { url: 'https://example.com/planner', summary: 'A calendar that helps student groups coordinate due dates.' },
+      {
+        url: 'https://example.com/planner',
+        title: 'Group deadline calendar',
+        summary: 'A calendar that helps student groups coordinate due dates.',
+      },
     ]);
     expect(parse.mock.calls[0]![0].content).toContain('<results>');
   });
