@@ -5,6 +5,10 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **Clerk profile names stay authoritative.** Organization membership name differences
+  trigger a profile refresh before writing, so stale public data cannot restore an old name after
+  the refresh window expires. Regression coverage includes full names, usernames and profile outages.
+
 - 2026-10-27 — **Calendar navigation and layout review fixes.** Automatic date padding is capped at 52 weeks
   in each direction, missing focus targets are cleared, month navigation starts from the displayed month,
   scroll expansion grows the rendered range, and narrow weeks grow to fit all seven days and their tasks.

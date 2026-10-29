@@ -175,17 +175,19 @@ describe('Clerk organization sync', () => {
     expect(joinProject).toHaveBeenCalledWith('org_1', 'user_2');
   });
 
-  it('copies a teammate name from the organization membership list', async () => {
+  it('verifies a changed teammate name against the current profile', async () => {
     project.mockResolvedValue({ id: 'org_1', name: 'Rocket', memberIds: ['user_1', 'user_2'] });
     getOrganization.mockResolvedValue({ name: 'Rocket' });
     getOrganizationMembershipList.mockResolvedValue({
       data: [{ publicUserData: { userId: 'user_2', firstName: 'Joon', lastName: 'Kim', identifier: 'joon@school.edu' } }],
     });
     member.mockImplementation(async (id: string) => (id === 'user_2' ? { id, name: 'Joon', color: '#111111', role: '' } : null));
+    getUser.mockResolvedValue(profile('Joon Kim Lee'));
 
     await ensureOrgProject('org_1', 'user_1');
 
-    expect(renameMember).toHaveBeenCalledWith('user_2', 'Joon Kim');
+    expect(getUser).toHaveBeenCalledWith('user_2');
+    expect(renameMember).toHaveBeenCalledExactlyOnceWith('user_2', 'Joon Kim Lee');
     expect(saveMember).not.toHaveBeenCalled();
   });
 
@@ -199,6 +201,44 @@ describe('Clerk organization sync', () => {
     getOrganization.mockResolvedValue({ name: 'Rocket' });
     getOrganizationMembershipList.mockResolvedValue({
       data: [{ publicUserData: { userId: 'user_1', firstName: 'Old', lastName: 'Name', identifier: 'mina@school.edu' } }],
+    });
+
+    await ensureOrgProject('org_1', 'user_1');
+
+    expect(renameMember).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['full name', profile('Mina Park'), 'Mina Park'],
+    ['username', profile(null, 'mina'), 'mina'],
+  ])('preserves the current profile %s when stale membership data outlives the refresh window', async (_, currentProfile, name) => {
+    member.mockResolvedValue({ id: 'user_1', name: 'Old Name', color: '#111111', role: '' });
+    getUser.mockResolvedValue(currentProfile);
+    await ensureClerkMember('user_1');
+    member.mockResolvedValue({ id: 'user_1', name, color: '#111111', role: '' });
+    renameMember.mockClear();
+    now += 30_001;
+
+    project.mockResolvedValue({ id: 'org_1', name: 'Rocket', memberIds: ['user_1'] });
+    getOrganization.mockResolvedValue({ name: 'Rocket' });
+    getOrganizationMembershipList.mockResolvedValue({
+      data: [{ publicUserData: { userId: 'user_1', firstName: 'Old', lastName: 'Name' } }],
+    });
+
+    await ensureOrgProject('org_1', 'user_1');
+
+    expect(getUser).toHaveBeenCalledTimes(2);
+    expect(renameMember).not.toHaveBeenCalled();
+  });
+
+  it('keeps the stored profile name when membership differs and the profile cannot be verified', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    member.mockResolvedValue({ id: 'user_1', name: 'Mina Park', color: '#111111', role: '' });
+    getUser.mockRejectedValue(new Error('down'));
+    project.mockResolvedValue({ id: 'org_1', name: 'Rocket', memberIds: ['user_1'] });
+    getOrganization.mockResolvedValue({ name: 'Rocket' });
+    getOrganizationMembershipList.mockResolvedValue({
+      data: [{ publicUserData: { userId: 'user_1', firstName: 'Old', lastName: 'Name' } }],
     });
 
     await ensureOrgProject('org_1', 'user_1');

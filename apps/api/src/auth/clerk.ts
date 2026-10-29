@@ -82,9 +82,9 @@ export async function ensureClerkMember(userId: string): Promise<void> {
 }
 
 /**
- * Copies organization membership names onto member rows that already exist.
- * Skips anyone whose full profile was just read: public membership data can lag that read,
- * and a missing first name would otherwise wipe a username we already stored.
+ * Uses organization membership names to find member rows that may need a profile refresh.
+ * Public membership data can lag the profile, so verify differences against the current
+ * profile before changing a stored name, even after the refresh window expires.
  */
 async function syncMembershipNames(orgId: string): Promise<void> {
   const list = await clerk().organizations.getOrganizationMembershipList({ organizationId: orgId, limit: 100 });
@@ -95,7 +95,7 @@ async function syncMembershipNames(orgId: string): Promise<void> {
       const name = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
       if (!userId || !name || recentlySynced(memberSyncedAt, userId)) return;
       const existing = await getMember(userId);
-      if (existing && existing.name !== name) await setMemberName(userId, name);
+      if (existing && existing.name !== name) await ensureClerkMember(userId);
     }),
   );
 }
