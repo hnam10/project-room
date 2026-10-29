@@ -957,6 +957,14 @@ it('coalesces simultaneous topic preparation requests', async () => {
   expect(second.map((item) => item.id)).toEqual(first.map((item) => item.id));
 });
 
+it('searches topic studies from the last four years only', async () => {
+  const a = await topic();
+  await runBrainstormAction('hackathon', { trigger: 'problem_created', topicId: a.id });
+  const since = new Date();
+  since.setFullYear(since.getFullYear() - 4);
+  expect(web).toHaveBeenCalledWith(expect.stringContaining('survey statistics study'), since.toISOString().slice(0, 10));
+});
+
 it.each(['edit', 'delete', 'ideas'] as const)('does not restore stale AI content after %s', async (action) => {
   const a = await topic();
   let release!: (value: Awaited<ReturnType<typeof researchWeb>>) => void;

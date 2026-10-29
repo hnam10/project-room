@@ -22,6 +22,7 @@ import { closeDb, connectDb } from './db/client.js';
 import { seedDemoData } from './db/seed.js';
 import { startRealtime, type RealtimeHub } from './realtime/hub.js';
 import { createFile } from './repositories/files.js';
+import { addProjectMember, upsertMember } from './repositories/projects.js';
 import { readStoredFile, removeStoredFile, storedFilePath, writeStoredFile } from './services/file-store.js';
 
 let server: Server;
@@ -69,7 +70,7 @@ function listen(projectId: string) {
     }
     throw new Error('Timed out waiting for realtime event');
   };
-  return { ws, ready, waitFor };
+  return { ws, ready, waitFor, events };
 }
 
 describe('workspace API', () => {
@@ -121,6 +122,28 @@ describe('workspace API', () => {
     });
     expect(restored.status).toBe(200);
     expect(restored.body.dueDate).toBe(before.body.project.dueDate);
+  });
+
+  it('tells open workspaces live when a member joins', async () => {
+    const live = listen('hackathon');
+    await live.ready;
+    await upsertMember({ id: 'newcomer', name: 'Newcomer', color: '#888888', role: '' });
+    await addProjectMember('hackathon', 'newcomer');
+    await live.waitFor((e) => e.type === 'change' && e.table === 'project' && e.record.memberIds.includes('newcomer'));
+    live.ws.close();
+  });
+
+  it('shows who has the project open right now', async () => {
+    const live = listen('hackathon');
+    await live.ready;
+    const jamie = new WebSocket(`${base.replace('http', 'ws')}/ws?member=jamie`);
+    jamie.on('open', () => jamie.send(JSON.stringify({ type: 'subscribe', projectId: 'hackathon' })));
+    const here = (ids: string[]) => (e: ServerMessage) => e.type === 'presence' && [...e.memberIds].sort().join() === ids.join();
+    await live.waitFor(here(['alex', 'jamie']));
+    live.events.length = 0;
+    jamie.close();
+    await live.waitFor(here(['alex']));
+    live.ws.close();
   });
 
   it('validates task input', async () => {

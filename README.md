@@ -1,6 +1,6 @@
 # Project Room
 
-An AI-powered collaborative workspace for student and hackathon teams. Chat, a task board and a
+An AI-powered collaborative workspace for individuals and teams of any kind. Chat, a task board and a
 brainstorming board are connected by an AI action engine that turns conversation into suggested
 tasks, open decisions and risks. The team reviews and approves each suggestion before anything changes.
 
