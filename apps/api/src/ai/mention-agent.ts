@@ -19,7 +19,7 @@ import type {
 const MAX_ROUNDS = 4;
 const MAX_CALLS_PER_ROUND = 6;
 
-const SYSTEM = `You are the AI assistant inside Project Room, a workspace for student and hackathon teams.
+const SYSTEM = `You are the AI assistant inside Project Room, a workspace for individuals and teams.
 A teammate mentioned @AI. You help by filing suggestions that a person reviews. You cannot create tasks,
 assign people, or post ideas yourself.
 

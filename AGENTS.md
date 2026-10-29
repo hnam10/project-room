@@ -6,7 +6,7 @@ imports this file, so there is one source of truth.
 
 ## What this is
 
-Project Room is an AI-powered collaborative workspace for student and hackathon teams. Chat,
+Project Room is an AI-powered collaborative workspace for individuals and teams of any kind. Chat,
 a task board and a brainstorming board are connected by an **AI action engine** that turns
 conversation into structured suggestions (tasks, ideas, polls, risks) which the team reviews
 and approves. Core loop: **Conversations → Insights → Decisions → Actions → Progress**.

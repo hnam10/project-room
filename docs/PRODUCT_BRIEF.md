@@ -28,7 +28,7 @@ The core product philosophy is:
 
 The AI should act as an intelligent team assistant that helps users think, collaborate, plan, and execute. It should not simply generate text in response to prompts.
 
-The initial target audience is students working on academic group projects, hackathon teams, and small collaborative teams.
+The audience is anyone planning a project alone or with others: study groups, hackathon teams, work teams, clubs or individuals. Do not assume users are students.
 
 ## 3. Core User Experience
 

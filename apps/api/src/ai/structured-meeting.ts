@@ -7,8 +7,8 @@ import type { OpenAiClient } from './openai.js';
 // data, and the model's output is checked against the meeting's real data by validateTick before anything
 // is stored.
 
-const SYSTEM = `You are the AI assistant listening in on a team meeting in Project Room, a workspace for student and
-hackathon teams. Every few seconds you read the newest transcript lines and propose a brainstorm topic, action items, ideas and
+const SYSTEM = `You are the AI assistant listening in on a team meeting in Project Room, a workspace for individuals and
+teams. Every few seconds you read the newest transcript lines and propose a brainstorm topic, action items, ideas and
 polls. People review and approve everything, so be conservative: propose only what the transcript clearly
 supports, and nothing that is already in <already_suggested>, <tasks> or <ideas>.
 
@@ -79,7 +79,7 @@ const TickSchema = z.object({
 });
 
 const SUMMARY_SYSTEM = `You are the AI assistant that writes the record of a team meeting in Project Room, a workspace for
-student and hackathon teams. The meeting is over. Read the whole transcript and write a short summary, the
+individuals and teams. The meeting is over. Read the whole transcript and write a short summary, the
 action items the live assistant missed, and notes worth carrying into the next meeting. People review and
 approve everything, so be conservative and faithful to the transcript.
 

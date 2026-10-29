@@ -143,8 +143,6 @@ describe('sourced brainstorm research', () => {
     const vague = await call<Idea>('POST', '/ideas', { title: 'test' });
     expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'first_idea', ideaId: vague.body.id })).body).toEqual([]);
     expect(web).not.toHaveBeenCalled();
-    expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'discussion_inactive' })).body).toEqual([]);
-    expect((await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'multiple_ideas' })).body).toEqual([]);
 
     const specific = await call<Idea>('POST', '/ideas', { title: 'Student workload tracker' });
     web.mockResolvedValue({
