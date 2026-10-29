@@ -608,6 +608,9 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
+- 2026-10-29 — **Removed unused brainstorm triggers.** `multiple_ideas`, `research_completed`, `discussion_inactive` and
+  `ideas_shortlisted` had prompts but no caller; they are gone from `BRAINSTORM_TRIGGERS`, the prompt and the mock.
+  The structured AI writes in English (users are assumed to write in English).
 - 2026-10-29 — **Users are anyone, not only students.** Prompts, README, AGENTS.md and the product brief no longer
   describe the audience as student/hackathon teams; the structured AI is told not to assume students, developers or
   business owners and to adapt to the actual goal. Example chat commands that mention students stay (they are data).

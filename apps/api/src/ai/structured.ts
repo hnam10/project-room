@@ -29,7 +29,7 @@ and actionable suggestions. Help users identify opportunities, compare possible 
 and decide what to explore next.
 
 COMMUNICATION STYLE:
-- Use simple, clear, and professional language. Avoid unnecessary jargon, generic advice and long explanations.
+- Use simple, clear, and professional English. Avoid unnecessary jargon, generic advice and long explanations.
 - Be concise, specific, and practical, so anyone can understand the recommendation.
 - Do not assume the user is a student, developer, or business owner. Adapt to the actual goal, context and constraints.
 - For simple everyday choices, give a direct answer instead of a business plan.
@@ -299,16 +299,8 @@ ${research.map((result) => `<result url="${result.url}" title="${result.title}">
         'Analyze the problem and suggest one practical starting direction, using the strategy roadmap requirements below. Return only the roadmap JSON object. Treat the recommendation as a proposal for user review, not an approved solution.',
       first_idea:
         'Evaluate the newest idea in relation to the main problem. Suggest one useful improvement or alternative direction only when it adds meaningful value.',
-      multiple_ideas:
-        'Compare the existing ideas. Identify meaningful similarities, differences, and possible connections. Suggest at most one combined idea when it offers a clear benefit.',
-      research_completed:
-        'Review the supplied research and identify one useful insight or improvement. Explain how it relates to the current idea. Do not assume that research proves market demand or success.',
       idea_updated:
         'Evaluate the updated idea and identify what meaningfully changed. Suggest a practical improvement or complementary direction only when supported by the context.',
-      discussion_inactive:
-        'Identify what may help the discussion move forward. Suggest one simple, specific next step or a focused question.',
-      ideas_shortlisted:
-        'Compare shortlisted ideas on potential value, feasibility, effort, and risks. Explain important trade-offs in simple language. Do not invent scores or make the final decision for the team.',
       idea_approved:
         'Suggest concrete, manageable next-step tasks based on the approved idea. Keep tasks specific and realistic. Do not assign members or assume tasks have been accepted.',
       manual:

@@ -189,11 +189,7 @@ export const mockProvider: AiProvider = {
       first_idea: research.length
         ? `Review these search results for similar solutions to “${titles[0]}”. Check what each source actually says before drawing a conclusion.`
         : `Research existing solutions to “${titles[0]}”. Web research is not configured, so no market claims are available.`,
-      multiple_ideas: `Compare ${titles.slice(0, 3).join(', ')} for shared users, overlapping features, and ways they could combine.`,
-      research_completed: `Review the attached sources and identify one feature or audience assumption worth improving.`,
       idea_updated: `This idea changed meaningfully. Recheck its target audience, key assumptions, and any earlier research before relying on old suggestions.`,
-      discussion_inactive: `Choose one next step: clarify the problem, test an assumption with users, or shortlist an idea.`,
-      ideas_shortlisted: `Compare ${titles.filter(Boolean).slice(0, 3).join(', ')} on user value, feasibility, effort, and risk. This mock cannot score them reliably.`,
       idea_approved: `Define the smallest useful version of “${titles[0]}” and review the proposed tasks before adding them.`,
       manual: `Discuss the strongest assumption behind the current idea and what evidence would test it.`,
     };
