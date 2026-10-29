@@ -82,10 +82,28 @@ describe('rtc relay', () => {
     expect(alex.rtc).toHaveLength(0);
     expect(jamie.rtc).toHaveLength(1);
 
+    const scoped = { sessionId: 'join-a', targetSessionId: 'join-b', connectionId: 'pair-1', data: null };
+    for (const kind of ['ready', 'restart'])
+      alex.ws.send(JSON.stringify({ type: 'rtc', meetingId: meeting.id, to: 'jamie', signal: { ...scoped, kind } }));
+    alex.ws.send(JSON.stringify({ type: 'rtc', meetingId: meeting.id, to: 'jamie', signal: { ...scoped, kind: 'ready', sessionId: 123 } }));
+    alex.ws.send(
+      JSON.stringify({
+        type: 'rtc',
+        meetingId: meeting.id,
+        to: 'jamie',
+        signal: { ...scoped, kind: 'ready', targetSessionId: 'x'.repeat(129) },
+      }),
+    );
+    await pause();
+    expect(jamie.rtc).toHaveLength(3);
+    expect(jamie.rtc.at(-1)).toMatchObject({
+      signal: { kind: 'restart', sessionId: 'join-a', targetSessionId: 'join-b', connectionId: 'pair-1' },
+    });
+
     await api('/projects/hackathon/meetings/' + meeting.id + '/end', 'alex', 'POST');
     send(alex, 'jamie');
     await pause();
-    expect(jamie.rtc).toHaveLength(1);
+    expect(jamie.rtc).toHaveLength(3);
     for (const c of [alex, jamie, taylor]) c.ws.close();
   });
 

@@ -100,7 +100,11 @@ export interface MeetingDetail {
 }
 
 export interface RtcSignal {
-  kind: 'offer' | 'answer' | 'ice';
+  kind: 'ready' | 'restart' | 'offer' | 'answer' | 'ice';
+  /** New clients scope signals to a join and a connection; unscoped legacy signals are ignored. */
+  sessionId?: string;
+  targetSessionId?: string;
+  connectionId?: string;
   data: unknown;
 }
 

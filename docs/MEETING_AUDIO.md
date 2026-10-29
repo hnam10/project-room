@@ -1,35 +1,38 @@
 # Meeting audio connectivity
 
-The transcript and voice call use different paths. A working transcript confirms that speech capture
-and HTTP requests work; it does not confirm that another participant can receive WebRTC audio.
+Voice and transcription share each member's microphone but use independent delivery paths. Peer
+connection recovery does not stop microphone recording. The Audio check/debug panel has been removed.
 
-Each participant records and uploads their own microphone, independently of who started the meeting
-and whether peer audio connected. Listening means the recorder started, not that the speech service
-has produced text. The client skips a clip only when a running analyser verified silence; suspended or
-unavailable analysis must not suppress transcription. Recording errors appear above the transcript.
+## Connection lifecycle
 
-On 2026-10-29 the Render service was running f5df879 from `fix/meeting-peer-audio`. Its environment
-listed GROQ_API_KEY but no RTC_ICE_SERVERS and no linked environment groups. The Docker image excludes
-local .env files, so that deployment uses the default STUN-only configuration. Add a real TURN service
-before treating cross-network calling as reliable; retry logic cannot provide a missing relay.
+Clients announce a fresh join session through the project-authorized WebSocket relay. The lower member
+id offers each pair a connection after both clients announce readiness, avoiding simultaneous offers.
+All offers, answers and ICE candidates are tagged with both join sessions and the connection id. A
+rejoin replaces both endpoints even if other clients missed the leave event. Retired signals are ignored.
+Failed/disconnected pairs are rebuilt with bounded retries, preserving healthy pairs and mic tracks.
+A receiver can request a rebuild even if the other endpoint still thinks the pair is connected.
 
-The client buffers signaling during microphone/ICE setup, handles simultaneous offers, retries lost
-offers and restarts failed ICE connections. Reconnect audio retries unsuccessful pairs without leaving
-the meeting, stopping transcription or changing mute state. Enable audio handles browser autoplay blocks
-and remains available in the floating call bar when the member visits another page.
+Refresh all clients after deployment: older clients do not understand the readiness/session protocol.
+Enable audio handles browser autoplay restrictions. Reconnect audio retries failed pairs. Microphone and
+transcription errors remain visible, without diagnostic controls in the normal meeting interface.
 
-## Different networks need a relay fallback
+## Transcription
 
-The default `RTC_ICE_SERVERS` configuration contains only Google STUN. STUN helps discover a direct
-route, but it cannot relay audio when NAT/firewall restrictions prevent a direct connection. Some member
-pairs can connect while others cannot. Muting does not supply a missing network route.
+Every unmuted member records their own six-second clips in a browser-supported audio format. Uploads
+are serialized with a bounded queue, and successful API results appear in local state immediately.
+No client AudioContext or volume threshold gates uploads; the speech service filters silence. This
+avoids dropping quiet microphones or clips from browsers with paused audio analysis. This also means
+silent clips consume speech-service quota. Muting/leaving stops recording and queued uploads.
 
-For production calls across networks, provision an authenticated TURN service and set `RTC_ICE_SERVERS`
-on the **API deployment** to its ICE configuration. The existing project-authorized `/meetings/rtc-config`
-endpoint supplies that configuration to meeting clients. Restart/redeploy the API after updating it;
-members should leave/rejoin to fetch fresh configuration.
+Configuration requests retry before showing an error; failure never silently switches transcription
+providers or removes the relay configuration. Delayed meeting fetches preserve newer joins, leaves
+and transcript lines rather than tearing down a call based on an older snapshot.
 
-Example configuration only; replace the example host and credentials with those supplied by your service:
+## Relay configuration
+
+The default RTC_ICE_SERVERS contains only Google STUN. For calls across restrictive networks, configure
+an authenticated TURN service on the API deployment. The protected /meetings/rtc-config endpoint supplies
+its configuration to participants. The value must be a JSON array, not a JavaScript example:
 
 ```json
 [
@@ -42,28 +45,22 @@ Example configuration only; replace the example host and credentials with those 
 ]
 ```
 
-Use only URLs/transports supported by the provider. Keep credentials out of source control and logs;
-prefer short-lived TURN credentials for production. A TURN service's API secret must never be handed
-to browsers as a client credential. This change does not provision a relay or alter production settings.
+Use provider-supported hosts/transports. Keep service API secrets server-side; use provider-issued
+client credentials here and prefer short-lived credentials for production. Restart/redeploy after
+changing configuration, then refresh and rejoin. On 2026-10-29 Render's pasted JavaScript value was
+corrected to the provider's JSON ICE array and redeployed. An earlier STUN fallback warning describes
+the prior deployment, not the corrected one. No credentials are committed to this repository.
 
-Reference: [WebRTC TURN server guidance](https://webrtc.org/getting-started/turn-server).
+Reference: [WebRTC TURN guidance](https://webrtc.org/getting-started/turn-server).
 
-## Verify the actual call
+## Verification
 
-For a missing speaker, open **Audio check** below the participants on that person's browser and click
-**Check my microphone**. It reports the selected input, ended/disabled/browser-muted track states and a
-live sound meter. Compare this with their system input meter. The latest clip status distinguishes
-silence, upload failure (with HTTP status), no speech returned by the service and successful storage.
-Audio sent/received byte counts identify transport activity, but can grow during silence, so do not
-interpret them as proof that intelligible speech was delivered. The check reveals no IP addresses,
-SDP or relay credentials and stops its analysis when closed or the page changes.
+The rebuilt transport was checked with native browser WebRTC and synthetic sound through the configured
+TURN relay: all six directions in a three-peer mesh received sound, including after rejoin without an
+intervening membership update. These local checks do not prove physical device input/output or every
+cross-network path. Temporary verification pages are removed after use.
 
-Test two browsers/devices on different networks, then add a third participant. Check that every member
-hears every other member, including after a delayed microphone prompt, simultaneous joins, mute/unmute,
-temporary connectivity loss and leaving/rejoining. Confirm the remaining pairs keep hearing each other
-when one member leaves. Check Enable audio from the floating call bar if autoplay is blocked.
-
-For relay verification, browser WebRTC diagnostics should show a selected candidate pair containing a
-relay candidate on a network where direct connectivity fails. Do not publish raw diagnostics containing
-IP addresses, SDP or credentials. Synthetic/fake-peer tests cover client behavior but cannot prove a
-deployment's TURN credentials, firewall path or physical microphone/speaker behavior.
+Test two browsers/devices on different networks, then three. Check every direction, second/third member
+leave/rejoin, delayed microphone permission, simultaneous joins, mute/unmute and network interruptions.
+Confirm each person's transcript appears for everyone. Verify real relay use through the selected
+candidate pair if a restrictive network fails; do not share raw IP addresses, SDP or credentials.

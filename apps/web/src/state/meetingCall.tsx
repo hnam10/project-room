@@ -63,10 +63,11 @@ function useCallState() {
   const { memberId } = useSession();
   const { toast, toastError, confirm } = useFeedback();
   const meetingState = useMeeting(projectId);
-  const { current, reload, sendSignal, onSignal } = meetingState;
+  const { current, reload, sendSignal, onSignal, applyLine } = meetingState;
   const [stoppedId, setStoppedId] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const [ice, setIce] = useState<{ meetingId: string; servers: RTCIceServer[]; serverStt: boolean } | null>(null);
+  const [setupError, setSetupError] = useState<string | null>(null);
 
   const meeting = current?.meeting;
   const live = meeting?.status === 'live';
@@ -102,7 +103,7 @@ function useCallState() {
       queue.current = queue.current.then(async () => {
         for (const chunk of splitLine(text)) {
           try {
-            await meetingsApi.postLine(projectId, meetingId, chunk);
+            applyLine(await meetingsApi.postLine(projectId, meetingId, chunk));
           } catch (e) {
             // 409: the meeting ended or expired. Stop transcribing.
             if (e instanceof ApiError && e.status === 409) setStoppedId(meetingId);
@@ -112,7 +113,7 @@ function useCallState() {
         }
       });
     },
-    [projectId, meetingId, toastError],
+    [projectId, meetingId, toastError, applyLine],
   );
   const iceReady = ice?.meetingId === meetingId;
   const serverStt = iceReady && !!ice?.serverStt;
@@ -126,18 +127,34 @@ function useCallState() {
   useEffect(() => {
     if (!joined || !meetingId) return;
     let cancelled = false;
-    meetingsApi
-      .rtcConfig(projectId)
-      .then((c) => ({ servers: c.iceServers as RTCIceServer[], serverStt: c.transcription === 'server' }))
-      .catch(() => ({ servers: [] as RTCIceServer[], serverStt: false }))
-      .then((c) => !cancelled && setIce({ meetingId, ...c }));
+    void (async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const config = await meetingsApi.rtcConfig(projectId);
+          if (!cancelled) {
+            setIce({ meetingId, servers: config.iceServers as RTCIceServer[], serverStt: config.transcription === 'server' });
+            setSetupError(null);
+          }
+          return;
+        } catch {
+          if (cancelled) return;
+          if (attempt === 2) {
+            setSetupError('Call setup failed. Check your connection and leave/rejoin to retry.');
+            return;
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 300 * (attempt + 1)));
+          if (cancelled) return;
+        }
+      }
+    })();
     return () => {
       cancelled = true;
       setIce(null);
+      setSetupError(null);
     };
   }, [joined, projectId, meetingId]);
 
-  const { peers, localStream, remoteStreams, micError, retryAudio, checkAudio } = useMeshAudio({
+  const { peers, localStream, remoteStreams, micError, retryAudio } = useMeshAudio({
     enabled: joined && !stopped,
     meetingId,
     me: memberId,
@@ -153,14 +170,16 @@ function useCallState() {
     async (clip: Blob) => {
       if (!meetingId) return false;
       try {
-        return !!(await meetingsApi.postAudio(projectId, meetingId, clip));
+        const line = await meetingsApi.postAudio(projectId, meetingId, clip);
+        if (line) applyLine(line);
+        return !!line;
       } catch (e) {
         // 409: the meeting ended or expired. Stop transcribing.
         if (e instanceof ApiError && e.status === 409) setStoppedId(meetingId);
         throw e;
       }
     },
-    [projectId, meetingId],
+    [projectId, meetingId, applyLine],
   );
   const clips = useClipTranscriber({ stream: localStream, enabled: joined && !stopped && !muted && serverStt, send: sendClip });
   const [blocked, setBlocked] = useState(false);
@@ -227,20 +246,13 @@ function useCallState() {
     remoteStreams,
     micError,
     retryAudio,
-    checkAudio,
-    transcriptionStatus: muted
-      ? 'Transcription paused while muted'
-      : serverStt
-        ? clips.status
-        : (browser.error ??
-          (browser.listening ? 'Browser speech recognition is listening' : 'Browser speech recognition is not listening')),
     audioFailed: [...peers].some(([id, state]) => state === 'failed' && (meeting?.participantIds ?? []).includes(id)),
     blocked,
     setBlocked,
     enableAudio: async () => setBlocked(!(await playBlockedAudio())),
     supported: serverStt || browser.supported,
     listening: serverStt ? clips.listening : browser.listening,
-    error: serverStt ? clips.error : browser.error,
+    error: setupError ?? (serverStt ? clips.error : browser.error),
     interim: serverStt ? '' : browser.interim,
     leave,
   };

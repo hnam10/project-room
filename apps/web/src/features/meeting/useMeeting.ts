@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ClientRtc, Meeting, MeetingDetail, Poll, RealtimeEvent, RtcSignal, ServerRtc } from '@project-room/shared';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import type { ClientRtc, Meeting, MeetingDetail, Poll, RealtimeEvent, RtcSignal, ServerRtc, TranscriptLine } from '@project-room/shared';
+import { mergeMeetingLoad } from './meetingDetail';
 import { meetingsApi } from '../../api/meetings';
 import { useRealtime } from '../../api/realtime';
 import { useSession } from '../../state/session';
@@ -14,7 +15,13 @@ const upsert = <T extends { id: string }>(list: T[], record: T) =>
  */
 export function useMeeting(projectId: string) {
   const { memberId } = useSession();
-  const [current, setCurrent] = useState<MeetingDetail | null>(null);
+  const [current, updateCurrent] = useState<MeetingDetail | null>(null);
+  const version = useRef(0);
+  const request = useRef(0);
+  const setCurrent = useCallback<Dispatch<SetStateAction<MeetingDetail | null>>>((value) => {
+    version.current++;
+    updateCurrent(value);
+  }, []);
   const [recent, setRecent] = useState<Meeting[]>([]);
   const [loaded, setLoaded] = useState(false);
   const currentId = useRef<string | null>(null);
@@ -23,47 +30,61 @@ export function useMeeting(projectId: string) {
   }, [current]);
 
   const reload = useCallback(async () => {
+    const token = ++request.current;
+    const before = version.current;
     const list = await meetingsApi.list(projectId);
+    if (token !== request.current) return;
     setRecent(list);
     const live = list.find((m) => m.status === 'live');
     // Keep showing the meeting we were in after it ends (summary comes later), else show the live one.
     const id = live?.id ?? currentId.current;
-    setCurrent(id ? await meetingsApi.get(projectId, id).catch(() => null) : null);
+    const detail = id ? await meetingsApi.get(projectId, id) : null;
+    if (token !== request.current) return;
+    const changed = version.current !== before;
+    updateCurrent((previous) => mergeMeetingLoad(previous, detail, changed));
     setLoaded(true);
   }, [projectId]);
 
   useEffect(() => {
-    // Fetch-on-mount: setState happens after the awaited request, not synchronously.
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- setState runs after the awaited request
     void reload().catch(() => setLoaded(true));
   }, [reload]);
 
-  const apply = useCallback((event: RealtimeEvent) => {
-    if (event.table === 'meeting') {
-      const meeting = event.record;
-      setRecent((list) => upsert(list, meeting).sort((a, b) => b.startedAt.localeCompare(a.startedAt)));
-      setCurrent((prev) => {
-        if (prev?.meeting.id === meeting.id) return { ...prev, meeting };
-        // A new live meeting started by someone else: show it (lines/polls arrive via reload).
-        if (meeting.status === 'live' && prev?.meeting.status !== 'live') {
-          void meetingsApi.get(meeting.projectId, meeting.id).then(setCurrent);
-        }
-        return prev;
-      });
-    } else if (event.table === 'transcript_line') {
-      const line = event.record;
-      setCurrent((prev) => (prev?.meeting.id === line.meetingId ? { ...prev, lines: upsert(prev.lines, line) } : prev));
-    } else if (event.table === 'poll') {
-      const poll = event.record;
-      setCurrent((prev) => (prev && prev.meeting.id === poll.meetingId ? { ...prev, polls: upsert(prev.polls, poll) } : prev));
-    }
-  }, []);
+  const apply = useCallback(
+    (event: RealtimeEvent) => {
+      if (event.table === 'meeting') {
+        const meeting = event.record;
+        setRecent((list) => upsert(list, meeting).sort((a, b) => b.startedAt.localeCompare(a.startedAt)));
+        setCurrent((prev) => {
+          if (prev?.meeting.id === meeting.id) return { ...prev, meeting };
+          // New meetings start empty; subsequent lines/polls arrive through realtime.
+          if (meeting.status === 'live' && prev?.meeting.status !== 'live') {
+            return { meeting, lines: [], polls: [] };
+          }
+          return prev;
+        });
+      } else if (event.table === 'transcript_line') {
+        const line = event.record;
+        setCurrent((prev) => (prev?.meeting.id === line.meetingId ? { ...prev, lines: upsert(prev.lines, line) } : prev));
+      } else if (event.table === 'poll') {
+        const poll = event.record;
+        setCurrent((prev) => (prev && prev.meeting.id === poll.meetingId ? { ...prev, polls: upsert(prev.polls, poll) } : prev));
+      }
+    },
+    [setCurrent],
+  );
+
+  const applyLine = useCallback(
+    (line: TranscriptLine) => {
+      setCurrent((previous) => (previous?.meeting.id === line.meetingId ? { ...previous, lines: upsert(previous.lines, line) } : previous));
+    },
+    [setCurrent],
+  );
 
   /** Merge a poll returned by an API call (the realtime echo is an idempotent upsert). */
   const applyPoll = useCallback(
     (poll: Poll) =>
       setCurrent((prev) => (prev && prev.meeting.id === poll.meetingId ? { ...prev, polls: upsert(prev.polls, poll) } : prev)),
-    [],
+    [setCurrent],
   );
 
   /** Leave the ended meeting view and show whatever is live now (or the start form). */
@@ -71,13 +92,18 @@ export function useMeeting(projectId: string) {
     currentId.current = null;
     setCurrent(null);
     void reload().catch(() => {});
-  }, [reload]);
+  }, [reload, setCurrent]);
 
   /** Open a recent meeting (its ended view). */
-  const select = useCallback(async (projectId_: string, id: string) => {
-    currentId.current = id;
-    setCurrent(await meetingsApi.get(projectId_, id));
-  }, []);
+  const select = useCallback(
+    async (projectId_: string, id: string) => {
+      const token = ++request.current;
+      currentId.current = id;
+      const detail = await meetingsApi.get(projectId_, id);
+      if (token === request.current) setCurrent(detail);
+    },
+    [setCurrent],
+  );
 
   const listeners = useRef(new Set<(msg: ServerRtc) => void>());
   const sender = useRef<((msg: ClientRtc) => boolean) | null>(null);
@@ -100,5 +126,5 @@ export function useMeeting(projectId: string) {
     return () => void listeners.current.delete(fn);
   }, []);
 
-  return { sendSignal, onSignal, connection, current, recent, loaded, reload, apply, applyPoll, setCurrent, dismiss, select };
+  return { sendSignal, onSignal, connection, current, recent, loaded, reload, apply, applyPoll, applyLine, setCurrent, dismiss, select };
 }

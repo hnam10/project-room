@@ -5,6 +5,21 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **Rebuilt meeting audio lifecycle and removed Audio check.** Each join has a fresh session
+  and each peer connection has a generation id. Readiness precedes setup; only one member offers per
+  pair. Returning members replace both endpoints even when leave events were missed, and old SDP/ICE
+  cannot overwrite the new connection. Failed receivers can request a pair rebuild without disturbing
+  healthy participants or microphone tracks. Removed the diagnostic panel, counters and clip-status UI.
+  Recording now selects a supported audio MIME type and uploads every unmuted clip in order, without
+  client volume gating; the existing speech service handles silence. Setup failures retry instead of
+  silently falling back, stale meeting reads preserve newer membership/transcript state, and saved lines
+  appear locally immediately. No dependencies added. All clients must refresh for the revised protocol.
+  Focused regressions and the full test suite pass (309 tests); native browser verification with the
+  configured TURN relay received synthetic sound in all six three-peer directions, including second and third participant rejoin.
+  Real microphones on separate devices remain unverified. Temporary verification pages are not product UI.
+  Full check passes after temporarily normalizing unchanged baseline CRLF files, whose original bytes
+  were restored afterward; the production web build passes. Verification pages/server were removed.
+
 - 2026-10-29 — **In-call audio check for missing voices/transcripts.** A member can open Audio check
   and deliberately start a local microphone meter, see the selected input/track state, and inspect
   per-participant audio byte counts without exposing network addresses, credentials or SDP. Transcript

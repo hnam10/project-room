@@ -9,14 +9,13 @@ export function useClipTranscriber({
 }: {
   stream: MediaStream | null;
   enabled: boolean;
-  send: (clip: Blob) => Promise<boolean | void>;
+  send: (clip: Blob) => Promise<unknown>;
 }) {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState('Transcription is stopped');
   useEffect(() => {
     if (!enabled || !stream) return;
-    return startClipRecorder({ stream, send, onListening: setListening, onError: setError, onStatus: setStatus });
+    return startClipRecorder({ stream, send, onListening: setListening, onError: setError });
   }, [stream, enabled, send]);
-  return { listening, error, status };
+  return { listening, error };
 }

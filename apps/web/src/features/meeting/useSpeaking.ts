@@ -6,7 +6,13 @@ export function useSpeaking(stream: MediaStream | null): boolean {
   useEffect(() => {
     if (!stream || stream.getAudioTracks().length === 0) return;
     const ctx = new AudioContext();
-    void ctx.resume().catch(() => {});
+    const resume = () => {
+      if (ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume().catch(() => {});
+    };
+    resume();
+    window.addEventListener('pointerdown', resume);
+    window.addEventListener('keydown', resume);
+    document.addEventListener('visibilitychange', resume);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 512;
     ctx.createMediaStreamSource(stream).connect(analyser);
@@ -19,6 +25,9 @@ export function useSpeaking(stream: MediaStream | null): boolean {
     }, 100);
     return () => {
       window.clearInterval(timer);
+      window.removeEventListener('pointerdown', resume);
+      window.removeEventListener('keydown', resume);
+      document.removeEventListener('visibilitychange', resume);
       void ctx.close().catch(() => {});
       setSpeaking(false);
     };

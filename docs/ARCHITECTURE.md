@@ -214,14 +214,21 @@ Tables live in `schema.meeting.surql` (applied with `schema.surql`):
 - **Voice:** WebRTC mesh. `rtc` offer/answer/ICE signals are relayed between participants over `/ws` (`realtime/rtc-relay.ts`); STUN/TURN
   come from `RTC_ICE_SERVERS`.
   `useMeshAudio` subscribes as soon as a member joins and buffers signals until microphone/ICE setup completes.
-  The meeting-scoped `meshAudio.ts` transport serializes local negotiation and received signals per peer,
-  resolves offer collisions with polite rollback, and discards candidates for ignored offers. Missing offers
-  are retransmitted and disconnected/failed peers receive bounded ICE restarts without replacing healthy
-  connections or microphone tracks. Signaling/network reconnection and Reconnect audio retry failed pairs.
+  The meeting-scoped `meshAudio.ts` transport exchanges readiness before creating connections. The lower
+  member id is the sole offerer for each pair; all SDP/ICE work is serialized. A fresh join session id and
+  per-connection id scope every signal, so rejoining replaces both endpoints even if the leave event was
+  missed. Retired session/connection messages are ignored. Bounded recovery rebuilds only the failed pair;
+  a receiver can request recovery even when the other side still reports connected. Signaling/network
+  reconnection and Reconnect audio retry failed pairs without replacing microphone tracks.
   Remote playback retries when tracks unmute/become playable; autoplay blocks retain an Enable audio control
   on both the meeting page and floating call bar. Transcript capture remains independent of peer connectivity.
   Cross-network audio may require an authenticated TURN relay; deployment/testing guidance is in
   [MEETING_AUDIO.md](MEETING_AUDIO.md). Automated transport tests run in the existing API Vitest harness.
+  Each unmuted member records browser-supported audio clips and uploads them in order, with a bounded queue.
+  Client volume/autoplay analysis never suppresses transcription; the speech service filters silence.
+  HTTP results are merged into local transcript state immediately. Delayed meeting reads merge lines and
+  preserve newer join/leave state. ICE/transcription configuration failures retry and then surface an error,
+  rather than silently changing modes. The in-call Audio check/debug panel has been removed.
 
 - **Live AI:** new lines trigger `MeetingAi` (separate from `AiProvider`; Nebius when `NEBIUS_API_KEY` is set, otherwise the OpenAI fast model) which stores
 
