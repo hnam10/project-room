@@ -129,7 +129,8 @@ export function BrainstormGuide({
       <div className="brainstorm-guide-head">
         <div>
           <strong id="brainstorm-guide-title">{busy ? 'Researching this topic…' : 'Research the topic'}</strong>
-          <p role={!busy && status ? 'status' : undefined}>
+          {/* Always mounted as a live region so the result replacing the intro is announced. */}
+          <p role="status">
             {(!busy && status) || 'AI summarizes relevant sources and proposes a strategy. Your team reviews them and adds ideas.'}
           </p>
         </div>

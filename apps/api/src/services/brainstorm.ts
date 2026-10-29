@@ -387,7 +387,7 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
             ? 'Web research is temporarily unavailable. You can add ideas or retry research.'
             : created.some((item) => item.kind === 'brainstorm_analysis' && item.researchSources.length)
               ? 'Research is ready. Review the sources and strategy, then add your ideas.'
-              : shown.size
+              : shown.size && !results.length
                 ? 'No new sources beyond the ones already shown. Review the strategy or add context to your topic to widen the search.'
                 : 'No reliable matching sources were found. Review the strategy, add context to your topic, or try research again.',
       reason: 'Research availability and next step for this topic.',
