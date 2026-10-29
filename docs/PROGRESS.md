@@ -9,6 +9,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
   inside the "Research the topic" card instead of a separate purple box. Topic research cards show a short
   AI-written label (2-6 words, fallback: the source title) instead of the generic "Topic research" heading.
   Research again skips sources the topic already shows and says when no new ones remain.
+- 2026-10-29 — **New members appear without a refresh.** Joining adds the member to `project.memberIds`, but
+  `project` was not a realtime table, so teammates only saw them after reloading. The hub now broadcasts
+  `project` changes and open workspaces refetch the snapshot when `memberIds` changed. HTTP/realtime test covers a join.
+- 2026-10-29 — **Header shows who is here now.** Like Google Docs, the avatar stack lists only members with the
+  project open. The hub sends a `presence` message (unique member ids of the project's sockets) on every
+  subscribe and disconnect. Realtime test covers join and leave.
 - 2026-10-29 — **Clerk profile names stay authoritative.** Organization membership name differences
   trigger a profile refresh before writing, so stale public data cannot restore an old name after
   the refresh window expires. Regression coverage includes full names, usernames and profile outages.
