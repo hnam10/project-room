@@ -13,7 +13,19 @@ import { devMemberId, projectForCaller, type Caller } from '../http/context.js';
 // realtime tables; each change is forwarded to the sockets subscribed to that record's project.
 // Because the source is the database, changes made by any API instance or tool reach clients.
 
-const TABLES: RealtimeTable[] = ['task', 'channel', 'message', 'idea', 'suggestion', 'file', 'poll', 'meeting', 'transcript_line', 'note'];
+const TABLES: RealtimeTable[] = [
+  'task',
+  'channel',
+  'message',
+  'idea',
+  'suggestion',
+  'file',
+  'poll',
+  'meeting',
+  'transcript_line',
+  'note',
+  'project',
+];
 const ACTIONS: Record<string, RealtimeAction | undefined> = { CREATE: 'create', UPDATE: 'update', DELETE: 'delete' };
 
 export interface RealtimeHub {
@@ -24,6 +36,11 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 64 * 1024 });
   const socketsByProject = new Map<string, Set<WebSocket>>();
   const memberIds = new WeakMap<WebSocket, string>();
+  const sendPresence = (pid: string) => {
+    const sockets = [...(socketsByProject.get(pid) ?? [])];
+    const message: ServerMessage = { type: 'presence', memberIds: [...new Set(sockets.map((s) => memberIds.get(s)!))] };
+    for (const socket of sockets) send(socket, message);
+  };
 
   wss.on('connection', (socket, request) => {
     // Browsers can't set headers on a WebSocket, so the identity comes from the query string:
@@ -64,18 +81,22 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
         socket.close(4403, 'Not a member of this project');
         return;
       }
-      if (projectId) socketsByProject.get(projectId)?.delete(socket);
+      const previous = projectId;
+      if (previous) socketsByProject.get(previous)?.delete(socket);
       projectId = project.id;
       memberIds.set(socket, who.memberId);
       if (!socketsByProject.has(projectId)) socketsByProject.set(projectId, new Set());
       socketsByProject.get(projectId)!.add(socket);
       send(socket, { type: 'ready', projectId });
+      sendPresence(projectId);
+      if (previous && previous !== projectId) sendPresence(previous);
     };
 
     socket.on('close', () => {
       if (!projectId) return;
       const sockets = socketsByProject.get(projectId);
       sockets?.delete(socket);
+      sendPresence(projectId);
       const member = memberIds.get(socket);
       // A call member whose last socket closed has dropped (closed tab, lost network): free their place.
       if (member && ![...(sockets ?? [])].some((s) => memberIds.get(s) === member)) {
@@ -92,8 +113,10 @@ export async function startRealtime(server: Server, db: Surreal): Promise<Realti
       for await (const { action, value } of subscription) {
         const realtimeAction = ACTIONS[action];
         if (!realtimeAction || !value) continue;
-        const record = toPlain<{ projectId?: string }>(value);
-        const sockets = record.projectId ? socketsByProject.get(record.projectId) : undefined;
+        const record = toPlain<{ id: string; projectId?: string }>(value);
+        // A project record is its own project (e.g. memberIds grows when someone joins).
+        const projectId = table === 'project' ? record.id : record.projectId;
+        const sockets = projectId ? socketsByProject.get(projectId) : undefined;
         if (!sockets?.size) continue;
         const message = { type: 'change', table, action: realtimeAction, record } as ServerMessage;
         for (const socket of sockets) send(socket, message);

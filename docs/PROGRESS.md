@@ -5,11 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
-- 2026-10-29 — **Strategies use existing studies instead of asking for a survey.** Topic preparation searches
-  for surveys, statistics and studies published in the last four years (Tavily `start_date` +
-  `filter_by_published_date`). The strategy prompt bases steps on those findings with the source URL, takes
-  the team's problem as stated, and no longer adds survey, interview or validation steps. Tests pin the prompt
-  rule and the search date.
+- 2026-10-29 — **New members appear without a refresh.** Joining adds the member to `project.memberIds`, but
+  `project` was not a realtime table, so teammates only saw them after reloading. The hub now broadcasts
+  `project` changes and open workspaces refetch the snapshot when `memberIds` changed. HTTP/realtime test covers a join.
+- 2026-10-29 — **Header shows who is here now.** Like Google Docs, the avatar stack lists only members with the
+  project open. The hub sends a `presence` message (unique member ids of the project's sockets) on every
+  subscribe and disconnect. Realtime test covers join and leave.
 - 2026-10-29 — **Clerk profile names stay authoritative.** Organization membership name differences
   trigger a profile refresh before writing, so stale public data cannot restore an old name after
   the refresh window expires. Regression coverage includes full names, usernames and profile outages.
@@ -610,9 +611,12 @@ Hackathon prizes first — the plan for each sponsor is in [HACKATHON.md](HACKAT
 
 ## Decision log
 
-- 2026-10-29 — **No validation steps in strategies.** Every plan opened with "run a survey", which students skip.
-  The team's problem is taken as stated; recent published studies (last four years, undated pages dropped)
-  provide evidence when they exist, and similar-app research covers the market later.
+- 2026-10-29 — **Removed unused brainstorm triggers.** `multiple_ideas`, `research_completed`, `discussion_inactive` and
+  `ideas_shortlisted` had prompts but no caller; they are gone from `BRAINSTORM_TRIGGERS`, the prompt and the mock.
+  The structured AI writes in English (users are assumed to write in English).
+- 2026-10-29 — **Users are anyone, not only students.** Prompts, README, AGENTS.md and the product brief no longer
+  describe the audience as student/hackathon teams; the structured AI is told not to assume students, developers or
+  business owners and to adapt to the actual goal. Example chat commands that mention students stay (they are data).
 - 2026-10-27 — **Task updates do not reuse create defaults.** Dragging a card only sends the new column. Applying
   create defaults to missing fields wiped the assignee, due date, priority and label. The update schema
   has no defaults, matching notes. Sending `assigneeId: null` still unassigns.
