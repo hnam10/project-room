@@ -47,7 +47,8 @@ describe('structured provider', () => {
     expect(wireSchema.properties).toHaveProperty('recommendation');
     expect(wireSchema.properties).not.toHaveProperty('strategy');
     expect(wireSchema.properties).not.toHaveProperty('tasks');
-    expect(prompt).toContain('equipment as one hypothesis');
+    expect(prompt).toContain('do not add steps to run surveys or interviews');
+    expect(prompt).toContain('Use only research supplied below');
     expect(prompt).toContain('one or two short sentences');
     expect(prompt).toContain('no Markdown');
     expect(prompt).toContain('do not impose interviews, market research or a product roadmap');
