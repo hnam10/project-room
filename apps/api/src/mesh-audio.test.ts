@@ -83,6 +83,49 @@ function setup(me = 'a', members = ['a', 'z']) {
 }
 const flush = () => vi.advanceTimersByTimeAsync(0);
 
+it('negotiates every pair in a three-person mesh and replaces only the returning member connections', async () => {
+  const network = new Map<string, ReturnType<typeof createMeshAudio>>();
+  const ids = ['a', 'b', 'c'];
+  const join = (me: string) => {
+    const track = { enabled: true };
+    const stream = { getAudioTracks: () => [track] } as unknown as MediaStream;
+    const controller = createMeshAudio({
+      me,
+      meetingId: 'meeting',
+      iceServers: [],
+      localStream: stream,
+      sendSignal: (to, signal) => network.get(to)?.receive({ type: 'rtc', meetingId: 'meeting', from: me, signal }),
+      onState: vi.fn(),
+      onStream: vi.fn(),
+      onRemove: vi.fn(),
+    });
+    controllers.push(controller);
+    network.set(me, controller);
+    return controller;
+  };
+  ids.forEach(join);
+  network.forEach((controller) => controller.sync(ids));
+  const original = [...FakePeer.all];
+  original.forEach((peer) => peer.onnegotiationneeded?.());
+  await flush();
+  expect(original).toHaveLength(6);
+  original.forEach((peer) => {
+    expect(peer.signalingState).toBe('stable');
+    expect(peer.addTrack).toHaveBeenCalledOnce();
+    peer.state('connected');
+  });
+  network.get('c')!.close();
+  network.delete('c');
+  network.forEach((controller) => controller.sync(['a', 'b']));
+  join('c');
+  network.forEach((controller) => controller.sync(ids));
+  FakePeer.all.slice(6).forEach((peer) => peer.onnegotiationneeded?.());
+  await flush();
+  expect(original[0]!.close).not.toHaveBeenCalled(); // a -> b
+  expect(original[2]!.close).not.toHaveBeenCalled(); // b -> a
+  FakePeer.all.slice(6).forEach((peer) => expect(peer.signalingState).toBe('stable'));
+});
+
 it('ignores a colliding offer and its candidates on the impolite side, then accepts the answer', async () => {
   const { peer, receive, send } = setup('z');
   peer.onnegotiationneeded?.();

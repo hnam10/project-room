@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import * as speech from './ai/transcribe.js';
 import { WebSocket } from 'ws';
 import type { Meeting, MeetingDetail, ServerMessage, TranscriptLine } from '@project-room/shared';
 import { createApp } from './app.js';
@@ -64,6 +65,50 @@ const post = (path: string, member: string, body: unknown = {}) =>
 
 describe('meetings API', () => {
   let id: string;
+
+  it('stores and broadcasts audio transcripts for all three participants, including after rejoining', async () => {
+    const project = 'three-speakers';
+    const members = ['alex', 'jamie', 'taylor'];
+    await ensureProject({ id: project, name: 'Three speakers' });
+    for (const member of members) await addProjectMember(project, member);
+    const path = `/projects/${project}/meetings`;
+    const meeting = (await api<Meeting>(path, { method: 'POST', body: '{}', member: 'alex' })).body;
+    for (const member of members.slice(1))
+      expect((await api(`${path}/${meeting.id}/join`, { method: 'POST', body: '{}', member })).status).toBe(200);
+    const listeners = members.map((member) => listen(project, member));
+    await Promise.all(listeners.map((listener) => listener.ready));
+    const configured = vi.spyOn(speech, 'serverTranscription').mockReturnValue(true);
+    const transcription = vi.spyOn(speech, 'transcribe').mockImplementation(async (audio) => audio.toString());
+    try {
+      for (const member of [...members, 'taylor']) {
+        if (transcription.mock.calls.length === 3) {
+          await api(`${path}/${meeting.id}/leave`, { method: 'POST', body: '{}', member });
+          await api(`${path}/${meeting.id}/join`, { method: 'POST', body: '{}', member });
+        }
+        const text = `${member} speaking ${transcription.mock.calls.length}`;
+        const response = await fetch(`${base}/api${path}/${meeting.id}/audio`, {
+          method: 'POST',
+          headers: { 'content-type': 'audio/webm', 'x-member-id': member },
+          body: text,
+        });
+        expect(response.status).toBe(201);
+        const line = (await response.json()) as TranscriptLine;
+        expect(line).toMatchObject({ speakerId: member, text, source: 'voice' });
+        await Promise.all(
+          listeners.map((listener) =>
+            listener.waitFor((event) => event.type === 'change' && event.table === 'transcript_line' && event.record.id === line.id),
+          ),
+        );
+      }
+      const detail = (await api<MeetingDetail>(`${path}/${meeting.id}`)).body;
+      expect(detail.lines.map((line) => line.speakerId).sort()).toEqual(['alex', 'jamie', 'taylor', 'taylor']);
+    } finally {
+      configured.mockRestore();
+      transcription.mockRestore();
+      listeners.forEach((listener) => listener.ws.close());
+      await api(`${path}/${meeting.id}/end`, { method: 'POST', body: '{}', member: 'alex' });
+    }
+  });
 
   it('allows one live meeting per project', async () => {
     const first = await post('', 'alex', { title: 'Kickoff' });

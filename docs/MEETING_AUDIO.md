@@ -3,6 +3,16 @@
 The transcript and voice call use different paths. A working transcript confirms that speech capture
 and HTTP requests work; it does not confirm that another participant can receive WebRTC audio.
 
+Each participant records and uploads their own microphone, independently of who started the meeting
+and whether peer audio connected. Listening means the recorder started, not that the speech service
+has produced text. The client skips a clip only when a running analyser verified silence; suspended or
+unavailable analysis must not suppress transcription. Recording errors appear above the transcript.
+
+On 2026-10-29 the Render service was running f5df879 from `fix/meeting-peer-audio`. Its environment
+listed GROQ_API_KEY but no RTC_ICE_SERVERS and no linked environment groups. The Docker image excludes
+local .env files, so that deployment uses the default STUN-only configuration. Add a real TURN service
+before treating cross-network calling as reliable; retry logic cannot provide a missing relay.
+
 The client buffers signaling during microphone/ICE setup, handles simultaneous offers, retries lost
 offers and restarts failed ICE connections. Reconnect audio retries unsuccessful pairs without leaving
 the meeting, stopping transcription or changing mute state. Enable audio handles browser autoplay blocks

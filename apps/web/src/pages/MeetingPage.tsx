@@ -134,7 +134,7 @@ export function MeetingPage() {
                 {joined && call.micError && <p className="meeting-notice">Microphone unavailable — others can’t hear you.</p>}
                 {joined && call.audioFailed && (
                   <div className="meeting-notice">
-                    Can’t connect audio on this network — the transcript and AI still work.{' '}
+                    Audio connection failed.{' '}
                     <button className="btn sm" onClick={call.retryAudio}>
                       Reconnect audio
                     </button>

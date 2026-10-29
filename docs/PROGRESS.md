@@ -5,6 +5,18 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **Transcription no longer depends on a running audio analyser.** A suspended browser
+  AudioContext returned zeroes and discarded every six-second recording while still showing Listening.
+  Only verified silence is skipped now; unavailable/suspended analysis sends the clip for server-side
+  speech detection. Analysis retries on user gestures/foregrounding; recorder failures are visible and
+  cleanup prevents stale uploads. Added three-member recorder, transcript delivery/rejoin and mesh
+  negotiation regressions. Render was verified on commit f5df879 with GROQ_API_KEY present but no
+  RTC_ICE_SERVERS setting or linked environment group; its STUN-only default has no TURN fallback.
+  No deployment settings or credentials changed. Real three-device audio remains unresolved.
+  Validation: 306 tests, lint, typecheck and targeted formatting pass. Edge produced five clips per
+  recorder in a three-recorder synthetic check with deliberately suspended analysers; fixtures and
+  server were removed. Root check still stops on pre-existing CRLF formatting drift.
+
 - 2026-10-27 — **Meeting peer-audio recovery** (`fix/meeting-peer-audio`). Buffered early signals while
   microphone/config setup completes; serialized negotiation and signal handling; ignored rejected-offer
   candidates; retransmitted missing offers and restarted ICE after failed/persistent disconnected states.
