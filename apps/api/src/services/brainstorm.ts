@@ -287,7 +287,13 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
   } catch (error) {
     recordFailure(error);
   }
-  const search = await researchWeb(`${problem.title} ${problem.description.slice(0, 160)} research approaches`);
+  // Existing surveys and studies from the last four years stand in for the team running its own survey.
+  const since = new Date();
+  since.setFullYear(since.getFullYear() - 4);
+  const search = await researchWeb(
+    `${problem.title} ${problem.description.slice(0, 160)} survey statistics study`,
+    since.toISOString().slice(0, 10),
+  );
   const results = search.error ? [] : similarWebResults(problem, search.results);
   let summaries: { url: string; summary: string }[] = [];
   if (results.length && !aiFailure) {
