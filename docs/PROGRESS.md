@@ -5,9 +5,12 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
-- 2026-10-29 — **Plainer AI suggestion tone.** The shared system prompt in `ai/structured.ts` now asks for simple,
-  jargon-free, practical advice and a direct answer (not a business plan) for everyday choices. Mock tests are
-  unaffected; check quality with `npm run eval -w apps/api` against a real model.
+- 2026-10-29 — **New members appear without a refresh.** Joining adds the member to `project.memberIds`, but
+  `project` was not a realtime table, so teammates only saw them after reloading. The hub now broadcasts
+  `project` changes and open workspaces refetch the snapshot when `memberIds` changed. HTTP/realtime test covers a join.
+- 2026-10-29 — **Header shows who is here now.** Like Google Docs, the avatar stack lists only members with the
+  project open. The hub sends a `presence` message (unique member ids of the project's sockets) on every
+  subscribe and disconnect. Realtime test covers join and leave.
 - 2026-10-29 — **Clerk profile names stay authoritative.** Organization membership name differences
   trigger a profile refresh before writing, so stale public data cannot restore an old name after
   the refresh window expires. Regression coverage includes full names, usernames and profile outages.

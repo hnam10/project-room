@@ -110,6 +110,8 @@ interface Workspace {
   snapshot: WorkspaceSnapshot | null;
   error: string | null;
   connection: ConnectionState;
+  /** Member ids with the project open right now. */
+  online: string[];
   members: Map<string, Member>;
   messages: (channelId: string) => Message[] | undefined;
   loadMessages: (channelId: string) => Promise<void>;
@@ -119,7 +121,7 @@ interface Workspace {
   applyRecord: (table: RealtimeTable, record: { id: string }, removed?: boolean) => void;
   /** Checks local and realtime deletion tombstones before applying a late response or rollback. */
   isRecordRemoved: (table: RealtimeTable, id: string) => boolean;
-  /** Replaces the project on the snapshot. The project table is not a realtime stream. */
+  /** Replaces the project on the snapshot (also done for live `project` events). */
   applyProject: (project: Project) => void;
   reload: () => void;
 }
@@ -149,15 +151,18 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
     return () => keys.clear();
   }, [projectId]);
 
+  // The mount fetch and the first subscription both reload; only the newest response may land.
+  const reloadSeq = useRef(0);
   const reload = useCallback(() => {
     const requested = projectId;
+    const seq = ++reloadSeq.current;
     api
       .snapshot(requested)
       .then((snapshot) => {
-        if (snapshot.project.id !== projectRef.current) return;
+        if (snapshot.project.id !== projectRef.current || seq !== reloadSeq.current) return;
         dispatch({ type: 'loaded', snapshot: withoutRemoved(snapshot, removedKeys.current) });
       })
-      .catch((e: Error) => dispatch({ type: 'failed', error: e.message }));
+      .catch((e: Error) => seq === reloadSeq.current && dispatch({ type: 'failed', error: e.message }));
   }, [projectId]);
 
   useEffect(reload, [reload, memberId]);
@@ -170,10 +175,16 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
     [projectId],
   );
 
-  const connection = useRealtime(
+  const { connection, online } = useRealtime(
     projectId,
     memberId,
     (event) => {
+      // A new member also needs their profile, so refetch; any other project edit (due date) applies in place.
+      if (event.table === 'project') {
+        if (event.record.memberIds.join() !== state.snapshot?.project.memberIds.join()) reload();
+        else dispatch({ type: 'project', project: event.record });
+        return;
+      }
       const key = removalKey(event.table, event.record.id);
       if (key && event.action === 'delete') removedKeys.current.add(key);
       else if (key && removedKeys.current.has(key)) return;
@@ -196,6 +207,7 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
       snapshot: state.snapshot,
       error: state.error,
       connection,
+      online,
       members: new Map((state.snapshot?.members ?? []).map((m) => [m.id, m])),
       messages: (channelId) => state.messages[channelId],
       loadMessages,
@@ -214,7 +226,7 @@ function ProjectWorkspace({ projectId, children }: { projectId: string; children
       applyProject: (project) => dispatch({ type: 'project', project }),
       reload,
     }),
-    [projectId, state, connection, loadMessages, activeChannelId, reload],
+    [projectId, state, connection, online, loadMessages, activeChannelId, reload],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
