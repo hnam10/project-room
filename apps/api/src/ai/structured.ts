@@ -308,7 +308,7 @@ Each step must be just one or two short sentences describing a concrete action. 
 subfields, focus/why labels, deliverables, success criteria, decision gates or separate explanations.
 essentialScope: one or two short sentences describing the minimum useful outcome and what can wait.
 Aim for 120-180 words total, less for a simple topic. Use plain text field values, no Markdown.
-Keep the plan specific and realistic for a student team. Take the problem as the team describes it:
+Keep the plan specific and realistic for the team's time and resources. Take the problem as the team describes it:
 do not add steps to run surveys or interviews or to validate the problem.
 When the supplied research contains survey, study or statistics findings, base the plan on them and
 name the source URL in the step that uses them. Use only research supplied below:
