@@ -321,7 +321,8 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
         projectId,
         {
           kind: 'brainstorm_analysis',
-          title: `Topic research: ${summary.title || source.title}`,
+          // Without an AI label (e.g. AI unavailable), use the page title before any subtitle.
+          title: `Topic research: ${(summary.title || source.title.split(/[:|–]/)[0]!.trim()).slice(0, 60)}`,
           proposal: summary.summary.replace(/\s+/g, ' ').trim().slice(0, 400),
           reason,
           ideaId: problem.id,

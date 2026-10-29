@@ -94,7 +94,7 @@ export function BrainstormGuide({
   busy: boolean;
   /** Owned by the panel so switching topic or view tabs does not repeat automatic work. */
   attempted: RefObject<Set<string>>;
-  /** The latest research outcome ("Research is ready…"); replaces the intro once research has run. */
+  /** The latest research outcome ("Research is ready…"); replaces the intro whenever research is not running. */
   status?: string | null;
 }) {
   const steps = brainstormGuideSteps(ideas, suggestions);
@@ -129,7 +129,7 @@ export function BrainstormGuide({
       <div className="brainstorm-guide-head">
         <div>
           <strong id="brainstorm-guide-title">{busy ? 'Researching this topic…' : 'Research the topic'}</strong>
-          <p role="status">
+          <p role={!busy && status ? 'status' : undefined}>
             {(!busy && status) || 'AI summarizes relevant sources and proposes a strategy. Your team reviews them and adds ideas.'}
           </p>
         </div>
