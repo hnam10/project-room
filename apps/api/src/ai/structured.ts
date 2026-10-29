@@ -113,6 +113,9 @@ const ResearchSummarySchema = z.object({
 
 const norm = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 
+// Some models leak the JSON around a list into its items ("],", "essentialScope':'…'}"). Such a step is not prose.
+const JSON_FRAGMENT = /^[\s[\]{}"',:]*$|\b(?:recommendation|steps|essentialScope)['"]?\s*:/;
+
 /** A quote is only kept if it really appears in one of the messages. */
 function verifiedQuote(quote: string | null, messages: ConversationMessage[]): string | null {
   if (!quote) return null;
@@ -330,7 +333,10 @@ Return this exact shape, without wrapping it in strategy, summary, ideas or task
         : { ...(await parse(FacilitateSchema, prompt)), strategy: null };
     const knownUrls = new Set(input.research.map((result) => result.url));
     const existing = new Set(input.ideas.map((idea) => norm(idea.title)));
-    const strategy = input.trigger === 'problem_created' ? aiStrategyPlanSchema.parse(output.strategy) : null;
+    const strategy =
+      input.trigger === 'problem_created'
+        ? aiStrategyPlanSchema.parse({ ...output.strategy, steps: output.strategy?.steps.filter((step) => !JSON_FRAGMENT.test(step)) })
+        : null;
     if (strategy) {
       if (JSON.stringify(strategy, null, 2).length > STRATEGY_DESCRIPTION_MAX)
         throw new Error('Strategy roadmap exceeds the supported size');

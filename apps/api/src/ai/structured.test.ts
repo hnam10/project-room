@@ -54,6 +54,22 @@ describe('structured provider', () => {
     expect(prompt).toContain('never invent findings, sources, metrics or user feedback');
   });
 
+  it('drops JSON fragments a model leaked into strategy steps', async () => {
+    const { provider } = providerReturning({
+      recommendation: 'Create a minimal pet-sitter matching app.',
+      steps: ['Define the MVP.', 'Build a prototype.', '],', "essentialScope':'Deliver a functional app.'}"],
+      essentialScope: 'Deliver a functional app.',
+    });
+    const result = await provider.facilitateBrainstorm({
+      trigger: 'problem_created',
+      problem: { title: 'Build an app for pet sitters', description: '' },
+      ideas: [],
+      research: [],
+      mode: 'product',
+    });
+    expect(result.strategy?.steps).toEqual(['Define the MVP.', 'Build a prototype.']);
+  });
+
   it('summarizes supplied research and drops invented source URLs', async () => {
     const { provider, parse } = providerReturning({
       summaries: [
