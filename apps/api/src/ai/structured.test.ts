@@ -57,7 +57,7 @@ describe('structured provider', () => {
   it('drops JSON fragments a model leaked into strategy steps', async () => {
     const { provider } = providerReturning({
       recommendation: 'Create a minimal pet-sitter matching app.',
-      steps: ['Define the MVP.', 'Build a prototype.', '],', "essentialScope':'Deliver a functional app.'}"],
+      steps: ['Define the MVP.', 'Agree on next steps: build a prototype.', '],', "essentialScope':'Deliver a functional app.'}"],
       essentialScope: 'Deliver a functional app.',
     });
     const result = await provider.facilitateBrainstorm({
@@ -67,7 +67,7 @@ describe('structured provider', () => {
       research: [],
       mode: 'product',
     });
-    expect(result.strategy?.steps).toEqual(['Define the MVP.', 'Build a prototype.']);
+    expect(result.strategy?.steps).toEqual(['Define the MVP.', 'Agree on next steps: build a prototype.']);
   });
 
   it('summarizes supplied research and drops invented source URLs', async () => {

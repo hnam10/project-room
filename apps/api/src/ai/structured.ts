@@ -114,7 +114,8 @@ const ResearchSummarySchema = z.object({
 const norm = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 
 // Some models leak the JSON around a list into its items ("],", "essentialScope':'…'}"). Such a step is not prose.
-const JSON_FRAGMENT = /^[\s[\]{}"',:]*$|\b(?:recommendation|steps|essentialScope)['"]?\s*:/;
+// A quote right after the key ("essentialScope':") tells it apart from prose like "Agree on next steps: …".
+const JSON_FRAGMENT = /^[\s[\]{}"',:]*$|\b(?:recommendation|steps|essentialScope)['"]\s*:/;
 
 /** A quote is only kept if it really appears in one of the messages. */
 function verifiedQuote(quote: string | null, messages: ConversationMessage[]): string | null {

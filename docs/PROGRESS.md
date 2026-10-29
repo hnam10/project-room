@@ -5,6 +5,9 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-29 — **Strategy steps drop leaked JSON.** Some models put pieces of the JSON (`],`,
+  `essentialScope':'…'}`) inside the steps list; those items are removed before validation, so they no longer
+  render as numbered steps. Unit test uses the real broken output.
 - 2026-10-29 — **New members appear without a refresh.** Joining adds the member to `project.memberIds`, but
   `project` was not a realtime table, so teammates only saw them after reloading. The hub now broadcasts
   `project` changes and open workspaces refetch the snapshot when `memberIds` changed. HTTP/realtime test covers a join.
