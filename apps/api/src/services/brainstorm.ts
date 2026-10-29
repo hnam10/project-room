@@ -288,7 +288,20 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
     recordFailure(error);
   }
   const search = await researchWeb(`${problem.title} ${problem.description.slice(0, 160)} research approaches`);
-  const results = search.error ? [] : similarWebResults(problem, search.results);
+  // Research again should bring new sources, not the cards (or saved sources) the team already has.
+  // A pending card still waiting for its AI summary is retried instead (see the upgrade below).
+  const awaitingSummary = (item: Suggestion) => item.status === 'pending' && item.reason.includes('AI summary unavailable');
+  const shown = new Set(
+    manual
+      ? [...previous.filter((item) => !awaitingSummary(item)), problem].flatMap((item) => item.researchSources.map((source) => source.url))
+      : [],
+  );
+  const results = search.error
+    ? []
+    : similarWebResults(
+        problem,
+        search.results.filter((result) => !shown.has(result.url)),
+      );
   let summaries: Awaited<ReturnType<AiProvider['summarizeResearch']>> = [];
   if (results.length && !aiFailure) {
     try {
@@ -367,9 +380,11 @@ async function prepareTopic(projectId: string, problem: Idea, previous: Suggesti
           ? 'Web research is not configured. These strategies use the topic context. You can add ideas or retry research later.'
           : search.error
             ? 'Web research is temporarily unavailable. You can add ideas or retry research.'
-            : created.some((item) => item.researchSources.length)
+            : created.some((item) => item.kind === 'brainstorm_analysis' && item.researchSources.length)
               ? 'Research is ready. Review the sources and strategy, then add your ideas.'
-              : 'No reliable matching sources were found. Review the strategy, add context to your topic, or try research again.',
+              : shown.size
+                ? 'No new sources beyond the ones already shown. Review the strategy or add context to your topic to widen the search.'
+                : 'No reliable matching sources were found. Review the strategy, add context to your topic, or try research again.',
       reason: 'Research availability and next step for this topic.',
       ideaId: problem.id,
       brainstormTrigger: 'problem_created',

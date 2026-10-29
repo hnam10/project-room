@@ -686,6 +686,27 @@ it('keeps web research available when AI classification is rate limited, then re
   expect(retry.body.some((item) => item.ideaDraft?.theme === 'Strategy')).toBe(true);
 });
 
+it('brings only new sources when the team asks to research again', async () => {
+  const problem = await topic('Fitness app for students with limited equipment');
+  const source = (n: string) => ({
+    title: `Student fitness app ${n}`,
+    url: `https://${n}.example/fitness`,
+    content: 'This fitness app offers students bodyweight workouts without exercise equipment, designed for small spaces.',
+  });
+  web.mockResolvedValue({ configured: true, error: null, results: [source('one')] });
+  const first = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'problem_created', topicId: problem.id });
+  const urls = (items: Suggestion[]) =>
+    items.filter((item) => item.title.startsWith('Topic research:')).flatMap((item) => item.researchSources.map((s) => s.url));
+  expect(urls(first.body)).toEqual(['https://one.example/fitness']);
+
+  web.mockResolvedValue({ configured: true, error: null, results: [source('one'), source('two')] });
+  const again = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
+  expect(urls(again.body)).toEqual(['https://two.example/fitness']);
+
+  const none = await call<Suggestion[]>('POST', '/ideas/actions', { trigger: 'manual', topicId: problem.id });
+  expect(none.body.find((item) => item.title === 'Topic research status')?.proposal).toContain('No new sources');
+});
+
 it('returns research and an honest status if strategy generation fails', async () => {
   const problem = await topic('Fitness app for students with limited equipment');
   web.mockResolvedValue({
