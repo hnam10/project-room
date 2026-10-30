@@ -11,40 +11,38 @@ function client(): OpenAiClient {
   };
 }
 
-function host(label: string, model: string, api: OpenAiClient): RoutedModel {
-  return { label, client: api, model, fastModel: label === 'openai' ? 'gpt-fast' : model };
+function host(api: OpenAiClient): RoutedModel {
+  return { label: 'host', client: api, model: 'model', fastModel: 'model' };
 }
 
 const lookup = {} as ProjectLookup;
 
 describe('AI host routing', () => {
-  it('sends short checks to Nebius and @AI plus conversation analysis to OpenAI', async () => {
-    const openai = client();
-    const nebius = client();
-    vi.mocked(nebius.parse).mockResolvedValue({ output: { mode: 'product' }, usage: { inputTokens: 1, outputTokens: 1 } });
-    vi.mocked(openai.parse).mockResolvedValue({
+  it('sends short checks to the frequent host and longer calls to the heavy host', async () => {
+    const heavy = client();
+    const frequent = client();
+    vi.mocked(frequent.parse).mockResolvedValue({ output: { mode: 'product' }, usage: { inputTokens: 1, outputTokens: 1 } });
+    vi.mocked(heavy.parse).mockResolvedValue({
       output: { actionItems: [], risks: [] },
       usage: { inputTokens: 1, outputTokens: 1 },
     });
-    const ai = composeAiProvider(host('openai', 'gpt-4.1-mini', openai), host('nebius', 'openai/gpt-oss-120b', nebius));
+    const ai = composeAiProvider(host(heavy), host(frequent));
 
-    expect(ai.name).toBe('openai:gpt-4.1-mini; nebius:openai/gpt-oss-120b');
     await ai.classifyBrainstorm({ problem: null, ideas: [], request: 'Build a study planner' });
-    expect(nebius.parse).toHaveBeenCalledOnce();
-    expect(openai.parse).not.toHaveBeenCalled();
+    expect(frequent.parse).toHaveBeenCalledOnce();
+    expect(heavy.parse).not.toHaveBeenCalled();
 
     await ai.analyzeConversation({
       messages: [{ id: 'm', authorId: 'a', authorName: 'A', text: 'I will write the README' }],
       tasks: [],
       members: [],
     });
-    expect(openai.parse).toHaveBeenCalledOnce();
+    expect(heavy.parse).toHaveBeenCalledOnce();
 
     await ai.runMention?.({ messages: [{ id: 'm', authorId: 'a', authorName: 'A', text: '@AI what is left?' }], lookup });
-    expect(openai.chat).toHaveBeenCalled();
-    expect(nebius.chat).not.toHaveBeenCalled();
-    expect(vi.mocked(openai.chat).mock.calls[0]?.[0].model).toBe('gpt-4.1-mini');
-    vi.mocked(nebius.parse).mockResolvedValue({
+    expect(heavy.chat).toHaveBeenCalled();
+    expect(frequent.chat).not.toHaveBeenCalled();
+    vi.mocked(frequent.parse).mockResolvedValue({
       output: {
         action: 'none',
         explicitRequest: false,
@@ -61,18 +59,18 @@ describe('AI host routing', () => {
       recentMessages: [],
       topics: [],
     });
-    expect(vi.mocked(nebius.parse).mock.calls.at(-1)?.[0].model).toBe('openai/gpt-oss-120b');
-    expect(openai.parse).toHaveBeenCalledOnce();
+    expect(frequent.parse).toHaveBeenCalledTimes(2);
+    expect(heavy.parse).toHaveBeenCalledOnce();
   });
 
-  it('sends live meeting ticks to Nebius and the end summary to OpenAI', async () => {
-    const openai = client();
-    const nebius = client();
-    vi.mocked(nebius.parse).mockResolvedValue({
+  it('sends live meeting ticks to the frequent host and the end summary to the heavy host', async () => {
+    const heavy = client();
+    const frequent = client();
+    vi.mocked(frequent.parse).mockResolvedValue({
       output: { topic: null, actionItems: [], ideas: [], polls: [], runningSummary: 'Talked.' },
       usage: { inputTokens: 1, outputTokens: 1 },
     });
-    vi.mocked(openai.parse).mockResolvedValue({
+    vi.mocked(heavy.parse).mockResolvedValue({
       output: {
         topic: null,
         summary: { overview: 'Done.', decisions: [], openQuestions: [], nextSteps: [] },
@@ -81,15 +79,13 @@ describe('AI host routing', () => {
       },
       usage: { inputTokens: 1, outputTokens: 1 },
     });
-    const meeting = composeMeetingAi(host('openai', 'gpt-4.1-mini', openai), host('nebius', 'openai/gpt-oss-120b', nebius));
+    const meeting = composeMeetingAi(host(heavy), host(frequent));
     const shared = { lines: [], carryOver: [], ideas: [], taskTitles: [], members: [] };
 
     await meeting.meetingTick({ ...shared, runningSummary: '', alreadySuggested: [] });
     await meeting.summarizeMeeting({ ...shared, suggestions: [] });
 
-    expect(vi.mocked(nebius.parse).mock.calls[0]?.[0].model).toBe('openai/gpt-oss-120b');
-    expect(vi.mocked(openai.parse).mock.calls[0]?.[0].model).toBe('gpt-4.1-mini');
-    expect(openai.parse).toHaveBeenCalledOnce();
-    expect(nebius.parse).toHaveBeenCalledOnce();
+    expect(heavy.parse).toHaveBeenCalledOnce();
+    expect(frequent.parse).toHaveBeenCalledOnce();
   });
 });

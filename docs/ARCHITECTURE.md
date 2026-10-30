@@ -335,7 +335,7 @@ Summaries are not copied into `note`; Open meeting shows that meeting's full sum
 | `OPENAI_MODEL` / `OPENAI_FAST_MODEL`         | `gpt-4.1-mini`              | chat model; fast model is live meetings only without Nebius    |
 | `NEBIUS_API_KEY`                             | —                           | open-question check, live meeting ticks, brainstorm automation |
 | `NEBIUS_BASE_URL`                            | Token Factory `/v1`         | `https://api.tokenfactory.nebius.com/v1`                       |
-| `NEBIUS_MODEL`                               | `openai/gpt-oss-120b`       | model for those frequent calls                                 |
+| `NEBIUS_MODEL`                               | `nvidia/Nemotron-3.5-Super-VL` | NVIDIA Nemotron 3.5 Super          |
 | `GROQ_API_KEY`                               | —                           | meeting speech-to-text only; otherwise the browser speech API  |
 | `TAVILY_API_KEY`                             | —                           | optional web research for `@AI brainstorm ...`                 |
 | `RTC_ICE_SERVERS`                            | Google STUN                 | JSON array of ICE servers for meeting audio (add TURN here)    |

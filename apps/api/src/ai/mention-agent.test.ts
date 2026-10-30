@@ -54,7 +54,7 @@ describe('mention agent', () => {
       ],
     ]);
 
-    const out = await runMentionAgent({ chat }, 'openai/gpt-oss-120b', { messages: recent, lookup: tools });
+    const out = await runMentionAgent({ chat }, 'model', { messages: recent, lookup: tools });
 
     expect(chat).toHaveBeenCalledTimes(1);
     expect(out.actionItems.map((item) => item.title)).toEqual(['Book a demo room', 'Invent a mascot']);
