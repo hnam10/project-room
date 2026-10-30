@@ -14,7 +14,19 @@ import { runChatCommand } from './chat-commands.js';
 // pending suggestions. It never edits tasks or ideas itself.
 
 const MENTIONS_AI = /@ai\b/i;
-const ASKS_TO_BRAINSTORM = /\b(brainstorm|ideas?|ideate)\b/i;
+const stripAiMention = (text: string) => text.replace(/@ai\b\s*[,：:]?\s*/gi, ' ').trim();
+
+export function asksToBrainstorm(text: string): boolean {
+  const request = stripAiMention(text);
+  return (
+    /^(?:please\s+)?(?:(?:let['’]s\s+|(?:can|could|would|will)\s+(?:you|we)\s+|(?:i|we)\s+(?:want|would like)\s+to\s+))?(?:help\s+(?:me|us)\s+)?(?:brainstorm|ideate)\b/i.test(
+      request,
+    ) ||
+    /^(?:(?:please|(?:can|could|would|will)\s+you)\s+)?(?:(?:suggest|generate|give me|share|propose|come up with)\s+(?:(?:me|us)\s+)?(?:(?:some|a few|new)\s+)?ideas?\b|(?:any\s+)?ideas?\s+(?:for|on|about)\b|(?:any\s+)?ideas?\s*[?.!]*$)/i.test(
+      request,
+    )
+  );
+}
 const topicKey = (title: string) =>
   title
     .toLowerCase()
@@ -124,8 +136,8 @@ async function replyToMention(projectId: string, channelId: string, channelName:
   const files = await fileExcerpts(projectId, recent);
 
   const request = recent.at(-1)?.text ?? '';
-  if (ASKS_TO_BRAINSTORM.test(request)) {
-    const latestRequest = request.replace(/@ai\b/gi, '').trim();
+  if (asksToBrainstorm(request)) {
+    const latestRequest = stripAiMention(request);
     const genericRequest = /^(?:(?:can you|please)\s+)?(?:brainstorm|ideate|ideas?)(?:\s+(?:this|that|it))?[?.!]*$/i.test(latestRequest);
     const recentContext = conversation
       .slice(0, -1)

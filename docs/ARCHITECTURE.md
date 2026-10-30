@@ -100,7 +100,7 @@ tiles use the shared state for other members.
 1. `POST …/channels/:id/messages` stores the message and responds immediately.
 2. `services/ai-engine.ts` then runs on the message:
 
-   - if the text mentions `@AI` plus brainstorm/idea/research language: `classifyBrainstorm` assesses the
+   - if the `@AI` message explicitly requests brainstorming or ideas: `classifyBrainstorm` assesses the
      requested goal first. Product requests may use Tavily results; non-product requests use conversation
      context only. `brainstorm` creates a `brainstorm_topic` suggestion and up to two editable idea or strategy suggestions;
    - for other `@AI` mentions: the latest 80 messages in that channel are the thread the model reads,
@@ -323,26 +323,26 @@ Summaries are not copied into `note`; Open meeting shows that meeting's full sum
 
 ## Configuration (`apps/api/.env`)
 
-| Variable                                     | Default                     | Notes                                                          |
-| -------------------------------------------- | --------------------------- | -------------------------------------------------------------- |
-| `PORT`                                       | 4000                        | API port                                                       |
-| `SURREAL_URL`                                | `surrealkv://./data/dev.db` | `mem://` for throwaway; `ws://host:8000` for a server          |
-| `SURREAL_NS` / `SURREAL_DB`                  | `project_room` / `dev`      |                                                                |
-| `SURREAL_USER` / `SURREAL_PASS`              | —                           | remote connections only                                        |
-| `SEED_ORG_ID`                                | —                           | Clerk org id: loads the demo project into it if it has none    |
-| `OPENAI_API_KEY`                             | —                           | `@AI`, chat brainstorm drafts, meeting summary                 |
-| `OPENAI_BASE_URL`                            | `https://api.openai.com/v1` |                                                                |
-| `OPENAI_MODEL` / `OPENAI_FAST_MODEL`         | `gpt-4.1-mini`              | chat model; fast model is live meetings only without Nebius    |
-| `NEBIUS_API_KEY`                             | —                           | open-question check, live meeting ticks, brainstorm automation |
-| `NEBIUS_BASE_URL`                            | Token Factory `/v1`         | `https://api.tokenfactory.nebius.com/v1`                       |
-| `NEBIUS_MODEL`                               | `openai/gpt-oss-120b`       | model for those frequent calls                                 |
-| `GROQ_API_KEY`                               | —                           | meeting speech-to-text only; otherwise the browser speech API  |
-| `TAVILY_API_KEY`                             | —                           | optional web research for `@AI brainstorm ...`                 |
-| `RTC_ICE_SERVERS`                            | Google STUN                 | JSON array of ICE servers for meeting audio (add TURN here)    |
-| `AI_PROVIDER`                                | —                           | `mock` forces the mock even when a key is set                  |
-| `WEB_DIST`                                   | `apps/web/dist`             | built web app served by the API when it exists                 |
-| `FILES_DIR`                                  | `./data/files`              | uploaded bytes; `/data/files` in the Docker image              |
-| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                           | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`               |
+| Variable                                     | Default                        | Notes                                                          |
+| -------------------------------------------- | ------------------------------ | -------------------------------------------------------------- |
+| `PORT`                                       | 4000                           | API port                                                       |
+| `SURREAL_URL`                                | `surrealkv://./data/dev.db`    | `mem://` for throwaway; `ws://host:8000` for a server          |
+| `SURREAL_NS` / `SURREAL_DB`                  | `project_room` / `dev`         |                                                                |
+| `SURREAL_USER` / `SURREAL_PASS`              | —                              | remote connections only                                        |
+| `SEED_ORG_ID`                                | —                              | Clerk org id: loads the demo project into it if it has none    |
+| `OPENAI_API_KEY`                             | —                              | `@AI`, chat brainstorm drafts, meeting summary                 |
+| `OPENAI_BASE_URL`                            | `https://api.openai.com/v1`    |                                                                |
+| `OPENAI_MODEL` / `OPENAI_FAST_MODEL`         | `gpt-4.1-mini`                 | chat model; fast model is live meetings only without Nebius    |
+| `NEBIUS_API_KEY`                             | —                              | open-question check, live meeting ticks, brainstorm automation |
+| `NEBIUS_BASE_URL`                            | Token Factory `/v1`            | `https://api.tokenfactory.nebius.com/v1`                       |
+| `NEBIUS_MODEL`                               | `nvidia/Nemotron-3.5-Super-VL` | NVIDIA Nemotron 3.5 Super                                      |
+| `GROQ_API_KEY`                               | —                              | meeting speech-to-text only; otherwise the browser speech API  |
+| `TAVILY_API_KEY`                             | —                              | optional web research for `@AI brainstorm ...`                 |
+| `RTC_ICE_SERVERS`                            | Google STUN                    | JSON array of ICE servers for meeting audio (add TURN here)    |
+| `AI_PROVIDER`                                | —                              | `mock` forces the mock even when a key is set                  |
+| `WEB_DIST`                                   | `apps/web/dist`                | built web app served by the API when it exists                 |
+| `FILES_DIR`                                  | `./data/files`                 | uploaded bytes; `/data/files` in the Docker image              |
+| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | —                              | required; web needs `VITE_CLERK_PUBLISHABLE_KEY`               |
 
 To use a SurrealDB server instead of the embedded engine:
 `surreal start --user root --pass root rocksdb:./data/server.db`, then `SURREAL_URL=ws://127.0.0.1:8000`.

@@ -328,6 +328,27 @@ describe('workspace API', () => {
     live.ws.close();
   });
 
+  it('answers an idea question without starting a brainstorm', async () => {
+    const live = listen('hackathon');
+    await live.ready;
+    const ai = getAiProvider();
+    const classify = vi.spyOn(ai, 'classifyBrainstorm');
+    const analyze = vi.spyOn(ai, 'analyzeConversation');
+    try {
+      await api('/projects/hackathon/channels/hackathon-general/messages', {
+        method: 'POST',
+        body: JSON.stringify({ text: '@AI what was Jamie’s idea?' }),
+      });
+      await live.waitFor((event) => event.type === 'change' && event.table === 'message' && event.record.authorId === 'ai');
+      expect(analyze).toHaveBeenCalled();
+      expect(classify).not.toHaveBeenCalled();
+    } finally {
+      classify.mockRestore();
+      analyze.mockRestore();
+      live.ws.close();
+    }
+  });
+
   it('does not repeat suggestions already waiting when @AI is asked again', async () => {
     const live = listen('hackathon');
     await live.ready;

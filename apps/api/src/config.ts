@@ -62,7 +62,7 @@ export const config = {
    */
   nebiusApiKey: process.env.NEBIUS_API_KEY || null,
   nebiusBaseUrl: env('NEBIUS_BASE_URL', 'https://api.tokenfactory.nebius.com/v1'),
-  nebiusModel: env('NEBIUS_MODEL', 'openai/gpt-oss-120b'),
+  nebiusModel: env('NEBIUS_MODEL', 'nvidia/Nemotron-3.5-Super-VL'),
   /** Whisper on Groq (free tier) transcribes meeting audio when set; otherwise browsers use the Web Speech API. */
   groqApiKey: process.env.GROQ_API_KEY || null,
   groqSttModel: env('GROQ_STT_MODEL', 'whisper-large-v3-turbo'),
