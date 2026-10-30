@@ -55,12 +55,12 @@ Nemotron is the model. Token Factory is the API in front of it. This app does no
 
 With `NEBIUS_API_KEY` set, that one model covers the whole AI loop. People still approve every change. The model only proposes.
 
-| Where it runs | What Nemotron does |
-| --- | --- |
-| Chat (`@AI`) | Reads the channel and proposes tasks, ideas, and risks, each with a reason and a quote from the conversation. |
+| Where it runs     | What Nemotron does                                                                                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat (`@AI`)      | Reads the channel and proposes tasks, ideas, and risks, each with a reason and a quote from the conversation.                                                          |
 | Ordinary messages | Reads a clear request such as "I want to add a student discount to the fitness topic" and turns it into a topic or idea. Tentative wording stays a pending suggestion. |
-| Brainstorm board | Classifies the goal, drafts a short strategy (direction, steps, scope), and summarizes research into cards the team can edit. |
-| Live meeting | On each tick, proposes ideas and tasks from what was just said. At the end, writes the meeting summary. |
+| Brainstorm board  | Classifies the goal, drafts a short strategy (direction, steps, scope), and summarizes research into cards the team can edit.                                          |
+| Live meeting      | On each tick, proposes ideas and tasks from what was just said. At the end, writes the meeting summary.                                                                |
 
 Token Factory is what made those calls practical during a hackathon. Meeting ticks and brainstorm steps fire while people are still talking. Each one is a short request to a model Nebius already serves. Standing up Nemotron ourselves would have meant renting GPUs, loading the weights, and running an inference server before any of those features worked. Token Factory removed that step: point `NEBIUS_BASE_URL` at Token Factory and the same client talks to Nemotron.
 

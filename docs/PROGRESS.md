@@ -5,6 +5,8 @@ Newest entries at the top of each section. Dates are YYYY-MM-DD.
 
 ## Done
 
+- 2026-10-30 — **Chat brainstorm routing.** Explicit brainstorm requests create draft suggestions; incidental mentions of ideas receive the normal `@AI` reply.
+
 - 2026-10-29 — **Strategy steps drop leaked JSON.** Some models put pieces of the JSON (`],`,
   `essentialScope':'…'}`) inside the steps list; those items are removed before validation, so they no longer
   render as numbered steps. Unit test uses the real broken output.
